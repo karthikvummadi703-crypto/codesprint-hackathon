@@ -683,7 +683,14 @@ export default function AIAssistantPage() {
                   }
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputMessage)}
+                  onKeyDown={(e) => {
+                    // Enter sends. Without preventDefault the browser also
+                    // inserts a newline / submits, so the message appeared to be
+                    // typed but never sent.
+                    if (e.key !== 'Enter' || e.shiftKey) return;
+                    e.preventDefault();
+                    if (inputMessage.trim()) void handleSendMessage(inputMessage);
+                  }}
                   className="h-11 border-slate-200 pr-10"
                 />
                 <Button
