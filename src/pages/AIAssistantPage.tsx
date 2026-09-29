@@ -48,6 +48,22 @@ const SUGGESTED_PROMPTS = [
   'What are the health effects of PM2.5?',
 ];
 
+/**
+ * Marker for conversations that Firestore refused to create (offline, rules not
+ * deployed, write denied). The chat still works: the session lives in React
+ * state, so the user can talk to the assistant, but every persistence call for
+ * it is skipped because Firestore would reject the unknown id anyway.
+ */
+const LOCAL_CONVO_PREFIX = 'local-';
+
+function isLocalConvo(id: string): boolean {
+  return id.startsWith(LOCAL_CONVO_PREFIX);
+}
+
+function newLocalConvoId(): string {
+  return `${LOCAL_CONVO_PREFIX}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
 function toChatMessage(raw: any): ChatMessage {
   return {
     id: raw.id,
@@ -147,39 +163,19 @@ export default function AIAssistantPage() {
     reloadData();
   }, [reloadData]);
 
-  const handleNewChat = async () => {
-    if (!user) return;
-    let id = await createConversation(user.uid, 'New Conversation').catch(() => Date.now().toString());
-    const newSession: ChatSession = {
-      id: id,
-      title: 'New Conversation',
-      messages: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setSessions((prev) => [newSession, ...prev]);
-    setCurrentSessionId(newSession.id);
-  };
-
-  const handleSendMessage = async (text: string) => {
-    if (!text.trim() || isLoading) return;
-    if (!user) {
-      setAttachmentError('Sign in to use the assistant.');
-      return;
-    }
-
-    // The session is created on demand rather than required. Returning early
-    // when none was ready made the composer silently swallow the question: the
-    // initial load can fail (Firestore rules, offline, signed out) and then every
-    // send was dropped with no message shown at all.
-    let convoId = currentSessionId;
-    if (!convoId || !sessions.some((s) => s.id === convoId)) {
-      const newId = await createConversation(user.uid, 'New Conversation').catch(() => '');
-      if (!newId) {
-        setAttachmentError('Could not start a conversation. Please check your connection and try again.');
-        return;
-      }
-      convoId = newId;
+  /**
+   * Make sure a usable session exists and return its id. Never rejects: a
+   * Firestore failure downgrades to an in-memory conversation so the composer
+   * keeps working instead of discarding what the user typed.
+   */
+  const ensureSession = useCallback(
+    async (uid: string, existingId: string): Promise<string> => {
+      if (existingId && sessions.some((s) => s.id === existingId)) return existingId;
+      const newId = await createConversation(uid, 'New Conversation')
+        .catch((e) => {
+          console.warn('Conversation could not be persisted, using a local one', e);
+          return newLocalConvoId();
+        });
       const fresh: ChatSession = {
         id: newId,
         title: 'New Conversation',
@@ -190,14 +186,40 @@ export default function AIAssistantPage() {
       setSessions((prev) => (prev.some((s) => s.id === newId) ? prev : [fresh, ...prev]));
       setCurrentSessionId(newId);
       setLoaded(true);
+      return newId;
+    },
+    [sessions]
+  );
+
+  const handleNewChat = async () => {
+    if (!user) return;
+    const newId = await ensureSession(user.uid, '');
+    setCurrentSessionId(newId);
+  };
+
+  const handleSendMessage = async (text: string) => {
+    if (!text.trim() || isLoading) return;
+    if (!user) {
+      setAttachmentError('Sign in to use the assistant.');
+      return;
     }
 
     // An attachment that has not finished indexing cannot be retrieved from, so
     // it is refused here rather than sent and silently ignored by the model.
+    // Checked before the session is created so a rejected turn does not leave
+    // behind an empty conversation in the sidebar.
     if (pendingAttachment && pendingAttachment.status !== 'ready') {
       setAttachmentError('Wait for the document to finish uploading before asking about it.');
       return;
     }
+
+    // The session is created on demand rather than required. Returning early
+    // when none was ready made the composer silently swallow the question: the
+    // initial load can fail (Firestore rules, offline, signed out) and then every
+    // send was dropped with no message shown at all. A failed persist now
+    // downgrades to a local session instead of dropping the turn.
+    const convoId = await ensureSession(user.uid, currentSessionId);
+    const persisted = !isLocalConvo(convoId);
 
     const attachment = pendingAttachment;
     const userMsg: ChatMessage = {
@@ -207,12 +229,30 @@ export default function AIAssistantPage() {
       timestamp: new Date(),
     };
 
-    await addMessage(user.uid, convoId, { role: 'user', content: text });
+    const priorMessages = sessions.find((s) => s.id === convoId)?.messages ?? [];
 
-    let currentTitle = sessions.find((s) => s.id === convoId)?.title || 'New Conversation';
-    if (currentTitle === 'New Conversation') {
-      currentTitle = text.slice(0, 30) + (text.length > 30 ? '...' : '');
-      await updateConversation(user.uid, convoId, currentTitle).catch(() => {});
+    // History is snapshotted before this turn is appended, then the current
+    // question is added on top. Reading the live session state here would send
+    // the model a history that is missing the turn it is being asked to answer.
+    const history = [...priorMessages, userMsg]
+      .slice(-10)
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    // Persisting is best-effort. A rejected write used to escape the handler and
+    // abort the send before anything was rendered, which looked exactly like the
+    // input not working.
+    if (persisted) {
+      void addMessage(user.uid, convoId, { role: 'user', content: text }).catch((e) =>
+        console.warn('Message not saved to history', e)
+      );
+    }
+
+    const currentTitle =
+      sessions.find((s) => s.id === convoId)?.title === 'New Conversation'
+        ? text.slice(0, 30) + (text.length > 30 ? '...' : '')
+        : sessions.find((s) => s.id === convoId)?.title || 'New Conversation';
+    if (sessions.find((s) => s.id === convoId)?.title === 'New Conversation' && persisted) {
+      void updateConversation(user.uid, convoId, currentTitle).catch(() => {});
     }
 
     setSessions((prev) =>
@@ -281,9 +321,7 @@ export default function AIAssistantPage() {
         // the id inside the caller's own knowledge base, so an id belonging to
         // someone else retrieves nothing.
         documentIds: attachment?.ragFileId ? [attachment.ragFileId] : undefined,
-        history: (activeSession?.messages ?? [])
-          .slice(-10)
-          .map((m) => ({ role: m.role, content: m.content })),
+        history,
       });
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -291,7 +329,9 @@ export default function AIAssistantPage() {
         content: response,
         timestamp: new Date(),
       };
-      await addMessage(user.uid, convoId, { role: 'assistant', content: response }).catch(() => {});
+      if (persisted) {
+        void addMessage(user.uid, convoId, { role: 'assistant', content: response }).catch(() => {});
+      }
       setSessions((prev) =>
         prev.map((s) =>
           s.id === convoId
@@ -300,11 +340,18 @@ export default function AIAssistantPage() {
         )
       );
     } catch (e) {
+      // Name the real cause. A blanket "start the backend" hint sent people
+      // chasing a server that was already running when the failure was a 401.
       const msg = e instanceof Error ? e.message : String(e);
+      const hint = /401|Unauthorized|unauthorized/.test(msg)
+        ? 'Your session is no longer valid. Sign in again and retry.'
+        : /Failed to fetch|NetworkError|Load failed/i.test(msg)
+          ? 'Could not reach the backend. Start it with `uvicorn main:app --reload --port 8001` and check that VITE_API_BASE_URL matches.'
+          : 'The AI service rejected the request. Check the backend logs for details.';
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `⚠️ I couldn't reach the AI service (${msg}). Please make sure the backend is running (uvicorn main:app --reload --port 8001) and try again.`,
+        content: `⚠️ I couldn't answer that. ${msg}\n\n${hint}`,
         timestamp: new Date(),
       };
       setSessions((prev) =>
@@ -324,7 +371,7 @@ export default function AIAssistantPage() {
     if (currentSessionId === id) {
       setCurrentSessionId(filtered.length > 0 ? filtered[0].id : '');
     }
-    if (user) await deleteConversation(user.uid, id).catch(() => {});
+    if (user && !isLocalConvo(id)) await deleteConversation(user.uid, id).catch(() => {});
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
