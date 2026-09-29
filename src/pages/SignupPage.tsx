@@ -4,6 +4,7 @@ import { Wind, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input, Label } from '../components/ui/Input';
 import { useAuth, firebaseErrorMessage } from '../context/AuthContext';
+import { isGoogleSignInAvailable } from '../services/authService';
 
 interface FormState {
   name: string;
@@ -35,6 +36,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
   const { signup, loginWithGoogle } = useAuth();
+  const googleAvailable = isGoogleSignInAvailable();
   const navigate = useNavigate();
 
   const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -142,8 +144,9 @@ export default function SignupPage() {
           <button
             type="button"
             onClick={handleGoogle}
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 h-11 disabled:opacity-50"
+            disabled={loading || !googleAvailable}
+            title={googleAvailable ? undefined : 'Google sign-up requires Firebase configuration'}
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 h-11 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />

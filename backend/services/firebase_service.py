@@ -1,92 +1,140 @@
-import os
+"""Firebase token verification and optional Admin SDK access.
+
+Two verification paths, so the backend needs no service account in order to
+validate real Firebase ID tokens:
+
+1. Admin SDK, when FIREBASE_PROJECT_ID / CLIENT_EMAIL / PRIVATE_KEY are set.
+2. Direct RS256 verification against Google's published x509 certificates.
+
+Public certificates are cached in memory and refreshed when the provider rotates
+a key or a token arrives with an unknown `kid`.
+"""
+
+from __future__ import annotations
+
 import time
 
 import firebase_admin
-import httpx
 import jwt
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
-from firebase_admin import credentials, auth, firestore
+from firebase_admin import auth, credentials, firestore
 
-_config = None
+from config import get_settings
+from http_client import request_json
+from logging_config import get_logger
+
+log = get_logger("airguard.firebase")
+
+_CERTS_URL = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com"
+_CERTS_TTL_S = 3600
+
+_certs: dict[str, str] = {}
+_certs_fetched_at: float = 0.0
+_admin_initialized = False
 _firestore_client = None
 
-# Google public signing certs for Firebase ID tokens (no service account needed).
-_CERTS_URL = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com"
-_certs_cache = {"certs": None, "expires_at": 0}
+
+async def _load_certs(force: bool = False) -> dict[str, str]:
+    global _certs, _certs_fetched_at
+    now = time.monotonic()
+    if _certs and not force and (now - _certs_fetched_at) < _CERTS_TTL_S:
+        return _certs
+    try:
+        data = await request_json("GET", _CERTS_URL, provider="google-certs", timeout=8.0)
+        if isinstance(data, dict) and data:
+            _certs = {str(k): str(v) for k, v in data.items()}
+            _certs_fetched_at = now
+    except Exception as exc:
+        log.warning("could not refresh Firebase signing certificates: %s", type(exc).__name__)
+    return _certs
 
 
-def _load_config():
-    global _config
-    project_id = os.getenv("FIREBASE_PROJECT_ID")
-    client_email = os.getenv("FIREBASE_CLIENT_EMAIL")
-    private_key = os.getenv("FIREBASE_PRIVATE_KEY")
-    if project_id and client_email and private_key:
-        _config = {
-            "type": "service_account",
-            "project_id": project_id,
-            "client_email": client_email,
-            "private_key": private_key.replace("\\n", "\n"),
-            "token_uri": "https://oauth2.googleapis.com/token",
-        }
-    return _config
-
-
-def _init_admin():
-    global _config, _firestore_client
-    if not _config:
-        _load_config()
-    if _config and not firebase_admin._apps:
-        cred = credentials.Certificate(_config)
-        firebase_admin.initialize_app(cred, {"projectId": _config["project_id"]})
+def _init_admin() -> bool:
+    """Initialize the Admin SDK once, if a service account is configured."""
+    global _admin_initialized
+    settings = get_settings()
+    if not settings.firebase_admin_configured:
+        return False
+    if _admin_initialized:
+        return True
+    try:
+        if not firebase_admin._apps:
+            cert = credentials.Certificate(
+                {
+                    "type": "service_account",
+                    "project_id": settings.firebase_project_id,
+                    "client_email": settings.firebase_client_email,
+                    "private_key": settings.firebase_private_key,
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                }
+            )
+            firebase_admin.initialize_app(cert, {"projectId": settings.firebase_project_id})
+        _admin_initialized = True
+        return True
+    except Exception as exc:
+        log.error("Firebase Admin initialization failed: %s", type(exc).__name__)
+        return False
 
 
 def admin_initialized() -> bool:
-    _load_config()
-    return _config is not None
+    return _init_admin()
 
 
 def get_firestore():
+    """Firestore client, or None when the Admin SDK is not configured."""
     global _firestore_client
-    if not admin_initialized():
+    if not _init_admin():
         return None
-    _init_admin()
     if _firestore_client is None:
-        _firestore_client = firestore.client()
+        try:
+            _firestore_client = firestore.client()
+        except Exception as exc:
+            log.error("Firestore client unavailable: %s", type(exc).__name__)
+            return None
     return _firestore_client
 
 
-def verify_id_token(token: str):
-    """Verify a Firebase ID token. Returns uid string or None if invalid.
+async def verify_id_token(token: str) -> str | None:
+    """Verify a Firebase ID token and return its uid, or None when invalid."""
+    if _init_admin():
+        import anyio
 
-    Uses the Admin SDK when a service account is configured; otherwise verifies
-    the JWT signature against Google's public signing certificates directly.
-    """
-    if admin_initialized():
-        _init_admin()
-        try:
-            decoded = auth.verify_id_token(token)
-            return decoded.get("uid")
-        except Exception:
-            return None
+        def _verify() -> str | None:
+            try:
+                decoded = auth.verify_id_token(token)
+                return decoded.get("uid")
+            except Exception:
+                return None
 
-    return _verify_with_public_keys(token)
+        return await anyio.to_thread.run_sync(_verify)
+
+    return await _verify_with_public_keys(token)
 
 
-def _verify_with_public_keys(token: str):
-    project_id = os.getenv("FIREBASE_PROJECT_ID")
+async def _verify_with_public_keys(token: str) -> str | None:
+    project_id = get_settings().firebase_project_id
     if not project_id:
         return None
     try:
         header = jwt.get_unverified_header(token)
-        kid = header.get("kid")
-        if not kid:
-            return None
-        certs = _fetch_public_certs()
-        cert = certs.get(kid)
-        if not cert:
-            return None
-        public_key = _cert_to_public_key_pem(cert)
+    except Exception:
+        return None
+    kid = header.get("kid")
+    if not kid:
+        return None
+
+    certs = await _load_certs()
+    cert_pem = certs.get(kid)
+    if cert_pem is None:
+        # Unknown kid means Google rotated its keys; refresh once and retry.
+        certs = await _load_certs(force=True)
+        cert_pem = certs.get(kid)
+    if not cert_pem:
+        return None
+
+    try:
+        public_key = _cert_to_public_key_pem(cert_pem)
         payload = jwt.decode(
             token,
             public_key,
@@ -94,29 +142,16 @@ def _verify_with_public_keys(token: str):
             audience=project_id,
             issuer=f"https://securetoken.google.com/{project_id}",
         )
-        return payload.get("user_id") or payload.get("sub") or payload.get("uid")
     except Exception:
         return None
+
+    return payload.get("user_id") or payload.get("sub") or payload.get("uid")
 
 
 def _cert_to_public_key_pem(cert_pem: str) -> str:
     cert = x509.load_pem_x509_certificate(cert_pem.encode())
-    pub = cert.public_key()
-    return pub.public_bytes(
+    public_key = cert.public_key()
+    return public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     ).decode()
-
-
-def _fetch_public_certs() -> dict:
-    if _certs_cache["certs"] and _certs_cache["expires_at"] > time.time():
-        return _certs_cache["certs"]
-    try:
-        r = httpx.get(_CERTS_URL, timeout=10)
-        r.raise_for_status()
-        certs = r.json()
-        _certs_cache["certs"] = certs
-        _certs_cache["expires_at"] = time.time() + 3600
-        return certs
-    except Exception:
-        return _certs_cache["certs"] or {}

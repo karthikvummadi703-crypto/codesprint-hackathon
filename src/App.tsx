@@ -1,18 +1,27 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation as useRouterLocation } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
 import DashboardPage from './pages/DashboardPage';
 import AIAssistantPage from './pages/AIAssistantPage';
 import PredictionsPage from './pages/PredictionsPage';
 import CarbonFootprintPage from './pages/CarbonFootprintPage';
 import SettingsPage from './pages/SettingsPage';
+import WeatherReportPage from './pages/WeatherReportPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LocationProvider, useLocation } from './context/LocationContext';
+import LocationPicker from './components/LocationPicker';
+
+function RequireLocation({ children }: { children: React.ReactNode }) {
+  const { location } = useLocation();
+  if (!location) return <LocationPicker />;
+  return <>{children}</>;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, initializing } = useAuth();
-  const location = useLocation();
+  const location = useRouterLocation();
 
   if (initializing) {
     return (
@@ -54,7 +63,9 @@ function AppRoutes() {
         path="/"
         element={
           <ProtectedRoute>
-            <AppLayout />
+            <RequireLocation>
+              <AppLayout />
+            </RequireLocation>
           </ProtectedRoute>
         }
       >
@@ -62,6 +73,7 @@ function AppRoutes() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="ai" element={<AIAssistantPage />} />
         <Route path="predictions" element={<PredictionsPage />} />
+        <Route path="weather" element={<WeatherReportPage />} />
         <Route path="carbon" element={<CarbonFootprintPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -73,9 +85,11 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      <LocationProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </LocationProvider>
     </AuthProvider>
   );
 }

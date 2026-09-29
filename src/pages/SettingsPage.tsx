@@ -6,9 +6,10 @@ import { Badge } from '../components/ui/Badge';
 import { User, Settings, Bell, Shield, Check, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getUser, saveUser } from '../services/dataService';
+import { initialsFor } from '../services/profileService';
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, displayName, updateName } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'privacy'>('profile');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -27,7 +28,7 @@ export default function SettingsPage() {
       .then((profile) => {
         if (profile) {
           const p = profile as any;
-          setName(p.name || user.name || '');
+          setName(p.name || displayName || '');
           setEmail(p.email || user.email || '');
           setLocation(p.location || '');
           const prefs = p.preferences;
@@ -37,13 +38,13 @@ export default function SettingsPage() {
             setThreshold(prefs.alertThreshold || 100);
           }
         } else {
-          setName(user.name || '');
+          setName(displayName || '');
           setEmail(user.email || '');
         }
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
-  }, [user]);
+  }, [user, displayName]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +63,8 @@ export default function SettingsPage() {
         },
         updatedAt: new Date().toISOString(),
       });
+      // Refresh the shared name so the sidebar updates on the next render.
+      await updateName(name);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
@@ -78,12 +81,7 @@ export default function SettingsPage() {
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
   ];
 
-  const initials = (name || user?.email || 'U')
-    .split(' ')
-    .map((p) => p[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  const initials = initialsFor(name || displayName || user?.email || 'U');
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
@@ -152,6 +150,9 @@ export default function SettingsPage() {
                   <div>
                     <Label htmlFor="name">Full Name</Label>
                     <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
+                    <p className="mt-1.5 text-[11px] text-slate-400 leading-relaxed">
+                      This name is shown in the sidebar and greetings. Leave it blank and your sign-in email is used instead.
+                    </p>
                   </div>
 
                   <div>

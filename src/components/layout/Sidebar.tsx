@@ -10,14 +10,17 @@ import {
   Wind,
   X,
   Menu,
+  CloudSun,
 } from 'lucide-react';
 import { cn } from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
+import { initialsFor } from '../../services/profileService';
 
 const NAV_ITEMS = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'AI Assistant', href: '/ai', icon: MessageSquare },
   { name: 'Predictions', href: '/predictions', icon: TrendingUp },
+  { name: 'Weather Report', href: '/weather', icon: CloudSun },
   { name: 'Carbon Footprint', href: '/carbon', icon: Leaf },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -70,20 +73,14 @@ interface SidebarProps {
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, displayName, profileLoading, logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
-  const initials = (user?.name || user?.email || 'U')
-    .split(' ')
-    .map((p) => p[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-  const displayName = user?.name || user?.email?.split('@')[0] || 'User';
+  const initials = initialsFor(displayName);
   const displayEmail = user?.email || '';
 
   return (
@@ -129,7 +126,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
             )}
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-slate-800 truncate">{displayName}</div>
+            {profileLoading ? (
+              <div className="h-4 w-24 rounded bg-slate-100 animate-pulse" />
+            ) : (
+              <div className="text-sm font-semibold text-slate-800 truncate">{displayName}</div>
+            )}
             <div className="text-xs text-slate-400 truncate">{displayEmail}</div>
           </div>
         </div>

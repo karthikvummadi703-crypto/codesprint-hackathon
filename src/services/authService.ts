@@ -118,19 +118,27 @@ export async function appLogin(email: string, password: string): Promise<AppUser
   return { uid: account.uid, email: account.email, name: account.name, photoURL: null, isDev: true };
 }
 
+/**
+ * Google sign-in requires a real Firebase project.
+ *
+ * When Firebase is not configured there is no Google identity to obtain, and
+ * inventing a placeholder user here is what previously made every session show
+ * "Dev User". Failing loudly is correct: the caller can explain the situation,
+ * and no fabricated account is written to storage.
+ */
 export async function appLoginWithGoogle(): Promise<AppUser> {
   if (isFirebaseConfigured && auth) {
     const provider = new GoogleAuthProvider();
     const cred = await signInWithPopup(auth, provider);
     return toAppUser(cred.user)!;
   }
-  await new Promise((r) => setTimeout(r, 600));
-  const account: DevAccount = { uid: `dev-${Date.now()}`, email: 'dev@airguard.local', name: 'Dev User' };
-  const accounts = devAccounts();
-  accounts[account.uid] = account;
-  saveDevAccounts(accounts);
-  setCurrentDevUser(account);
-  return { uid: account.uid, email: account.email, name: account.name, photoURL: null, isDev: true };
+  throw new Error(
+    'Google sign-in needs a Firebase configuration. Add your Firebase web keys to .env.local, or sign up with email and password instead.',
+  );
+}
+
+export function isGoogleSignInAvailable(): boolean {
+  return Boolean(isFirebaseConfigured && auth);
 }
 
 export async function appResetPassword(email: string): Promise<void> {

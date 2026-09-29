@@ -2,9 +2,38 @@ node_modules/
 dist/
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Secrets — never commit real values
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+
+# Loose credential files kept in the working tree
+*key*.txt
+*secret*.txt
+*credential*.txt
+*.pem
+*.p12
+service-account*.json
+
+# Logs and build artifacts
 *.log
+.firebase/
+backend/.firebase/
+
+# Python
+.venv/
+venv/
+*.egg-info/
+
+# Backend runtime data (RAG document store)
+backend/data/
+
+# Local scratch
+*.mp4
+*.mov
+.DS_Store
 .vscode/
 .idea/

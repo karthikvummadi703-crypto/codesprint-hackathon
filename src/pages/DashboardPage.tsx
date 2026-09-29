@@ -7,27 +7,32 @@ import { Input } from '../components/ui/Input';
 import AQIGauge from '../components/aqi/AQIGauge';
 import PollutantCard from '../components/aqi/PollutantCard';
 import HealthAdvisory from '../components/aqi/HealthAdvisory';
-import PollutionMap from '../components/aqi/PollutionMap';
+import PollutionOutlook from '../components/aqi/PollutionOutlook';
 import AQITrendChart from '../components/charts/AQITrendChart';
 import PollutantTrendChart from '../components/charts/PollutantTrendChart';
-import { MOCK_AIR_QUALITY, MOCK_HISTORICAL } from '../services/mockAirQualityService';
 import { fetchAQI, searchLocations, reverseGeocode, PlaceSuggestion } from '../services/backendService';
 import { useAuth } from '../context/AuthContext';
-import { addAirQualityRecord, listAirQualityRecords } from '../services/dataService';
+import { useLocation, toLocationParams, ActiveLocation } from '../context/LocationContext';
+import { addAirQualityRecord } from '../services/dataService';
 import { AirQualityData, HistoricalDataPoint } from '../types';
+import WeatherCard from '../components/WeatherCard';
+import LocationPicker from '../components/LocationPicker';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { location: activeLocation, setLocation } = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searching, setSearching] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState(MOCK_AIR_QUALITY.location.name);
-  const [aqiData, setAqiData] = useState<AirQualityData>(MOCK_AIR_QUALITY);
-  const [history, setHistory] = useState<HistoricalDataPoint[]>(MOCK_HISTORICAL);
+  const [currentLocation, setCurrentLocation] = useState('');
+  // No seeded sample values: until the provider answers there is nothing to
+  // show, and a placeholder reading is worse than an honest empty state.
+  const [aqiData, setAqiData] = useState<AirQualityData | null>(null);
+  const [history, setHistory] = useState<HistoricalDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [usingMock, setUsingMock] = useState(false);
+  const [isEstimated, setIsEstimated] = useState(false);
 
   const loadFromBackend = useCallback(
     async (params: { lat?: number; lon?: number; city?: string }, locationLabel: string) => {
@@ -54,7 +59,15 @@ export default function DashboardPage() {
         };
         setAqiData(aq);
         setCurrentLocation(aq.location.name);
-        setUsingMock(data.source === 'mock');
+        setIsEstimated(Boolean((data as { isEstimated?: boolean }).isEstimated));
+        // Persist the resolved location so every other page uses it until changed.
+        setLocation({
+          name: aq.location.name,
+          latitude: aq.location.latitude,
+          longitude: aq.location.longitude,
+          region: aq.location.region,
+          country: aq.location.country,
+        });
         if (Array.isArray(data.historical) && data.historical.length > 0) {
           setHistory(data.historical);
         }
@@ -72,34 +85,25 @@ export default function DashboardPage() {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setError(msg);
-        setAqiData((prev) => ({ ...prev, location: { ...prev.location, name: locationLabel } }));
+        // Drop the reading rather than leaving the previous location's numbers
+        // on screen under the new location's name.
+        setAqiData(null);
         setCurrentLocation(locationLabel);
       } finally {
         setLoading(false);
       }
     },
-    [user]
+    [user, setLocation]
   );
 
   useEffect(() => {
-    if (user) {
-      listAirQualityRecords(user.uid, 1)
-        .then((records) => {
-          const last = records[0];
-          if (last?.location && last?.timestamp) {
-            const age = Date.now() - new Date(last.timestamp).getTime();
-            if (age < 30 * 60 * 1000) {
-              loadFromBackend({ city: last.location }, last.location).catch(() => {});
-              return;
-            }
-          }
-          loadFromBackend({ city: 'Gudur' }, 'Gudur, Andhra Pradesh').catch(() => {});
-        })
-        .catch(() => loadFromBackend({ city: 'Gudur' }, 'Gudur, Andhra Pradesh').catch(() => {}));
-    } else {
-      loadFromBackend({ city: 'Gudur' }, 'Gudur, Andhra Pradesh').catch(() => {});
-    }
-  }, [loadFromBackend, user]);
+    // App.tsx blocks rendering until a location exists, so this is only a
+    // type-level guard rather than a real state the user can reach.
+    if (!activeLocation) return;
+    // Always load the pinned location; coordinates win over the name.
+    loadFromBackend(toLocationParams(activeLocation), activeLocation.name).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadFromBackend, activeLocation?.name, activeLocation?.latitude, activeLocation?.longitude]);
 
   useEffect(() => {
     const q = searchQuery.trim();
@@ -123,16 +127,26 @@ export default function DashboardPage() {
     if (!q) return;
     const best = suggestions[0];
     if (best?.latitude) {
-      loadFromBackend({ lat: best.latitude, lon: best.longitude }, best.name);
+      selectSuggestion(best);
     } else {
-      loadFromBackend({ city: q }, q);
+      // Pin by city name only; coordinates resolve on the backend response.
+      setLocation({ name: q });
+      loadFromBackend({ city: q }, q).catch(() => {});
     }
   };
 
   const selectSuggestion = (s: PlaceSuggestion) => {
     setSearchQuery(s.label || s.name);
     setShowSuggestions(false);
-    loadFromBackend({ lat: s.latitude, lon: s.longitude }, s.name);
+    const pinned: ActiveLocation = {
+      name: s.name,
+      latitude: s.latitude,
+      longitude: s.longitude,
+      region: s.region,
+      country: s.country,
+    };
+    setLocation(pinned);
+    loadFromBackend({ lat: s.latitude, lon: s.longitude }, s.name).catch(() => {});
   };
 
   const handleUseMyLocation = () => {
@@ -152,7 +166,8 @@ export default function DashboardPage() {
         } catch {
           // keep generic label if reverse geocoding fails
         }
-        loadFromBackend({ lat: latitude, lon: longitude }, label);
+        setLocation({ name: label, latitude, longitude });
+        loadFromBackend({ lat: latitude, lon: longitude }, label).catch(() => {});
       },
       (err) => {
         setLoading(false);
@@ -168,6 +183,9 @@ export default function DashboardPage() {
     );
   };
 
+  // Reachable only if the router guard is bypassed; keeps the page honest.
+  if (!activeLocation) return <LocationPicker compact />;
+
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
       {/* Top navbar-style header */}
@@ -177,9 +195,11 @@ export default function DashboardPage() {
             <h1 className="text-xl font-bold text-slate-900">Urban Air Quality Intelligence</h1>
             <div className="flex items-center gap-1.5 text-slate-500 text-xs mt-1">
               <MapPin className="h-3.5 w-3.5 text-brand-600" />
-              <span className="font-medium text-slate-700">{currentLocation}</span>
-              {usingMock && (
-                <Badge variant="warning" className="ml-2 text-[10px]">Mock data</Badge>
+              <span className="font-medium text-slate-700">{currentLocation || activeLocation.name}</span>
+              {isEstimated && (
+                <Badge variant="warning" className="ml-2 text-[10px]" title="Derived from weather, not a measurement">
+                  Modelled
+                </Badge>
               )}
             </div>
           </div>
@@ -251,7 +271,12 @@ export default function DashboardPage() {
               <p className="text-xs mt-1">{error}</p>
               <p className="text-xs mt-1">Make sure the backend is running (uvicorn main:app --reload --port 8001).</p>
             </div>
-            <Button variant="outline" size="sm" className="h-8" onClick={() => loadFromBackend({ city: 'Gudur' }, 'Gudur, Andhra Pradesh')}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => loadFromBackend(toLocationParams(activeLocation), activeLocation.name)}
+            >
               <RefreshCw className="h-3.5 w-3.5 mr-1" /> Retry
             </Button>
           </div>
@@ -268,60 +293,84 @@ export default function DashboardPage() {
               {loading && <RefreshCw className="h-4 w-4 text-brand-500 animate-spin" />}
             </CardHeader>
             <CardContent className="flex-1 flex flex-col items-center justify-center py-6">
-              <AQIGauge aqi={aqiData.aqi} />
+              {aqiData ? (
+                <>
+                  <AQIGauge aqi={aqiData.aqi} />
 
-              <div className="text-center mt-4">
-                <Badge variant={aqiData.aqi > 100 ? 'warning' : 'success'} className="mb-2">
-                  {aqiData.status}
-                </Badge>
-                <div className="text-xs text-slate-400 mt-1 flex items-center gap-1 justify-center">
-                  <span>Dominant Pollutant: <strong>{aqiData.dominantPollutant}</strong></span>
-                  <span className="text-red-500 font-semibold flex items-center gap-0.5">
-                    <ArrowUpRight className="h-3 w-3" />+{aqiData.change24h} (24h)
-                  </span>
+                  <div className="text-center mt-4">
+                    <Badge variant={aqiData.aqi > 100 ? 'warning' : 'success'} className="mb-2">
+                      {aqiData.status}
+                    </Badge>
+                    <div className="text-xs text-slate-400 mt-1 flex items-center gap-1 justify-center">
+                      <span>Dominant Pollutant: <strong>{aqiData.dominantPollutant}</strong></span>
+                      <span className="text-red-500 font-semibold flex items-center gap-0.5">
+                        <ArrowUpRight className="h-3 w-3" />+{aqiData.change24h} (24h)
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-6 w-6 text-slate-300 mx-auto" />
+                  <p className="text-sm font-semibold text-slate-700 mt-2">
+                    {loading ? 'Loading reading' : 'No reading yet'}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-1 max-w-[200px]">
+                    {loading
+                      ? 'Contacting the air quality provider.'
+                      : 'No air quality reading is available for this location right now.'}
+                  </p>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
           {/* Health Advisory card */}
           <div className="lg:col-span-8 h-full flex flex-col gap-6">
-            <HealthAdvisory
-              status={aqiData.status}
-              advisory={aqiData.healthAdvisory}
-              aqi={aqiData.aqi}
-            />
+            {aqiData && (
+              <HealthAdvisory
+                status={aqiData.status}
+                advisory={aqiData.healthAdvisory}
+                aqi={aqiData.aqi}
+              />
+            )}
+
+            <WeatherCard params={toLocationParams(activeLocation)} />
 
             {/* Environmental Insight Card */}
-            <Card className="bg-brand-50 border-brand-100 flex-1">
-              <CardContent className="flex items-start gap-4">
-                <div className="p-3 bg-brand-100 rounded-xl text-brand-700 mt-1">
-                  <ShieldCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-brand-900 text-sm">Environmental Insight</h4>
-                  <p className="text-xs text-brand-700 leading-relaxed mt-1">
-                    Current AQI ({aqiData.aqi}) is primarily driven by {aqiData.dominantPollutant}.{' '}
-                    {aqiData.aqi > 100
-                      ? 'Sensitive groups should reduce prolonged outdoor exertion. Wearing a mask is recommended during your commute.'
-                      : 'Air quality is within acceptable limits for most people.'}{' '}
-                    Airflow patterns in the coming hours will influence how levels evolve — check Predictions for the 24-hour outlook.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {aqiData && (
+              <Card className="bg-brand-50 border-brand-100 flex-1">
+                <CardContent className="flex items-start gap-4">
+                  <div className="p-3 bg-brand-100 rounded-xl text-brand-700 mt-1">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-brand-900 text-sm">Environmental Insight</h4>
+                    <p className="text-xs text-brand-700 leading-relaxed mt-1">
+                      Current AQI ({aqiData.aqi}) is primarily driven by {aqiData.dominantPollutant}.{' '}
+                      {aqiData.aqi > 100
+                        ? 'Sensitive groups should reduce prolonged outdoor exertion. Wearing a mask is recommended during your commute.'
+                        : 'Air quality is within acceptable limits for most people.'}{' '}
+                      Airflow patterns in the coming hours will influence how levels evolve — check Predictions for the 24-hour outlook.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 
         {/* Pollutants Grid */}
-        <div>
-          <h2 className="text-base font-bold text-slate-900 mb-4">Pollutant Details</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {aqiData.pollutants.map((pollutant) => (
-              <PollutantCard key={pollutant.id} pollutant={pollutant} />
-            ))}
+        {aqiData && aqiData.pollutants.length > 0 && (
+          <div>
+            <h2 className="text-base font-bold text-slate-900 mb-4">Pollutant Details</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {aqiData.pollutants.map((pollutant) => (
+                <PollutantCard key={pollutant.id} pollutant={pollutant} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Charts & Map */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -330,7 +379,22 @@ export default function DashboardPage() {
             <PollutantTrendChart data={history} />
           </div>
           <div className="lg:col-span-4 h-full">
-            <PollutionMap location={aqiData.location} aqi={aqiData.aqi} />
+            {aqiData ? (
+              <PollutionOutlook
+                location={aqiData.location}
+                aqi={aqiData.aqi}
+                status={aqiData.status}
+                activeLocation={activeLocation}
+              />
+            ) : (
+              <div className="bg-white border border-slate-100 rounded-2xl p-6 text-center">
+                <AlertCircle className="h-5 w-5 text-slate-300 mx-auto" />
+                <p className="text-xs font-semibold text-slate-700 mt-2">Outlook unavailable</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  A forecast is shown once a current reading has been retrieved.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from 'react';
 import {
   AppUser,
   onAppAuthStateChange,
@@ -8,55 +15,69 @@ import {
   appResetPassword,
   appLogout,
 } from '../services/authService';
-import { getUser, saveUser } from '../services/dataService';
-
-async function ensureUserDoc(user: AppUser) {
-  try {
-    const existing = await getUser(user.uid);
-    if (!existing) {
-      await saveUser(user.uid, {
-        name: user.name || user.email || 'AirGuard User',
-        email: user.email,
-        photoURL: user.photoURL,
-        location: '',
-        preferences: {
-          units: 'metric',
-          notificationsEnabled: true,
-          alertThreshold: 100,
-        },
-        createdAt: new Date().toISOString(),
-      });
-    }
-  } catch (e) {
-    console.error('Failed to create user profile', e);
-  }
-}
+import { clearResponseCache } from '../services/apiClient';
+import {
+  UserProfile,
+  ensureProfile,
+  loadProfile,
+  resolveDisplayName,
+  saveProfileName,
+} from '../services/profileService';
 
 interface AuthContextValue {
   user: AppUser | null;
+  /** The user's real name, resolved from their profile then the auth provider. */
+  displayName: string;
+  profile: UserProfile | null;
+  /** True until the profile for the current user has been read. */
+  profileLoading: boolean;
   initializing: boolean;
   signup: (name: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Persist a name change and refresh the resolved name everywhere. */
+  updateName: (name: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  // Tracks the newest auth callback so a slow profile read from a previous
+  // account cannot overwrite the current user's data.
+  const latestUid = useRef<string | null>(null);
 
   useEffect(() => {
-    const unsub = onAppAuthStateChange((u) => {
+    const unsub = onAppAuthStateChange(async (u) => {
+      latestUid.current = u?.uid ?? null;
       setUser(u);
       setInitializing(false);
+
+      // Drop the previous account's profile immediately, otherwise a newly
+      // signed-in user can briefly see the name that belonged to the last one.
+      setProfile(null);
+      if (!u) {
+        setProfileLoading(false);
+        return;
+      }
+
+      setProfileLoading(true);
+      const p = await ensureProfile(u);
+      if (latestUid.current !== u.uid) return;
+      setProfile(p);
+      setProfileLoading(false);
     });
 
     const handleAuthError = () => {
       appLogout().then(() => {
+        clearResponseCache();
         setUser(null);
+        setProfile(null);
       }).catch(console.error);
     };
     window.addEventListener('auth-error', handleAuthError);
@@ -67,26 +88,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const displayName = resolveDisplayName(user, profile);
+
+  const updateName = useCallback(
+    async (name: string) => {
+      if (!user) throw new Error('Not signed in.');
+      const clean = name.trim();
+      if (!clean) throw new Error('Name cannot be empty.');
+      await saveProfileName(user.uid, clean);
+      setProfile((prev) => ({ ...(prev ?? {}), name: clean }));
+    },
+    [user],
+  );
+
   const value: AuthContextValue = {
     user,
+    displayName,
+    profile,
+    profileLoading,
     initializing,
+    updateName,
     signup: async (name, email, password) => {
       const user = await appSignUp(name, email, password);
-      await ensureUserDoc(user);
+      await ensureProfile(user);
     },
     login: async (email, password) => {
       const user = await appLogin(email, password);
-      await ensureUserDoc(user);
+      await ensureProfile(user);
     },
     loginWithGoogle: async () => {
       const user = await appLoginWithGoogle();
-      await ensureUserDoc(user);
+      await ensureProfile(user);
     },
     resetPassword: async (email) => {
       await appResetPassword(email);
     },
     logout: async () => {
       await appLogout();
+      // Cached GETs are keyed by token, so drop them on sign-out rather than
+      // relying on the key alone.
+      clearResponseCache();
+      setProfile(null);
     },
   };
 
@@ -98,6 +140,8 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
+
+export { loadProfile };
 
 export function firebaseErrorMessage(err: unknown): string {
   const e = err as { code?: string; message?: string };

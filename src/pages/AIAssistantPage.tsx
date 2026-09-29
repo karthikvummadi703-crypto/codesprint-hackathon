@@ -14,14 +14,15 @@ import {
   X,
   CheckCircle,
   Wind,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
-import { SUGGESTED_PROMPTS } from '../services/mockAiService';
 import { sendChatMessage, uploadDocumentForRag, deleteRagFile } from '../services/backendService';
 import { uploadToStorage, deleteFromStorage, isStorageConfigured } from '../services/storageService';
 import { useAuth } from '../context/AuthContext';
+import { useLocation } from '../context/LocationContext';
 import {
   listConversations,
   createConversation,
@@ -37,6 +38,15 @@ import {
   getLatestPredictions,
 } from '../services/dataService';
 import { ChatSession, ChatMessage, KnowledgeFile } from '../types';
+
+const SUGGESTED_PROMPTS = [
+  'Summarize my environmental data',
+  'Why is my AQI increasing?',
+  'Analyze my uploaded report',
+  'Compare my pollution history',
+  'How can I reduce my carbon footprint?',
+  'What are the health effects of PM2.5?',
+];
 
 function toChatMessage(raw: any): ChatMessage {
   return {
@@ -61,6 +71,7 @@ function toKnowledgeFile(raw: any): KnowledgeFile {
 
 export default function AIAssistantPage() {
   const { user } = useAuth();
+  const { location } = useLocation();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,8 +82,15 @@ export default function AIAssistantPage() {
 
   const [uploadedFiles, setUploadedFiles] = useState<KnowledgeFile[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  // Documents chosen for the next message. Kept separate from `uploadedFiles`
+  // because the choice is per-message: the file is referenced by id in the chat
+  // request, not silently added to the whole knowledge base.
+  const [pendingAttachment, setPendingAttachment] = useState<KnowledgeFile | null>(null);
+  const [attachmentError, setAttachmentError] = useState('');
+  const [dragActive, setDragActive] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeSession = sessions.find((s) => s.id === currentSessionId) || sessions[0];
@@ -118,6 +136,10 @@ export default function AIAssistantPage() {
       setLoaded(true);
     } catch (e) {
       console.error('Failed to load conversations', e);
+      // Still mark loaded: a failed load must not leave the sidebar stuck on
+      // "Loading conversations." forever, and the composer is usable because a
+      // session is now created on demand when the first message is sent.
+      setLoaded(true);
     }
   }, [user]);
 
@@ -141,9 +163,43 @@ export default function AIAssistantPage() {
 
   const handleSendMessage = async (text: string) => {
     if (!text.trim() || isLoading) return;
-    const convoId = currentSessionId;
-    if (!convoId || !user) return;
+    if (!user) {
+      setAttachmentError('Sign in to use the assistant.');
+      return;
+    }
 
+    // The session is created on demand rather than required. Returning early
+    // when none was ready made the composer silently swallow the question: the
+    // initial load can fail (Firestore rules, offline, signed out) and then every
+    // send was dropped with no message shown at all.
+    let convoId = currentSessionId;
+    if (!convoId || !sessions.some((s) => s.id === convoId)) {
+      const newId = await createConversation(user.uid, 'New Conversation').catch(() => '');
+      if (!newId) {
+        setAttachmentError('Could not start a conversation. Please check your connection and try again.');
+        return;
+      }
+      convoId = newId;
+      const fresh: ChatSession = {
+        id: newId,
+        title: 'New Conversation',
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      setSessions((prev) => (prev.some((s) => s.id === newId) ? prev : [fresh, ...prev]));
+      setCurrentSessionId(newId);
+      setLoaded(true);
+    }
+
+    // An attachment that has not finished indexing cannot be retrieved from, so
+    // it is refused here rather than sent and silently ignored by the model.
+    if (pendingAttachment && pendingAttachment.status !== 'ready') {
+      setAttachmentError('Wait for the document to finish uploading before asking about it.');
+      return;
+    }
+
+    const attachment = pendingAttachment;
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -172,6 +228,10 @@ export default function AIAssistantPage() {
       )
     );
     setInputMessage('');
+    // The attachment applies to one message only; keeping it would silently
+    // re-attach the same document to every later question in the chat.
+    setPendingAttachment(null);
+    setAttachmentError('');
     setIsLoading(true);
 
     try {
@@ -179,7 +239,21 @@ export default function AIAssistantPage() {
       let aqHistory: any[] = [];
       let carbonTrips: any[] = [];
       let predictions: any[] = [];
-      let currentLocation = '';
+      let pinnedLocation: {
+        name?: string;
+        latitude?: number;
+        longitude?: number;
+        region?: string;
+        country?: string;
+      } | undefined = location
+        ? {
+            name: location.name,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            region: location.region,
+            country: location.country,
+          }
+        : undefined;
       try {
         const [aqRecords, trips, preds] = await Promise.all([
           listAirQualityRecords(user.uid, 5),
@@ -189,14 +263,28 @@ export default function AIAssistantPage() {
         aqHistory = aqRecords;
         carbonTrips = trips;
         predictions = preds;
-        if (aqRecords.length > 0 && aqRecords[0].location) {
-          currentLocation = aqRecords[0].location;
+        // Only fall back to a stored record when nothing is pinned, so the
+        // assistant never answers about a stale location by default.
+        if (!pinnedLocation && aqRecords.length > 0 && aqRecords[0].location) {
+          pinnedLocation = { name: aqRecords[0].location };
         }
       } catch {
         // Context loading is best-effort
       }
 
-      const { response } = await sendChatMessage(text, { aqHistory, carbonTrips, predictions, currentLocation });
+      const { response } = await sendChatMessage(text, {
+        location: pinnedLocation,
+        aqHistory,
+        carbonTrips,
+        predictions,
+        // Only the file chosen for this turn is passed. The backend resolves
+        // the id inside the caller's own knowledge base, so an id belonging to
+        // someone else retrieves nothing.
+        documentIds: attachment?.ragFileId ? [attachment.ragFileId] : undefined,
+        history: (activeSession?.messages ?? [])
+          .slice(-10)
+          .map((m) => ({ role: m.role, content: m.content })),
+      });
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -243,8 +331,12 @@ export default function AIAssistantPage() {
     const files = e.target.files;
     if (!files || !user) return;
     e.target.value = '';
+    await uploadFiles(Array.from(files));
+  };
 
-    for (const file of Array.from(files)) {
+  const uploadFiles = async (incoming: File[]) => {
+    if (!user) return;
+    for (const file of incoming) {
       const extension = file.name.split('.').pop()?.toLowerCase();
       if (extension !== 'pdf' && extension !== 'csv' && extension !== 'txt') {
         alert('Invalid file format. Please upload PDF, CSV, or TXT.');
@@ -319,6 +411,9 @@ export default function AIAssistantPage() {
   const handleDeleteFile = async (file: KnowledgeFile) => {
     if (!user) return;
     setUploadedFiles((prev) => prev.filter((f) => f.id !== file.id));
+    // Drop it from the composer too, otherwise the next message would
+    // reference a document that no longer exists.
+    setPendingAttachment((prev) => (prev?.id === file.id ? null : prev));
     if (file.ragFileId) {
       await deleteRagFile(file.ragFileId).catch(() => {});
     }
@@ -326,6 +421,28 @@ export default function AIAssistantPage() {
       await deleteFromStorage(`users/${user.uid}/uploads/${file.name}`).catch(() => {});
     }
     await deleteUpload(user.uid, file.id).catch(() => {});
+  };
+
+  /** Attach an already-indexed document to the next message. */
+  const attachFile = (file: KnowledgeFile) => {
+    if (file.status !== 'ready') {
+      setAttachmentError('That document is still being indexed.');
+      return;
+    }
+    setPendingAttachment(file);
+    setAttachmentError('');
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    const dropped = Array.from(e.dataTransfer?.files ?? []);
+    if (dropped.length === 0) return;
+    await uploadFiles(dropped);
+    // A single dropped file is also staged for the current message, which is
+    // what makes drag-and-drop usable for "what does this report say?".
+    const first = uploadedFiles.find((f) => f.name === dropped[0]?.name);
+    if (first && first.status === 'ready') setPendingAttachment(first);
   };
 
   const filteredSessions = sessions.filter((s) =>
@@ -485,19 +602,121 @@ export default function AIAssistantPage() {
           </div>
 
           {/* Chat input */}
-          <div className="p-4 border-t border-slate-200 bg-white shrink-0">
-            <div className="max-w-3xl mx-auto flex gap-2">
-              <Input
-                type="text"
-                placeholder="Type your message..."
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputMessage)}
-                className="h-11 border-slate-200 pr-10"
-              />
-              <Button onClick={() => handleSendMessage(inputMessage)} className="h-11 px-4">
-                <Send className="h-4.5 w-4.5" />
-              </Button>
+          <div
+            className={`p-4 border-t bg-white shrink-0 transition-colors ${
+              dragActive ? 'border-brand-400 bg-brand-50/40' : 'border-slate-200'
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragActive(true);
+            }}
+            onDragLeave={(e) => {
+              if (e.currentTarget === e.target) setDragActive(false);
+            }}
+            onDrop={handleDrop}
+          >
+            <div className="max-w-3xl mx-auto">
+              {dragActive && (
+                <p className="text-xs text-brand-700 font-semibold text-center pb-2">
+                  Drop a PDF, CSV or TXT to add it to your knowledge base
+                </p>
+              )}
+
+              {/* Selected document for the next message */}
+              {pendingAttachment && (
+                <div className="flex items-center gap-2 mb-2 text-xs bg-brand-50 border border-brand-200 rounded-lg px-3 py-2">
+                  <Paperclip className="h-3.5 w-3.5 text-brand-600 shrink-0" />
+                  <span className="font-semibold text-brand-900 truncate">
+                    {pendingAttachment.name}
+                  </span>
+                  <span className="text-brand-600 shrink-0">
+                    {(pendingAttachment.size / 1024).toFixed(0)} KB
+                  </span>
+                  {pendingAttachment.status === 'ready' ? (
+                    <span className="text-[10px] text-emerald-600">indexed</span>
+                  ) : (
+                    <span className="text-[10px] text-amber-600 flex items-center gap-1">
+                      <RefreshCw className="h-3 w-3 animate-spin" /> indexing
+                    </span>
+                  )}
+                  <button
+                    onClick={() => {
+                      setPendingAttachment(null);
+                      setAttachmentError('');
+                    }}
+                    className="ml-auto p-0.5 rounded text-brand-500 hover:text-brand-700"
+                    title="Remove attachment"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {attachmentError && (
+                <p className="text-[11px] text-red-600 mb-2 flex items-center gap-1">
+                  <AlertCircle className="h-3.5 w-3.5" /> {attachmentError}
+                </p>
+              )}
+
+              <div className="flex gap-2 items-end">
+                <button
+                  type="button"
+                  onClick={() => attachInputRef.current?.click()}
+                  className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:text-brand-600 hover:border-brand-300 transition-colors"
+                  title="Attach a document to this message"
+                >
+                  <Paperclip className="h-4.5 w-4.5" />
+                </button>
+                <input
+                  type="file"
+                  ref={attachInputRef}
+                  onChange={handleFileUpload}
+                  accept=".pdf,.csv,.txt"
+                  className="hidden"
+                />
+                <Input
+                  type="text"
+                  placeholder={
+                    pendingAttachment
+                      ? `Ask about ${pendingAttachment.name}…`
+                      : 'Type your message, or drop a report here…'
+                  }
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputMessage)}
+                  className="h-11 border-slate-200 pr-10"
+                />
+                <Button
+                  onClick={() => handleSendMessage(inputMessage)}
+                  disabled={!inputMessage.trim() || isLoading}
+                  className="h-11 px-4"
+                >
+                  <Send className="h-4.5 w-4.5" />
+                </Button>
+              </div>
+
+              {uploadedFiles.filter((f) => f.status === 'ready').length > 0 && (
+                <div className="mt-2 flex items-center gap-2 overflow-x-auto">
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider shrink-0">
+                    Ask about
+                  </span>
+                  {uploadedFiles
+                    .filter((f) => f.status === 'ready')
+                    .map((f) => (
+                      <button
+                        key={f.id}
+                        onClick={() => attachFile(f)}
+                        className={`shrink-0 text-[11px] px-2.5 py-1 rounded-full transition-colors ${
+                          pendingAttachment?.id === f.id
+                            ? 'bg-brand-600 text-white'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {f.name}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
             {activeSession?.messages.length > 0 && (
               <div className="max-w-3xl mx-auto flex gap-2 overflow-x-auto py-2 shrink-0 mt-1">

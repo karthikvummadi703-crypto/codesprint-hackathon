@@ -4,7 +4,7 @@ import { Button } from '../components/ui/Button';
 import { Input, Label } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { Leaf, MapPin, Navigation, Info, ShieldCheck, Footprints, Trash2, AlertCircle } from 'lucide-react';
-import { calculateCO2, TRAVEL_MODE_ICONS, CO2_FACTORS } from '../services/mockCarbonService';
+import { calculateCO2, TRAVEL_MODE_ICONS, CO2_FACTORS } from '../services/carbonConstants';
 import { calculateCarbon, estimateDistance } from '../services/backendService';
 import { useAuth } from '../context/AuthContext';
 import { addCarbonTrip, listCarbonTrips, deleteCarbonTrip } from '../services/dataService';

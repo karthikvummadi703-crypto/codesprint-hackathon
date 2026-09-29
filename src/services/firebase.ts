@@ -17,8 +17,19 @@ export const isFirebaseConfigured = Boolean(
   config.apiKey && config.projectId && config.appId
 );
 
+/**
+ * Backend origin.
+ *
+ * Falling back to localhost in a production build would make the deployed app
+ * quietly call the visitor's own machine, so the default has to follow the build
+ * mode. `import.meta.env.PROD` is inlined at build time.
+ */
+const DEV_API_BASE_URL = 'http://localhost:8001';
+const PROD_API_BASE_URL = 'https://codesprint-hackathon-production.up.railway.app';
+
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? PROD_API_BASE_URL : DEV_API_BASE_URL);
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
