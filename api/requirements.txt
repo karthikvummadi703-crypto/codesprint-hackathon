@@ -1,0 +1,16 @@
+# Mirrors backend/requirements.txt. Vercel resolves a function's dependencies
+# from the requirements.txt next to it, not from the backend directory, so this
+# copy has to be kept in step with the original.
+#
+# `uvicorn[standard]` is not used by the serverless runtime but is retained so
+# the two dependency sets cannot drift apart.
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pydantic==2.11.4
+firebase-admin==6.7.0
+httpx==0.28.1
+python-multipart==0.0.20
+PyPDF2==3.0.1
+python-dotenv==1.1.0
+PyJWT[crypto]>=2.8.0
+cryptography>=42.0.0

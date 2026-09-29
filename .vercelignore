@@ -1,0 +1,13 @@
+# `backend/**` and `api/**` are the API and must never be excluded: the Python
+# function imports the FastAPI app from backend/, and vercel.json pulls it into
+# the function bundle with `includeFiles`.
+#
+# The frontend is NOT excluded any more. Vercel builds it with `npm run build`
+# and serves dist/ from the same origin as the API, so the browser makes
+# same-origin /api requests and no CORS configuration is involved.
+node_modules
+*.log
+*.mp4
+backend/.venv
+backend/__pycache__
+backend/**/__pycache__

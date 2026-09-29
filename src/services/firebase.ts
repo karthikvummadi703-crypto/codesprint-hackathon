@@ -25,11 +25,14 @@ export const isFirebaseConfigured = Boolean(
  * mode. `import.meta.env.PROD` is inlined at build time.
  */
 const DEV_API_BASE_URL = 'http://localhost:8001';
-const PROD_API_BASE_URL = 'https://codesprint-hackathon-production.up.railway.app';
+// Empty in production because the Vite build and the API are served from the
+// same Vercel origin: requests then go to a relative /api path, which needs no
+// CORS grant and no hardcoded backend hostname to go stale. Set
+// VITE_API_BASE_URL only when the API is hosted on a different origin.
+const PROD_API_BASE_URL = '';
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.PROD ? PROD_API_BASE_URL : DEV_API_BASE_URL);
+  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? PROD_API_BASE_URL : DEV_API_BASE_URL);
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
