@@ -223,6 +223,31 @@ class TestCaching:
         assert coord_key(14.14891, 79.85304) == coord_key(14.14899, 79.85301)
         assert coord_key(14.14, 79.85) != coord_key(28.61, 77.20)
 
+    async def test_routes_sharing_a_provider_call_do_not_share_a_cache_key(self):
+        """Different routes cache the same provider response under different shapes.
+
+        `/api/predictions` stored a response mapping where the AI route expected a
+        list of forecast rows, so whichever request populated the key first made the
+        other raise `argument after ** must be a mapping` (a 500). The weather
+        routes had the same collision. Namespacing the keys is what keeps them
+        independent, so this pins the prefixes rather than the payloads.
+        """
+        bucket = coord_key(17.385, 78.4867)
+        keys = {
+            "predictions": f"predictions:{bucket}:5",
+            "ai_forecast": f"ai-aqi-forecast:{bucket}:5",
+            "weather_full": f"weather-full:{bucket}:7:48",
+            "weather_summary": f"weather-summary:{bucket}:3:48",
+            "ai_weather": f"ai-weather:{bucket}:3:48",
+        }
+        assert len(set(keys.values())) == len(keys)
+
+        # A mapping and a list must still be able to coexist under the same bucket.
+        await env_cache.set(keys["predictions"], {"method": "heuristic-prototype"}, 60)
+        await env_cache.set(keys["ai_forecast"], [{"day": 1}], 60)
+        assert isinstance(await env_cache.get(keys["predictions"]), dict)
+        assert isinstance(await env_cache.get(keys["ai_forecast"]), list)
+
 
 class TestSettings:
     def test_reports_capabilities_without_secrets(self):
