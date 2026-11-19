@@ -1,12 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar, { MobileMenuButton } from './Sidebar';
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [sidebarOpen]);
+
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex lg:flex-shrink-0">
         <div className="flex w-64 flex-col">
@@ -17,11 +27,18 @@ export default function AppLayout() {
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div
+          <button
+            type="button"
+            aria-label="Close navigation menu"
             className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 z-50 w-64 flex flex-col">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            className="fixed inset-y-0 left-0 z-50 w-64 flex flex-col"
+          >
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </div>
         </div>
@@ -30,14 +47,14 @@ export default function AppLayout() {
       {/* Main Content */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         {/* Mobile top bar */}
-        <div className="lg:hidden flex items-center gap-3 px-4 h-14 border-b border-slate-200 bg-white">
+        <header className="lg:hidden flex items-center gap-3 px-4 h-14 border-b border-slate-200 bg-white">
           <MobileMenuButton onClick={() => setSidebarOpen(true)} />
           <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
             <span className="text-brand-600">🌿</span> AirGuard AI
           </div>
-        </div>
+        </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main id="main-content" tabIndex={-1} className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

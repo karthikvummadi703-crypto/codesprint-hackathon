@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter
 
-from api.deps import CurrentUid
+from api.deps import OptionalUid
 from errors import AppError
 from logging_config import get_logger
 from schemas import CarbonRequest, DistanceRequest, DistanceResponse
@@ -17,11 +17,11 @@ router = APIRouter(prefix="/api/carbon", tags=["carbon"])
 
 
 @router.post("/estimate-distance", response_model=DistanceResponse)
-async def estimate_distance(uid: CurrentUid, payload: DistanceRequest) -> DistanceResponse:
+async def estimate_distance(_uid: OptionalUid, payload: DistanceRequest) -> DistanceResponse:
     """Great-circle distance between two named places.
 
-    Authenticated because it consumes a shared, rate-limited geocoding quota and
-    would otherwise be an open proxy.
+    Public because it is read-only and rate limited by socket peer address when
+    no token is supplied.
     """
     distance = await carbon_service.estimate_distance(payload.origin, payload.destination)
     if distance is None:
@@ -30,7 +30,7 @@ async def estimate_distance(uid: CurrentUid, payload: DistanceRequest) -> Distan
 
 
 @router.post("/calculate")
-async def calculate(uid: CurrentUid, payload: CarbonRequest) -> dict:
+async def calculate(_uid: OptionalUid, payload: CarbonRequest) -> dict:
     """CO2e for a trip, with savings measured against the same trip by car."""
     try:
         return await carbon_service.calculate_carbon(

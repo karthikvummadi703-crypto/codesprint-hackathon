@@ -122,10 +122,10 @@ def test_predictions_endpoint_is_live(live_client):
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["predictions"], "expected forecast points"
-    assert body["method"] in {"provider-forecast", "heuristic"}
+    assert body["method"] in {"provider-forecast", "heuristic-prototype"}
     assert body["note"], "provenance must always be stated"
     # A heuristic fallback must never be presented as a model forecast.
-    if body["method"] == "heuristic":
+    if body["method"] == "heuristic-prototype":
         assert "heuristic" in body["note"].lower() or "estimate" in body["note"].lower()
 
 

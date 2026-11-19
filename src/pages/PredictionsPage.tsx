@@ -14,7 +14,6 @@ import {
   Droplets,
   Sun,
   Eye,
-  MapPin,
   Info,
   Clock,
 } from 'lucide-react';
@@ -22,6 +21,7 @@ import { getAQIBadgeVariant } from '../components/ui/Badge';
 import {
   fetchPredictions,
   fetchWeather,
+  PREDICTION_METHOD,
   WeatherResponse,
 } from '../services/backendService';
 import { useAuth } from '../context/AuthContext';
@@ -94,7 +94,7 @@ export default function PredictionsPage() {
   const [provenanceNote, setProvenanceNote] = useState('');
   const [locationLabel, setLocationLabel] = useState(location?.name ?? '');
 
-  const load = async () => {
+  const load = async (force = false) => {
     if (!location) return;
     setLoading(true);
     setError('');
@@ -124,7 +124,7 @@ export default function PredictionsPage() {
     setWeatherError('');
     const weatherPromise =
       lat !== undefined || city
-        ? fetchWeather({ lat, lon, city, hours: 24, days: 3 }).catch((e) => {
+        ? fetchWeather({ lat, lon, city, hours: 24, days: 3, force }).catch((e) => {
             setWeatherError(e instanceof Error ? e.message : String(e));
             return null;
           })
@@ -132,7 +132,7 @@ export default function PredictionsPage() {
 
     try {
       const [data, weatherData] = await Promise.all([
-        fetchPredictions({ lat, lon, city, days: 5 }),
+        fetchPredictions({ lat, lon, city, days: 5, force }),
         weatherPromise,
       ]);
       const list = Array.isArray(data.predictions) ? data.predictions : [];
@@ -193,17 +193,17 @@ export default function PredictionsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {method === 'provider-forecast' && (
+            {method === PREDICTION_METHOD.MODEL && (
               <Badge variant="success" className="h-7" title={provenanceNote}>
                 Model forecast
               </Badge>
             )}
-            {method === 'heuristic' && (
+            {method === PREDICTION_METHOD.HEURISTIC && (
               <Badge variant="warning" className="h-7" title={provenanceNote}>
                 Estimated
               </Badge>
             )}
-            <Button variant="outline" size="sm" onClick={load} loading={loading} className="h-9">
+            <Button variant="outline" size="sm" onClick={() => load(true)} loading={loading} className="h-9">
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
           </div>
@@ -212,7 +212,7 @@ export default function PredictionsPage() {
 
       <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
         {error && (
-          <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+          <div role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
             <AlertTriangle className="h-5 w-5 shrink-0" />
             <div>
               <p className="font-semibold">Could not load forecasts</p>
@@ -271,7 +271,7 @@ export default function PredictionsPage() {
                   <>
                     AQI is projected to peak at <strong className="text-red-500">{peak}</strong> during
                     the forecast window.{' '}
-                    {method === 'provider-forecast'
+                    {method === PREDICTION_METHOD.MODEL
                       ? 'This is a dispersion-model forecast, not an observation.'
                       : 'This is an offline estimate, not a validated forecast.'}
                   </>
@@ -289,8 +289,8 @@ export default function PredictionsPage() {
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                   Forecast Confidence
                 </span>
-                <Badge variant={method === 'provider-forecast' ? 'success' : 'warning'}>
-                  {method === 'provider-forecast' ? 'Model' : 'Estimated'}
+                <Badge variant={method === PREDICTION_METHOD.MODEL ? 'success' : 'warning'}>
+                  {method === PREDICTION_METHOD.MODEL ? 'Model' : 'Estimated'}
                 </Badge>
               </div>
               <div className="text-4xl font-extrabold text-slate-900">
@@ -310,7 +310,7 @@ export default function PredictionsPage() {
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="font-semibold text-brand-900 text-sm">Activity Guidance</h4>
+                <h3 className="font-semibold text-brand-900 text-sm">Activity Guidance</h3>
                 <p className={`text-xs font-semibold mt-1 ${guidance.tone}`}>{guidance.title}</p>
                 <p className="text-xs text-brand-700 leading-relaxed mt-1">{guidance.body}</p>
                 {worst && (
@@ -335,9 +335,9 @@ export default function PredictionsPage() {
             <div>
               <p className="font-semibold text-slate-700">Pollution forecast</p>
               <p className="text-slate-500 mt-1 leading-relaxed">
-                {method === 'provider-forecast'
+                {method === PREDICTION_METHOD.MODEL
                   ? `Atmospheric dispersion model via ${provenanceNote || 'the configured provider'}. A model projection, not a measurement.`
-                  : method === 'heuristic'
+                  : method === PREDICTION_METHOD.HEURISTIC
                     ? 'Offline estimate derived from the current reading. Directional only — it has not been validated against observations.'
                     : 'No forecast provider was available for this request.'}
               </p>
@@ -479,25 +479,25 @@ export default function PredictionsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     Time Interval
                   </th>
-                  <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     AQI Status
                   </th>
-                  <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     PM2.5
                   </th>
-                  <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     PM10
                   </th>
-                  <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     NO₂
                   </th>
-                  <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     O₃
                   </th>
-                  <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     CO
                   </th>
                 </tr>

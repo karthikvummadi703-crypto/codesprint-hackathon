@@ -67,6 +67,25 @@ class AirQualityResponse(BaseModel):
     forecastAvailable: bool = False
 
 
+class HistoricalDayOut(BaseModel):
+    date: str
+    aqiMean: int
+    aqiMax: int
+    aqiMin: int
+    dominant: str
+    pm25: float
+    pm10: float
+
+
+class AqiHistoryResponse(BaseModel):
+    location: LocationOut
+    startDate: str
+    endDate: str
+    points: list[HistoricalDayOut]
+    source: str
+    timestamp: str
+
+
 class ForecastPointOut(BaseModel):
     timeOffsetHours: int
     label: str
@@ -186,6 +205,9 @@ class ChatRequest(BaseModel):
     # inside the caller's own knowledge base, so a question that does not use
     # document wording ("compare that with today") still reads the attachment.
     documentIds: list[str] | None = Field(default=None, max_length=5)
+    household: dict[str, Any] | None = None
+    routines: list[dict[str, Any]] | None = Field(default=None, max_length=30)
+    routineContext: str | None = Field(default=None, max_length=8000)
 
     @field_validator("message")
     @classmethod

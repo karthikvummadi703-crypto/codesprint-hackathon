@@ -35,24 +35,34 @@ function devWrite(uid: string, kind: string, items: any[]) {
   localStorage.setItem(`${DEV_PREFIX}${uid}_${kind}`, JSON.stringify(items));
 }
 
-function withId(doc: any): any {
-  return { ...doc, id: doc.id ?? doc.uid ?? doc.fileId ?? doc.tripId ?? doc.conversationId ?? doc.recordId ?? doc.predictionId };
-}
-
 // ---- Users ----
 export async function getUser(uid: string): Promise<Json | null> {
   if (isFirebaseConfigured && db) {
-    const snap = await getDoc(doc(db, 'users', uid));
-    return snap.exists() ? (snap.data() as Json) : null;
+    try {
+      const snap = await getDoc(doc(db, 'users', uid));
+      return snap.exists() ? (snap.data() as Json) : null;
+    } catch (err) {
+      console.warn('Firestore getUser failed, falling back to local storage:', err);
+    }
   }
   const raw = localStorage.getItem(`${DEV_PREFIX}${uid}_profile`);
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Json;
+  } catch (err) {
+    console.warn('Corrupt local profile ignored:', err);
+    return null;
+  }
 }
 
 export async function saveUser(uid: string, data: Json): Promise<void> {
   if (isFirebaseConfigured && db) {
-    await setDoc(doc(db, 'users', uid), { ...data, updatedAt: isoNow() }, { merge: true });
-    return;
+    try {
+      await setDoc(doc(db, 'users', uid), { ...data, updatedAt: isoNow() }, { merge: true });
+      return;
+    } catch (err) {
+      console.warn('Firestore saveUser failed, falling back to local storage:', err);
+    }
   }
   const prev = await getUser(uid);
   localStorage.setItem(`${DEV_PREFIX}${uid}_profile`, JSON.stringify({ ...(prev || {}), ...data, updatedAt: isoNow() }));
@@ -65,9 +75,13 @@ export async function updateUser(uid: string, data: Json): Promise<void> {
 // ---- Conversations ----
 export async function listConversations(uid: string): Promise<any[]> {
   if (isFirebaseConfigured && db) {
-    const q = query(collection(db, 'users', uid, 'conversations'), orderBy('updatedAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    try {
+      const q = query(collection(db, 'users', uid, 'conversations'), orderBy('updatedAt', 'desc'));
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      console.warn('Firestore listConversations failed, falling back to local storage:', err);
+    }
   }
   const items = devRead(uid, 'conversations');
   return items.sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1));
@@ -77,8 +91,12 @@ export async function createConversation(uid: string, title: string): Promise<st
   const now = isoNow();
   const data = { title, updatedAt: now, createdAt: now };
   if (isFirebaseConfigured && db) {
-    const ref = await addDoc(collection(db, 'users', uid, 'conversations'), data);
-    return ref.id;
+    try {
+      const ref = await addDoc(collection(db, 'users', uid, 'conversations'), data);
+      return ref.id;
+    } catch (err) {
+      console.warn('Firestore createConversation failed, falling back to local storage:', err);
+    }
   }
   const items = devRead(uid, 'conversations');
   const id = `conv-${Date.now()}`;
@@ -90,8 +108,12 @@ export async function createConversation(uid: string, title: string): Promise<st
 export async function updateConversation(uid: string, convId: string, title: string, updatedAt?: string): Promise<void> {
   const now = updatedAt || isoNow();
   if (isFirebaseConfigured && db) {
-    await updateDoc(doc(db, 'users', uid, 'conversations', convId), { title, updatedAt: now });
-    return;
+    try {
+      await updateDoc(doc(db, 'users', uid, 'conversations', convId), { title, updatedAt: now });
+      return;
+    } catch (err) {
+      console.warn('Firestore updateConversation failed, falling back to local storage:', err);
+    }
   }
   const items = devRead(uid, 'conversations').map((c) =>
     c.id === convId ? { ...c, title, updatedAt: now } : c
@@ -101,8 +123,12 @@ export async function updateConversation(uid: string, convId: string, title: str
 
 export async function deleteConversation(uid: string, convId: string): Promise<void> {
   if (isFirebaseConfigured && db) {
-    await deleteDoc(doc(db, 'users', uid, 'conversations', convId));
-    return;
+    try {
+      await deleteDoc(doc(db, 'users', uid, 'conversations', convId));
+      return;
+    } catch (err) {
+      console.warn('Firestore deleteConversation failed, falling back to local storage:', err);
+    }
   }
   devWrite(
     uid,
@@ -115,9 +141,13 @@ export async function deleteConversation(uid: string, convId: string): Promise<v
 // ---- Messages ----
 export async function listMessages(uid: string, convId: string): Promise<any[]> {
   if (isFirebaseConfigured && db) {
-    const q = query(collection(db, 'users', uid, 'conversations', convId, 'messages'), orderBy('timestamp', 'asc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    try {
+      const q = query(collection(db, 'users', uid, 'conversations', convId, 'messages'), orderBy('timestamp', 'asc'));
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      console.warn('Firestore listMessages failed, falling back to local storage:', err);
+    }
   }
   return devRead(uid, `messages_${convId}`);
 }
@@ -125,8 +155,12 @@ export async function listMessages(uid: string, convId: string): Promise<any[]> 
 export async function addMessage(uid: string, convId: string, msg: { role: string; content: string }): Promise<void> {
   const data = { ...msg, timestamp: isoNow() };
   if (isFirebaseConfigured && db) {
-    await addDoc(collection(db, 'users', uid, 'conversations', convId, 'messages'), data);
-    return;
+    try {
+      await addDoc(collection(db, 'users', uid, 'conversations', convId, 'messages'), data);
+      return;
+    } catch (err) {
+      console.warn('Firestore addMessage failed, falling back to local storage:', err);
+    }
   }
   const items = devRead(uid, `messages_${convId}`);
   items.push({ id: `msg-${Date.now()}`, ...data });
@@ -137,8 +171,12 @@ export async function addMessage(uid: string, convId: string, msg: { role: strin
 export async function addAirQualityRecord(uid: string, record: Json): Promise<void> {
   const data = { ...record, timestamp: record.timestamp || isoNow() };
   if (isFirebaseConfigured && db) {
-    await addDoc(collection(db, 'users', uid, 'airQuality'), data);
-    return;
+    try {
+      await addDoc(collection(db, 'users', uid, 'airQuality'), data);
+      return;
+    } catch (err) {
+      console.warn('Firestore addAirQualityRecord failed, falling back to local storage:', err);
+    }
   }
   const items = devRead(uid, 'airQuality');
   items.push({ id: `aq-${Date.now()}`, ...data });
@@ -147,9 +185,13 @@ export async function addAirQualityRecord(uid: string, record: Json): Promise<vo
 
 export async function listAirQualityRecords(uid: string, max = 20): Promise<any[]> {
   if (isFirebaseConfigured && db) {
-    const q = query(collection(db, 'users', uid, 'airQuality'), orderBy('timestamp', 'desc'), fsLimit(max));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => withId(d));
+    try {
+      const q = query(collection(db, 'users', uid, 'airQuality'), orderBy('timestamp', 'desc'), fsLimit(max));
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      console.warn('Firestore listAirQualityRecords failed, falling back to local storage:', err);
+    }
   }
   return devRead(uid, 'airQuality')
     .sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1))
@@ -160,8 +202,12 @@ export async function listAirQualityRecords(uid: string, max = 20): Promise<any[
 export async function savePredictions(uid: string, predictions: any[]): Promise<void> {
   const data = { predictions, createdAt: isoNow() };
   if (isFirebaseConfigured && db) {
-    await addDoc(collection(db, 'users', uid, 'predictions'), data);
-    return;
+    try {
+      await addDoc(collection(db, 'users', uid, 'predictions'), data);
+      return;
+    } catch (err) {
+      console.warn('Firestore savePredictions failed, falling back to local storage:', err);
+    }
   }
   const items = devRead(uid, 'predictions');
   items.push({ id: `pred-${Date.now()}`, ...data });
@@ -170,11 +216,16 @@ export async function savePredictions(uid: string, predictions: any[]): Promise<
 
 export async function getLatestPredictions(uid: string): Promise<any[]> {
   if (isFirebaseConfigured && db) {
-    const q = query(collection(db, 'users', uid, 'predictions'), orderBy('createdAt', 'desc'), fsLimit(1));
-    const snap = await getDocs(q);
-    if (snap.empty) return [];
-    const docData = snap.docs[0].data();
-    return Array.isArray(docData.predictions) ? docData.predictions : [];
+    try {
+      const q = query(collection(db, 'users', uid, 'predictions'), orderBy('createdAt', 'desc'), fsLimit(1));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const docData = snap.docs[0].data();
+        return Array.isArray(docData.predictions) ? docData.predictions : [];
+      }
+    } catch (err) {
+      console.warn('Firestore getLatestPredictions failed, falling back to local storage:', err);
+    }
   }
   const items = devRead(uid, 'predictions').sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
   return items.length ? items[0].predictions : [];
@@ -184,8 +235,12 @@ export async function getLatestPredictions(uid: string): Promise<any[]> {
 export async function addCarbonTrip(uid: string, trip: Json): Promise<string> {
   const data = { ...trip, date: trip.date || isoNow() };
   if (isFirebaseConfigured && db) {
-    const ref = await addDoc(collection(db, 'users', uid, 'carbonTrips'), data);
-    return ref.id;
+    try {
+      const ref = await addDoc(collection(db, 'users', uid, 'carbonTrips'), data);
+      return ref.id;
+    } catch (err) {
+      console.warn('Firestore addCarbonTrip failed, falling back to local storage:', err);
+    }
   }
   const items = devRead(uid, 'carbonTrips');
   const id = `trip-${Date.now()}`;
@@ -196,17 +251,25 @@ export async function addCarbonTrip(uid: string, trip: Json): Promise<string> {
 
 export async function listCarbonTrips(uid: string): Promise<any[]> {
   if (isFirebaseConfigured && db) {
-    const q = query(collection(db, 'users', uid, 'carbonTrips'), orderBy('date', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => withId(d));
+    try {
+      const q = query(collection(db, 'users', uid, 'carbonTrips'), orderBy('date', 'desc'));
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      console.warn('Firestore listCarbonTrips failed, falling back to local storage:', err);
+    }
   }
   return devRead(uid, 'carbonTrips').sort((a, b) => (a.date > b.date ? -1 : 1));
 }
 
 export async function deleteCarbonTrip(uid: string, tripId: string): Promise<void> {
   if (isFirebaseConfigured && db) {
-    await deleteDoc(doc(db, 'users', uid, 'carbonTrips', tripId));
-    return;
+    try {
+      await deleteDoc(doc(db, 'users', uid, 'carbonTrips', tripId));
+      return;
+    } catch (err) {
+      console.warn('Firestore deleteCarbonTrip failed, falling back to local storage:', err);
+    }
   }
   devWrite(
     uid,
@@ -219,8 +282,12 @@ export async function deleteCarbonTrip(uid: string, tripId: string): Promise<voi
 export async function addUpload(uid: string, meta: Json): Promise<void> {
   const data = { ...meta, uploadedAt: meta.uploadedAt || isoNow() };
   if (isFirebaseConfigured && db) {
-    await setDoc(doc(db, 'users', uid, 'uploads', String(meta.fileId)), data);
-    return;
+    try {
+      await setDoc(doc(db, 'users', uid, 'uploads', String(meta.fileId)), data);
+      return;
+    } catch (err) {
+      console.warn('Firestore addUpload failed, falling back to local storage:', err);
+    }
   }
   const items = devRead(uid, 'uploads');
   items.push({ id: meta.fileId, ...data });
@@ -229,17 +296,25 @@ export async function addUpload(uid: string, meta: Json): Promise<void> {
 
 export async function listUploads(uid: string): Promise<any[]> {
   if (isFirebaseConfigured && db) {
-    const q = query(collection(db, 'users', uid, 'uploads'), orderBy('uploadedAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    try {
+      const q = query(collection(db, 'users', uid, 'uploads'), orderBy('uploadedAt', 'desc'));
+      const snap = await getDocs(q);
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      console.warn('Firestore listUploads failed, falling back to local storage:', err);
+    }
   }
   return devRead(uid, 'uploads').sort((a, b) => (a.uploadedAt > b.uploadedAt ? -1 : 1));
 }
 
 export async function deleteUpload(uid: string, fileId: string): Promise<void> {
   if (isFirebaseConfigured && db) {
-    await deleteDoc(doc(db, 'users', uid, 'uploads', fileId));
-    return;
+    try {
+      await deleteDoc(doc(db, 'users', uid, 'uploads', fileId));
+      return;
+    } catch (err) {
+      console.warn('Firestore deleteUpload failed, falling back to local storage:', err);
+    }
   }
   devWrite(
     uid,
@@ -250,11 +325,54 @@ export async function deleteUpload(uid: string, fileId: string): Promise<void> {
 
 export async function isUploadReady(uid: string, fileId: string): Promise<boolean> {
   if (isFirebaseConfigured && db) {
-    const q = query(collection(db, 'users', uid, 'uploads'), where('fileId', '==', fileId), fsLimit(1));
-    const snap = await getDocs(q);
-    return !snap.empty;
+    try {
+      const q = query(collection(db, 'users', uid, 'uploads'), where('fileId', '==', fileId), fsLimit(1));
+      const snap = await getDocs(q);
+      return !snap.empty;
+    } catch (err) {
+      console.warn('Firestore isUploadReady failed, falling back to local storage:', err);
+    }
   }
   return devRead(uid, 'uploads').some((f) => f.id === fileId);
+}
+
+// ---- Household & community watch (stored on the user profile) ----
+export async function getLifestyleSettings(uid: string): Promise<Json | null> {
+  if (isFirebaseConfigured && db) {
+    try {
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (snap.exists()) {
+        const data = snap.data() as Json;
+        const result: Json = {};
+        if (data.household) result.household = data.household;
+        if (data.communityWatch) result.communityWatch = data.communityWatch;
+        if (Object.keys(result).length > 0) return result;
+      }
+    } catch (err) {
+      console.warn('Firestore getLifestyleSettings failed, falling back to local storage:', err);
+    }
+  }
+  const raw = localStorage.getItem(`${DEV_PREFIX}${uid}_lifestyle`);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as Json;
+  } catch (err) {
+    console.warn('Corrupt local lifestyle settings ignored:', err);
+    return null;
+  }
+}
+
+export async function saveLifestyleSettings(uid: string, data: Json): Promise<void> {
+  if (isFirebaseConfigured && db) {
+    try {
+      await setDoc(doc(db, 'users', uid), { ...data, updatedAt: isoNow() }, { merge: true });
+      return;
+    } catch (err) {
+      console.warn('Firestore saveLifestyleSettings failed, falling back to local storage:', err);
+    }
+  }
+  const prev = (await getLifestyleSettings(uid)) ?? {};
+  localStorage.setItem(`${DEV_PREFIX}${uid}_lifestyle`, JSON.stringify({ ...prev, ...data, updatedAt: isoNow() }));
 }
 
 // Re-export for convenience

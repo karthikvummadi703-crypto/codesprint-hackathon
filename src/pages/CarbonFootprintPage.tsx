@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Button } from '../components/ui/Button';
 import { Input, Label } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
-import { Leaf, MapPin, Navigation, Info, ShieldCheck, Footprints, Trash2, AlertCircle } from 'lucide-react';
-import { calculateCO2, TRAVEL_MODE_ICONS, CO2_FACTORS } from '../services/carbonConstants';
+import { Leaf, Info, ShieldCheck, Footprints, Trash2, AlertCircle } from 'lucide-react';
+import { calculateCO2, TRAVEL_MODE_ICONS } from '../services/carbonConstants';
 import { calculateCarbon, estimateDistance } from '../services/backendService';
 import { useAuth } from '../context/AuthContext';
 import { addCarbonTrip, listCarbonTrips, deleteCarbonTrip } from '../services/dataService';
@@ -146,8 +146,6 @@ export default function CarbonFootprintPage() {
   };
 
   const totalCO2Saved = trips.reduce((acc, curr) => acc + (curr.savings || 0), 0);
-  const totalCO2 = trips.reduce((acc, curr) => acc + (curr.co2eKg || 0), 0);
-  const avgCO2 = trips.length > 0 ? totalCO2 / trips.length : 0;
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
@@ -168,7 +166,7 @@ export default function CarbonFootprintPage() {
 
       <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
         {error && (
-          <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-800">
+          <div role="status" className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-800">
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Backend unavailable — used local calculation instead.</p>
@@ -221,12 +219,13 @@ export default function CarbonFootprintPage() {
                 </div>
 
                 <div>
-                  <Label>Mode of Travel</Label>
-                  <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
+                  <Label id="travel-mode-label">Mode of Travel</Label>
+                  <div role="group" aria-labelledby="travel-mode-label" className="grid grid-cols-3 sm:grid-cols-7 gap-2">
                     {TRAVEL_MODES.map((mode) => (
                       <button
                         key={mode}
                         type="button"
+                        aria-pressed={selectedMode === mode}
                         onClick={() => setSelectedMode(mode)}
                         className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-xs font-semibold ${
                           selectedMode === mode
@@ -339,13 +338,13 @@ export default function CarbonFootprintPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Route</th>
-                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Distance</th>
-                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mode</th>
-                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">CO₂e Impact</th>
-                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Savings</th>
-                    <th className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
+                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
+                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Route</th>
+                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Distance</th>
+                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mode</th>
+                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">CO₂e Impact</th>
+                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Savings</th>
+                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -371,10 +370,12 @@ export default function CarbonFootprintPage() {
                       </td>
                       <td className="px-6 py-4">
                         <button
+                          type="button"
+                          aria-label={`Delete trip from ${trip.origin} to ${trip.destination}`}
                           onClick={() => handleDeleteTrip(trip.id)}
                           className="text-slate-400 hover:text-red-500 p-1 hover:bg-slate-100 rounded-lg transition-colors"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       </td>
                     </tr>

@@ -56,21 +56,31 @@ class TestDevTokenGate:
         response = client.get("/api/health")
         assert response.status_code == 200
 
-    def test_missing_token_is_rejected(self, monkeypatch):
+    def test_missing_token_is_rejected_on_private_routes(self, monkeypatch):
         client = build_client(monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo")
-        assert client.get("/api/aqi?lat=17.38&lon=78.49").status_code == 401
+        assert client.get("/api/rag/files").status_code == 401
 
     def test_malformed_header_is_rejected(self, monkeypatch):
         client = build_client(monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo")
         for header in ("", "Bearer", "Basic dev:x", "dev:x", "Bearer  "):
             response = client.get(
-                "/api/aqi?lat=17.38&lon=78.49", headers={"Authorization": header}
+                "/api/rag/files", headers={"Authorization": header}
             )
             assert response.status_code == 401, header
 
     def test_public_health_needs_no_token(self, monkeypatch):
         client = build_client(monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo")
         assert client.get("/api/health").status_code == 200
+
+    def test_public_environment_routes_need_no_token(self, monkeypatch):
+        import services.geocoding_service as geocoding_service
+
+        async def _no_places(*_args, **_kwargs):
+            return []
+
+        monkeypatch.setattr(geocoding_service, "search_places", _no_places)
+        client = build_client(monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo")
+        assert client.get("/api/geocode/search?q=Chennai").status_code == 200
 
 
 class TestHealth:
@@ -116,6 +126,56 @@ class TestValidation:
         assert client.get("/api/aqi?lat=17.38&lon=78.49&bogus=1", headers=auth).status_code == 200
 
 
+class TestAqiHistoryRoute:
+    @pytest.fixture
+    def stubbed_history(self, monkeypatch):
+        import api.air as air_router
+
+        async def fake_location(lat=None, lon=None, city=None, **kwargs):
+            return (
+                {"name": "Gudur", "latitude": 14.1489, "longitude": 79.8530, "region": "AP", "country": "India"},
+                "coordinates",
+            )
+
+        async def fake_history(lat, lon, start, end):
+            return [
+                {
+                    "date": start,
+                    "aqiMean": 120,
+                    "aqiMax": 150,
+                    "aqiMin": 90,
+                    "dominant": "PM2.5",
+                    "pm25": 50.0,
+                    "pm10": 80.0,
+                }
+            ]
+
+        monkeypatch.setattr(air_router.air_quality_service, "resolve_location", fake_location)
+        monkeypatch.setattr(air_router.air_quality_service, "fetch_aqi_history", fake_history)
+
+    def test_returns_daily_points(self, client, auth, stubbed_history):
+        response = client.get(
+            "/api/aqi/history?lat=17.38&lon=78.49&start=2023-11-01&end=2023-11-03",
+            headers=auth,
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["startDate"] == "2023-11-01"
+        assert body["endDate"] == "2023-11-03"
+        assert body["points"][0]["aqiMean"] == 120
+
+    def test_is_public_without_a_token(self, client, stubbed_history):
+        response = client.get("/api/aqi/history?lat=17.38&lon=78.49&start=2023-11-01&end=2023-11-03")
+        assert response.status_code == 200
+
+    def test_reversed_range_is_rejected(self, client, auth, stubbed_history):
+        response = client.get(
+            "/api/aqi/history?lat=17.38&lon=78.49&start=2023-11-03&end=2023-11-01",
+            headers=auth,
+        )
+        assert response.status_code == 422
+
+
 class TestErrorHandling:
     def test_validation_errors_do_not_leak_internals(self, client, auth):
         body = client.get("/api/aqi?lat=abc&lon=def", headers=auth).json()
@@ -149,14 +209,15 @@ class TestErrorHandling:
             assert response.headers.get("access-control-allow-origin") == origin, origin
 
     def test_cors_preflight_allows_localhost_in_development(self, client):
-        response = client.options(
-            "/api/aqi",
-            headers={
-                "Origin": "http://localhost:5173",
-                "Access-Control-Request-Method": "GET",
-            },
-        )
-        assert response.headers.get("access-control-allow-origin") == "http://localhost:5173"
+        for origin in ("http://localhost:5173", "http://127.0.0.1:5173"):
+            response = client.options(
+                "/api/aqi",
+                headers={
+                    "Origin": origin,
+                    "Access-Control-Request-Method": "GET",
+                },
+            )
+            assert response.headers.get("access-control-allow-origin") == origin, origin
 
     def test_cors_preflight_from_unknown_origin_is_not_allowed(self, client):
         response = client.options(
@@ -216,6 +277,7 @@ class TestRouteSurface:
         for expected in (
             "/api/health",
             "/api/aqi",
+            "/api/aqi/history",
             "/api/weather",
             "/api/geocode/search",
             "/api/ai/chat",

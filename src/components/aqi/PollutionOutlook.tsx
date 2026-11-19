@@ -41,12 +41,15 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const activeName = activeLocation.name;
+  const activeLat = activeLocation.latitude;
+  const activeLon = activeLocation.longitude;
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError('');
-    const params = toLocationParams(activeLocation);
+    const params = toLocationParams({ name: activeName, latitude: activeLat, longitude: activeLon });
     fetchPredictions({ ...params, days: 1 })
       .then((data) => {
         if (cancelled) return;
@@ -65,7 +68,7 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
     return () => {
       cancelled = true;
     };
-  }, [activeLocation.name, activeLocation.latitude, activeLocation.longitude]);
+  }, [activeName, activeLat, activeLon]);
 
   const points = useMemo(
     () => forecast.filter((f) => Number.isFinite(f.aqi)).slice(0, 8),

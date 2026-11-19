@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   MessageSquare,
   TrendingUp,
-  Leaf,
+  ListChecks,
   Settings,
   LogOut,
   Wind,
   X,
   Menu,
-  CloudSun,
 } from 'lucide-react';
 import { cn } from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
@@ -20,8 +19,7 @@ const NAV_ITEMS = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'AI Assistant', href: '/ai', icon: MessageSquare },
   { name: 'Predictions', href: '/predictions', icon: TrendingUp },
-  { name: 'Weather Report', href: '/weather', icon: CloudSun },
-  { name: 'Carbon Footprint', href: '/carbon', icon: Leaf },
+  { name: 'Daily Routines', href: '/routines', icon: ListChecks },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -73,7 +71,7 @@ interface SidebarProps {
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const navigate = useNavigate();
-  const { user, displayName, profileLoading, logout } = useAuth();
+  const { user, displayName, avatarUrl, profileLoading, logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -97,8 +95,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="lg:hidden p-1 rounded-lg hover:bg-slate-100">
-            <X className="h-5 w-5 text-slate-500" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close navigation menu"
+            className="lg:hidden p-1 rounded-lg hover:bg-slate-100"
+          >
+            <X className="h-5 w-5 text-slate-500" aria-hidden="true" />
           </button>
         )}
       </div>
@@ -119,8 +122,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
       <div className="border-t border-slate-100 p-3 space-y-1">
         <div className="flex items-center gap-3 px-3 py-2 rounded-xl">
           <div className="h-9 w-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt="" className="h-full w-full rounded-full object-cover" />
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="h-full w-full rounded-full object-cover" />
             ) : (
               initials
             )}
@@ -149,10 +152,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
 export function MobileMenuButton({ onClick }: { onClick: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-label="Open navigation menu"
+      aria-expanded={false}
       className="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100"
     >
-      <Menu className="h-5 w-5" />
+      <Menu className="h-5 w-5" aria-hidden="true" />
     </button>
   );
 }

@@ -111,3 +111,35 @@ export interface CarbonTrip {
   date: Date;
   savings?: number;
 }
+
+export type HouseholdMemberKind = 'adult' | 'child' | 'senior' | 'respiratory';
+
+export interface HouseholdMember {
+  id: string;
+  name: string;
+  kind: HouseholdMemberKind;
+}
+
+export interface HouseholdProfile {
+  members: HouseholdMember[];
+  updatedAt?: string;
+}
+
+export interface CommunityPlace {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  label?: string;
+}
+
+export type RoutineCategory = 'indoor-air' | 'low-emission' | 'outdoor-timing' | 'winter-smog' | 'household';
+
+export interface DailyRoutine {
+  id: string;
+  title: string;
+  category: RoutineCategory;
+  detail: string;
+  impact: string;
+  priority: 'high' | 'medium' | 'low';
+}

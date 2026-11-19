@@ -11,7 +11,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
-from api.deps import CurrentUid, coordinates, env_cache
+from api.deps import OptionalUid, coordinates, env_cache
 from cache import coord_key
 from config import get_settings
 from logging_config import get_logger
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api", tags=["weather"])
 
 @router.get("/weather", response_model=WeatherResponse)
 async def get_weather(
-    uid: CurrentUid,
+    _uid: OptionalUid,
     where: Annotated[dict, Depends(coordinates)],
     days: Annotated[int, Query(ge=1, le=7, description="Days of daily forecast")] = 7,
     hours: Annotated[int, Query(ge=6, le=168, description="Hours of hourly forecast")] = 48,
@@ -63,7 +63,7 @@ async def get_weather(
 
 @router.get("/weather/summary", tags=["weather"])
 async def get_weather_summary(
-    uid: CurrentUid,
+    _uid: OptionalUid,
     where: Annotated[dict, Depends(coordinates)],
     days: Annotated[int, Query(ge=1, le=7)] = 3,
 ) -> dict:

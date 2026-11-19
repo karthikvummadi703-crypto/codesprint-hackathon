@@ -1,5 +1,8 @@
 {
   "framework": "vite",
+  "env": {
+    "ENVIRONMENT": "production"
+  },
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {

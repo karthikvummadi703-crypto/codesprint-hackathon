@@ -53,6 +53,21 @@ def _env_list(name: str, default: str = "") -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
+def detect_environment() -> str:
+    """Resolve the runtime environment without trusting an unset variable.
+
+    Hosted platforms always inject one of these signals. Treating them as
+    production closes the common deployment mistake where `ENVIRONMENT` is
+    omitted and dev tokens silently stay enabled.
+    """
+    explicit = _env("ENVIRONMENT").lower()
+    if explicit:
+        return explicit
+    if _env("VERCEL") or _env("PORT") or _env("RAILWAY_ENVIRONMENT"):
+        return "production"
+    return "development"
+
+
 @dataclass(frozen=True)
 class Settings:
     environment: str = "development"
@@ -155,8 +170,7 @@ def _default_origins() -> list[str]:
     otherwise ship a backend that the real browser app cannot call at all,
     which is a silent, total outage rather than a visible error.
     """
-    env_name = _env("ENVIRONMENT", "development").lower()
-    is_production = env_name in {"production", "prod"}
+    is_production = detect_environment() in {"production", "prod"}
 
     configured = _env_list("ALLOWED_ORIGINS") if _env("ALLOWED_ORIGINS") else []
     origins: list[str] = []
@@ -172,26 +186,35 @@ def _default_origins() -> list[str]:
         for origin in PRODUCTION_ORIGINS:
             if origin not in origins:
                 origins.append(origin)
-    elif not origins:
-        origins = [
+    else:
+        # Keep both loopback spellings available locally. A developer may open
+        # `localhost` while Vite binds to `127.0.0.1` (or vice versa), and an
+        # explicit ALLOWED_ORIGINS value must not turn the other spelling into a
+        # silent CORS failure.
+        for origin in (
             "http://localhost:5173",
             "http://localhost:5174",
             "http://127.0.0.1:5173",
-        ]
+            "http://127.0.0.1:5174",
+        ):
+            if origin not in origins:
+                origins.append(origin)
 
     return origins
 
 
 def _default_dev_auth(environment: str) -> bool:
     """`dev:` tokens are a local-only convenience and must never be enabled in production."""
+    if environment.lower() in {"production", "prod"}:
+        return False
     if _env("ALLOW_DEV_AUTH"):
         return _env_bool("ALLOW_DEV_AUTH", False)
-    return environment.lower() not in {"production", "prod"}
+    return True
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    environment = _env("ENVIRONMENT", "development").lower()
+    environment = detect_environment()
     return Settings(
         environment=environment,
         allowed_origins=tuple(_default_origins()),

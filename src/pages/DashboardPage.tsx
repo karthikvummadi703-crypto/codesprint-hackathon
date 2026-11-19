@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const { location: activeLocation, setLocation } = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searching, setSearching] = useState(false);
   const [currentLocation, setCurrentLocation] = useState('');
@@ -35,12 +36,12 @@ export default function DashboardPage() {
   const [isEstimated, setIsEstimated] = useState(false);
 
   const loadFromBackend = useCallback(
-    async (params: { lat?: number; lon?: number; city?: string }, locationLabel: string) => {
+    async (params: { lat?: number; lon?: number; city?: string }, locationLabel: string, force = false) => {
       setLoading(true);
       setError('');
       setShowSuggestions(false);
       try {
-        const data = await fetchAQI(params);
+        const data = await fetchAQI({ ...params, force });
         const aq: AirQualityData = {
           aqi: Number(data.aqi),
           status: data.status,
@@ -109,6 +110,7 @@ export default function DashboardPage() {
     const q = searchQuery.trim();
     if (!q) {
       setSuggestions([]);
+      setActiveSuggestion(-1);
       return;
     }
     setSearching(true);
@@ -125,7 +127,7 @@ export default function DashboardPage() {
     e.preventDefault();
     const q = searchQuery.trim();
     if (!q) return;
-    const best = suggestions[0];
+    const best = activeSuggestion >= 0 ? suggestions[activeSuggestion] : suggestions[0];
     if (best?.latitude) {
       selectSuggestion(best);
     } else {
@@ -209,30 +211,64 @@ export default function DashboardPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 type="text"
+                role="combobox"
+                aria-label="Search city or location"
+                aria-expanded={showSuggestions && (searching || suggestions.length > 0)}
+                aria-controls="dashboard-location-suggestions"
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  activeSuggestion >= 0 ? `dashboard-location-option-${activeSuggestion}` : undefined
+                }
                 placeholder="Search city or location..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
                   setShowSuggestions(true);
+                  setActiveSuggestion(-1);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setActiveSuggestion((i) => Math.min(i + 1, suggestions.length - 1));
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setActiveSuggestion((i) => Math.max(i - 1, -1));
+                  } else if (e.key === 'Escape') {
+                    setShowSuggestions(false);
+                    setActiveSuggestion(-1);
+                  } else if (e.key === 'Enter' && activeSuggestion >= 0 && suggestions[activeSuggestion]) {
+                    e.preventDefault();
+                    selectSuggestion(suggestions[activeSuggestion]);
+                  }
                 }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 className="pl-9 h-10 border-slate-200"
               />
               {showSuggestions && (searching || suggestions.length > 0) && (
-                <ul className="absolute top-11 left-0 right-0 z-20 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                <ul
+                  id="dashboard-location-suggestions"
+                  role="listbox"
+                  aria-label="Location suggestions"
+                  className="absolute top-11 left-0 right-0 z-20 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+                >
                   {searching && suggestions.length === 0 && (
                     <li className="px-4 py-3 text-xs text-slate-400">Searching locations...</li>
                   )}
                   {suggestions.map((s, i) => (
-                    <li key={`${s.latitude}-${s.longitude}-${i}`}>
+                    <li key={`${s.latitude}-${s.longitude}-${i}`} role="presentation">
                       <button
+                        id={`dashboard-location-option-${i}`}
                         type="button"
+                        role="option"
+                        aria-selected={i === activeSuggestion}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => selectSuggestion(s)}
-                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-start gap-2"
+                        className={`w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-start gap-2 ${
+                          i === activeSuggestion ? 'bg-brand-50' : ''
+                        }`}
                       >
-                        <MapPin className="h-4 w-4 text-brand-600 mt-0.5 shrink-0" />
+                        <MapPin className="h-4 w-4 text-brand-600 mt-0.5 shrink-0" aria-hidden="true" />
                         <span className="min-w-0">
                           <span className="block text-sm font-medium text-slate-800 truncate">{s.name}</span>
                           <span className="block text-xs text-slate-400 truncate">
@@ -255,8 +291,9 @@ export default function DashboardPage() {
               className="h-10 px-3 shrink-0"
               onClick={handleUseMyLocation}
               title="Use my location"
+              aria-label="Use my location"
             >
-              <Navigation className="h-4 w-4 text-brand-700" />
+              <Navigation className="h-4 w-4 text-brand-700" aria-hidden="true" />
             </Button>
           </form>
         </div>
@@ -264,8 +301,8 @@ export default function DashboardPage() {
 
       {error && (
         <div className="max-w-7xl mx-auto px-6 mt-6">
-          <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
-            <AlertCircle className="h-5 w-5 shrink-0" />
+          <div role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+            <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
             <div className="flex-1">
               <p className="font-semibold">Could not load air quality data</p>
               <p className="text-xs mt-1">{error}</p>
@@ -275,7 +312,7 @@ export default function DashboardPage() {
               variant="outline"
               size="sm"
               className="h-8"
-              onClick={() => loadFromBackend(toLocationParams(activeLocation), activeLocation.name)}
+              onClick={() => loadFromBackend(toLocationParams(activeLocation), activeLocation.name, true)}
             >
               <RefreshCw className="h-3.5 w-3.5 mr-1" /> Retry
             </Button>
@@ -345,7 +382,7 @@ export default function DashboardPage() {
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-brand-900 text-sm">Environmental Insight</h4>
+                    <h3 className="font-semibold text-brand-900 text-sm">Environmental Insight</h3>
                     <p className="text-xs text-brand-700 leading-relaxed mt-1">
                       Current AQI ({aqiData.aqi}) is primarily driven by {aqiData.dominantPollutant}.{' '}
                       {aqiData.aqi > 100

@@ -92,13 +92,13 @@ export default function SignupPage() {
             <div>
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" placeholder="Karthik Reddy" value={form.name} onChange={set('name')} className="h-11" />
-              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+              {errors.name && <p role="alert" className="text-xs text-red-500 mt-1">{errors.name}</p>}
             </div>
 
             <div>
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="you@example.com" value={form.email} onChange={set('email')} className="h-11" />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+              {errors.email && <p role="alert" className="text-xs text-red-500 mt-1">{errors.email}</p>}
             </div>
 
             <div>
@@ -112,24 +112,30 @@ export default function SignupPage() {
                   onChange={set('password')}
                   className="h-11 pr-10"
                 />
-                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                <button
+                  type="button"
+                  aria-label={showPass ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPass}
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                >
+                  {showPass ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password}</p>}
+              {errors.password && <p role="alert" className="text-xs text-red-500 mt-1">{errors.password}</p>}
             </div>
 
             <div>
               <Label htmlFor="confirm">Confirm Password</Label>
               <Input id="confirm" type="password" placeholder="Re-enter password" value={form.confirm} onChange={set('confirm')} className="h-11" />
-              {errors.confirm && <p className="text-xs text-red-500 mt-1">{errors.confirm}</p>}
+              {errors.confirm && <p role="alert" className="text-xs text-red-500 mt-1">{errors.confirm}</p>}
             </div>
 
             <Button type="submit" className="w-full h-11 mt-2" loading={loading}>
               Create Account
             </Button>
             {formError && (
-              <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700">
+              <div role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <span>{formError}</span>
               </div>

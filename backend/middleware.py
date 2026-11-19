@@ -1,8 +1,9 @@
 """Request middleware: timing instrumentation and rate limiting.
 
-Rate limiting uses a fixed-window counter keyed by user id when the caller is
-authenticated and by client IP otherwise, so one user cannot exhaust the shared
-LLM budget for everyone else.
+Rate limiting uses a fixed-window counter keyed by the verified user id when a
+token is supplied and by the socket peer address otherwise. Middleware runs
+before route dependencies, so authentication is resolved here explicitly rather
+than relying on a state value that has not been populated yet.
 """
 
 from __future__ import annotations
@@ -25,9 +26,12 @@ _COSTLY_PATHS = {"/api/ai/chat", "/api/rag/upload"}
 class _FixedWindowCounter:
     def __init__(self) -> None:
         self._hits: dict[str, deque[float]] = defaultdict(deque)
-        self._lock = time.monotonic
+        self._calls = 0
 
     def hit(self, key: str, limit: int, window_s: int) -> tuple[bool, int]:
+        self._calls += 1
+        if self._calls % 256 == 0:
+            self._prune()
         now = time.monotonic()
         bucket = self._hits[key]
         cutoff = now - window_s
@@ -39,6 +43,10 @@ class _FixedWindowCounter:
         bucket.append(now)
         return True, 0
 
+    def _prune(self) -> None:
+        for key in [key for key, bucket in self._hits.items() if not bucket]:
+            del self._hits[key]
+
     def reset(self) -> None:
         self._hits.clear()
 
@@ -46,13 +54,25 @@ class _FixedWindowCounter:
 _counters = _FixedWindowCounter()
 
 
-def _identity(request: Request) -> str:
+async def _identity(request: Request) -> str:
+    """Verified uid for authenticated callers, socket peer address otherwise.
+
+    `x-forwarded-for` is deliberately ignored: it is a client-controlled header
+    unless a trusted proxy is configured in front of the app, and honouring it
+    here would make every limit trivially bypassable.
+    """
     uid = getattr(request.state, "uid", None)
     if uid:
         return f"uid:{uid}"
-    forwarded = request.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return f"ip:{forwarded.split(',')[0].strip()}"
+    if request.headers.get("Authorization"):
+        try:
+            from services.security import get_uid
+
+            return f"uid:{await get_uid(request)}"
+        except Exception:
+            # The route will produce the precise auth error; for limiting, the
+            # peer address is a sufficient fallback for an unverified caller.
+            pass
     client = request.client
     return f"ip:{client.host if client else 'unknown'}"
 
@@ -86,7 +106,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         else:
             limit, window = settings.rate_limit_requests, settings.rate_limit_window_s
 
-        key = f"{_identity(request)}:{path}:{limit}"
+        identity = await _identity(request)
+        key = f"{identity}:{path}:{limit}"
         allowed, retry_after = _counters.hit(key, limit, window)
         if not allowed:
             log.warning("rate limit exceeded identity=%s path=%s", key.split(":", 1)[0], path)

@@ -68,6 +68,16 @@ async def chat(
     if _needs_documents(payload.message, payload.documentIds, intent):
         rag_chunks = await _retrieve_documents(uid, payload.message, payload.documentIds)
 
+    # Provider-backed observed history, only when the question names a past period
+    # ("last November", "2023"). The stored readings in `aqHistory` cover the app's
+    # own recent snapshots; this reaches years back.
+    observed_history: list[dict] | None = None
+    history_label: str | None = None
+    if enrich and has_coords and query_router.wants_historical(payload.message):
+        window = query_router.history_window(payload.message)
+        if window:
+            observed_history, history_label = await _load_history(location, settings, window)
+
     builder = ai_context.ContextBuilder(
         location=location,
         air_quality=aqi_for_context,
@@ -77,6 +87,11 @@ async def chat(
         carbon_trips=payload.carbonTrips or [],
         history=payload.aqHistory or [],
         rag_chunks=rag_chunks,
+        household=payload.household,
+        routines=payload.routines,
+        routine_context=payload.routineContext,
+        aqi_history=observed_history,
+        history_label=history_label,
     )
     context_text, sections, coverage = builder.build(payload.message)
 
@@ -192,6 +207,32 @@ async def _load_air_quality(location: dict, settings) -> tuple[dict | None, list
         env_cache.get_or_set(forecast_key, settings.cache_ttl_aqi_s, _forecast),
     )
     return aqi, (forecast or None)
+
+
+async def _load_history(
+    location: dict, settings, window: tuple[str, str, str]
+) -> tuple[list[dict] | None, str | None]:
+    """Fetch observed daily history for a past window, cached for a day.
+
+    Reanalysis data for a past period never changes, so it is cached far longer
+    than a live reading and shared across users for the same coordinate bucket.
+    """
+    start, end, label = window
+    key = f"ai-aqi-history:{coord_key(location['latitude'], location['longitude'])}:{start}:{end}"
+
+    async def _load() -> list[dict]:
+        return await air_quality_service.fetch_aqi_history(
+            location["latitude"], location["longitude"], start, end
+        ) or []
+
+    try:
+        rows = await env_cache.get_or_set(key, settings.cache_ttl_geocode_s, _load)
+    except ProviderError as exc:
+        # A history outage must not break the assistant; the builder states the
+        # range is unavailable instead.
+        log.warning("historical AQI enrichment failed: %s", exc)
+        return None, label
+    return (rows or None), label
 
 
 async def _load_weather(location: dict, settings) -> dict | None:

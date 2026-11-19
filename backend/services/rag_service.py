@@ -18,6 +18,7 @@ the whole corpus.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import math
@@ -66,7 +67,14 @@ class RagStoreError(RuntimeError):
 
 
 def _safe_uid(uid: str) -> str:
-    return re.sub(r"[^A-Za-z0-9_-]", "", uid) or "anonymous"
+    safe = re.sub(r"[^A-Za-z0-9_-]", "", uid)
+    if safe and safe == uid:
+        return uid
+    # Stripping characters can collapse distinct uids onto one namespace. A
+    # short digest keeps those uids separate without renaming existing stores
+    # whose ids were already filesystem-safe.
+    digest = hashlib.sha256(uid.encode("utf-8")).hexdigest()[:12]
+    return f"{safe or 'user'}-{digest}"
 
 
 def _store_path(uid: str) -> str:

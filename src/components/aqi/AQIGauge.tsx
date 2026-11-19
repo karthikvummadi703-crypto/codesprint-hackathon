@@ -44,17 +44,6 @@ export default function AQIGauge({ aqi, size = 200 }: AQIGaugeProps) {
   const nx = cx + needleLen * Math.cos(needleRad);
   const ny = cy + needleLen * Math.sin(needleRad);
 
-  // AQI scale ticks
-  const levels = [
-    { label: '0', pct: 0 },
-    { label: '50', pct: 0.1 },
-    { label: '100', pct: 0.2 },
-    { label: '150', pct: 0.3 },
-    { label: '200', pct: 0.4 },
-    { label: '300', pct: 0.6 },
-    { label: '500', pct: 1.0 },
-  ];
-
   const color = getAQIColor(aqi);
 
   return (

@@ -6,9 +6,12 @@ by an innocent-looking edit, so they are pinned against published reference valu
 
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 import pytest
 
 from services import air_quality_service as aq
+from test_providers_and_cache import patch_json
 
 
 class TestSubIndex:
@@ -158,3 +161,78 @@ class TestHistorical:
         # A diurnal profile should have a low and a high point, not a flat line.
         values = [p["aqi"] for p in points]
         assert max(values) > min(values)
+
+
+def _history_payload() -> dict:
+    return {
+        "hourly": {
+            "time": [
+                "2023-11-01T00:00",
+                "2023-11-01T12:00",
+                "2023-11-02T00:00",
+                "2023-11-02T12:00",
+            ],
+            "us_aqi": [100, 140, 60, 80],
+            "pm2_5": [40.0, 60.0, 20.0, 30.0],
+            "pm10": [70.0, 90.0, 30.0, 40.0],
+            "nitrogen_dioxide": [20.0, 20.0, 10.0, 10.0],
+            "sulphur_dioxide": [5.0, 5.0, 3.0, 3.0],
+            "carbon_monoxide": [400.0, 400.0, 300.0, 300.0],
+            "ozone": [30.0, 30.0, 20.0, 20.0],
+        }
+    }
+
+
+class TestFetchAqiHistory:
+    """Observed history is what lets the assistant answer "last November"."""
+
+    async def test_aggregates_hourly_into_daily(self, monkeypatch):
+        async def fake(method, url, **kwargs):
+            return _history_payload()
+
+        patch_json(monkeypatch, fake)
+        rows = await aq.fetch_aqi_history(17.38, 78.49, "2023-11-01", "2023-11-02")
+        assert [r["date"] for r in rows] == ["2023-11-01", "2023-11-02"]
+        first = rows[0]
+        assert first["aqiMean"] == 120
+        assert first["aqiMax"] == 140
+        assert first["aqiMin"] == 100
+        assert first["pm25"] == pytest.approx(50.0)
+        assert first["dominant"] == "PM2.5"
+
+    async def test_provider_failure_returns_none(self, monkeypatch):
+        from http_client import ProviderError
+
+        async def fake(*args, **kwargs):
+            raise ProviderError("open-meteo-air", "down")
+
+        patch_json(monkeypatch, fake)
+        assert await aq.fetch_aqi_history(1.0, 2.0, "2023-01-01", "2023-01-31") is None
+
+    async def test_empty_hourly_returns_none(self, monkeypatch):
+        async def fake(*args, **kwargs):
+            return {"hourly": {"time": []}}
+
+        patch_json(monkeypatch, fake)
+        assert await aq.fetch_aqi_history(1.0, 2.0, "2023-01-01", "2023-01-31") is None
+
+    async def test_invalid_range_never_calls_the_provider(self, monkeypatch):
+        async def fake(*args, **kwargs):
+            raise AssertionError("provider must not be called for an invalid range")
+
+        patch_json(monkeypatch, fake)
+        assert await aq.fetch_aqi_history(1.0, 2.0, "not-a-date", "2023-01-31") is None
+        assert await aq.fetch_aqi_history(1.0, 2.0, "2023-05-01", "2023-01-01") is None
+
+    async def test_range_is_clamped_to_the_past_and_bounded(self, monkeypatch):
+        captured: dict = {}
+
+        async def fake(method, url, **kwargs):
+            captured.update(kwargs.get("params") or {})
+            return {"hourly": {"time": ["2023-01-01T00:00"], "us_aqi": [50]}}
+
+        patch_json(monkeypatch, fake)
+        await aq.fetch_aqi_history(1.0, 2.0, "2019-01-01", "2999-01-01")
+        end = date.fromisoformat(captured["end_date"])
+        assert end <= date.today()
+        assert captured["start_date"] == (end - timedelta(days=366)).isoformat()

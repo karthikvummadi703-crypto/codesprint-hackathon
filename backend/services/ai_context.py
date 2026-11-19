@@ -44,6 +44,11 @@ class ContextBuilder:
         carbon_trips: list[dict] | None,
         history: list[dict] | None,
         rag_chunks: list[dict] | None,
+        household: dict | None = None,
+        routines: list[dict] | None = None,
+        routine_context: str | None = None,
+        aqi_history: list[dict] | None = None,
+        history_label: str | None = None,
     ) -> None:
         self.location = location or {}
         self.air_quality = air_quality
@@ -53,6 +58,11 @@ class ContextBuilder:
         self.carbon_trips = carbon_trips or []
         self.history = history or []
         self.rag_chunks = rag_chunks or []
+        self.aqi_history = aqi_history or []
+        self.history_label = (history_label or "").strip()
+        self.household = household
+        self.routines = routines or []
+        self.routine_context = (routine_context or "").strip()
 
     # -- public ------------------------------------------------------------------
 
@@ -69,6 +79,8 @@ class ContextBuilder:
             "carbon": bool(self.carbon_trips),
             "documents": bool(self.rag_chunks),
             "location": bool(self.location.get("name")),
+            "household": bool(self.household or self.routines or self.routine_context),
+            "aqi_history": bool(self.aqi_history or self.history),
         }
 
         if qr.BLOCK_LOCATION in blocks:
@@ -124,6 +136,10 @@ class ContextBuilder:
         if qr.BLOCK_DOCUMENTS in blocks and self.rag_chunks:
             sections.append(self._documents_section())
 
+        routine_section = self._routine_section()
+        if routine_section:
+            sections.append(routine_section)
+
         if not sections:
             sections.append(
                 "No live environmental data is available for the selected location right now. "
@@ -133,6 +149,40 @@ class ContextBuilder:
         return "\n\n".join(sections), [s.split("\n", 1)[0] for s in sections], coverage
 
     # -- sections ----------------------------------------------------------------
+
+    def _routine_section(self) -> str:
+        """Household and daily-routine guidance supplied by the user's own plan.
+
+        This is user-provided context, not an environmental measurement. It is
+        included on every turn so routine questions are answered against the same
+        plan shown in the app rather than from generic advice alone.
+        """
+        if not (self.household or self.routines or self.routine_context):
+            return ""
+        lines = ["HOUSEHOLD & DAILY ROUTINE PLAN [user-provided, not measured]:"]
+        if self.routine_context:
+            lines.append(self.routine_context)
+        if self.household and not self.routine_context:
+            members = self.household.get("members") or []
+            if members:
+                lines.append(
+                    "Members: " + ", ".join(
+                        f"{m.get('name', 'unnamed')} ({m.get('kind', 'adult')})" for m in members[:12]
+                    )
+                )
+        if self.routines and not self.routine_context:
+            for routine in self.routines[:30]:
+                title = routine.get("title")
+                if title:
+                    lines.append(
+                        f"- {title} [{routine.get('category', 'routine')}, {routine.get('priority', 'medium')}]: "
+                        f"{routine.get('detail', '')} Impact: {routine.get('impact', '')}"
+                    )
+        lines.append(
+            "Use this plan when suggesting routines. State the direct impact of each choice "
+            "and never present the plan as measured air-quality data."
+        )
+        return "\n".join(lines)
 
     def _location_section(self) -> str:
         name = self.location.get("name")
@@ -214,20 +264,78 @@ class ContextBuilder:
         )
 
     def _history_section(self) -> str:
+        parts: list[str] = []
+        if self.aqi_history:
+            parts.append(self._observed_history_section())
+
         records = [
             r
             for r in self.history
             if isinstance(r, dict) and r.get("aqi") is not None
         ]
-        if not records:
+        if records:
+            ordered = sorted(records, key=lambda r: str(r.get("timestamp", "")), reverse=True)
+            rows = [
+                f"{str(r.get('timestamp'))[:16].replace('T', ' ')} — AQI {r.get('aqi')} "
+                f"({r.get('status', 'n/a')}) at {r.get('location', 'unknown location')}"
+                for r in ordered[:6]
+            ]
+            parts.append(
+                "RECENT AQI READINGS (measured, newest first):\n"
+                + "\n".join(f"- {row}" for row in rows)
+            )
+
+        if not parts:
             return "RECENT AQI HISTORY: no stored readings for this user yet."
-        ordered = sorted(records, key=lambda r: str(r.get("timestamp", "")), reverse=True)
-        rows = [
-            f"{str(r.get('timestamp'))[:16].replace('T', ' ')} — AQI {r.get('aqi')} "
-            f"({r.get('status', 'n/a')}) at {r.get('location', 'unknown location')}"
-            for r in ordered[:6]
+        # Joined with a single newline on purpose: sections are delimited by a blank
+        # line, and `ai_service` re-parses on that delimiter.
+        return "\n".join(parts)
+
+    def _observed_history_section(self) -> str:
+        """Provider-backed observed history for a requested past period.
+
+        Rows arrive as daily aggregates from the air-quality provider's reanalysis
+        archive. A long range is rolled up per month so the prompt stays compact
+        while still covering every month the user asked about.
+        """
+        rows = [r for r in self.aqi_history if isinstance(r, dict) and r.get("date")]
+        if not rows:
+            return ""
+        rows = sorted(rows, key=lambda r: str(r.get("date")))
+        label = self.history_label or "the requested period"
+        lines = [
+            f"HISTORICAL AIR QUALITY [measured reanalysis, provider: open-meteo] for {label}:"
         ]
-        return "RECENT AQI HISTORY (measured, newest first):\n" + "\n".join(f"- {row}" for row in rows)
+        if len(rows) <= 45:
+            for r in rows:
+                mean = r.get("aqiMean")
+                status = aqi_category(int(mean)) if isinstance(mean, (int, float)) else "n/a"
+                lines.append(
+                    f"- {r.get('date')}: AQI avg {_num(mean)} ({status}), "
+                    f"max {_num(r.get('aqiMax'))}, dominant {r.get('dominant', 'n/a')}"
+                )
+        else:
+            for month, group in _by_month(rows).items():
+                means = [g.get("aqiMean") for g in group if isinstance(g.get("aqiMean"), (int, float))]
+                peaks = [g.get("aqiMax") for g in group if isinstance(g.get("aqiMax"), (int, float))]
+                if not means:
+                    continue
+                avg = round(sum(means) / len(means))
+                lines.append(
+                    f"- {month}: avg AQI {avg} ({aqi_category(avg)}), "
+                    f"peak {int(max(peaks)) if peaks else 'n/a'} over {len(means)} days"
+                )
+        values = [int(r["aqiMean"]) for r in rows if isinstance(r.get("aqiMean"), (int, float))]
+        if values:
+            lines.append(
+                f"Period summary: average AQI {round(sum(values) / len(values))}, "
+                f"peak {max(values)}, lowest {min(values)} across {len(values)} days."
+            )
+        lines.append(
+            "These are observed/reanalysis values for the period above, not a forecast. "
+            "Do not extrapolate beyond it."
+        )
+        return "\n".join(lines)
 
     def _weather_now_section(self) -> str:
         payload = self.weather
@@ -498,6 +606,14 @@ def _relative_label(timestamp: str | None) -> str:
         return f"in {hours}h"
     days = round(hours / 24.0)
     return f"in {days}d"
+
+
+def _by_month(rows: list[dict]) -> dict[str, list[dict]]:
+    """Group dated history rows by their `YYYY-MM` prefix, preserving order."""
+    grouped: dict[str, list[dict]] = {}
+    for row in rows:
+        grouped.setdefault(str(row.get("date"))[:7], []).append(row)
+    return grouped
 
 
 def _compass(degrees: float) -> str:

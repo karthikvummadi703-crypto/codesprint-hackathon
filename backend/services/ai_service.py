@@ -84,6 +84,21 @@ _HISTORY_TURNS = 10
 _MAX_TURN_CHARS = 1200
 _MAX_TOKENS_BUDGET = 6000
 
+# Reasoning models spend part of `max_tokens` on hidden thinking. A cap that looks
+# reasonable for a plain chat model (400) leaves almost nothing for the visible
+# answer, and the provider returns a half-sentence with finish_reason="length".
+# Give those models real headroom, and retry once with a larger cap if a provider
+# still truncates so the user never sees a clipped answer.
+_REASONING_MIN_OUTPUT_TOKENS = 1600
+_MAX_OUTPUT_TOKENS = 4000
+
+
+def _output_token_budget(settings) -> int:
+    budget = settings.llm_max_tokens
+    if settings.llm_reasoning_effort:
+        budget = max(budget, _REASONING_MIN_OUTPUT_TOKENS)
+    return budget
+
 
 def _history_messages(history: list[dict] | None) -> list[dict]:
     """Recent turns only, newest-first trimmed, oldest-first ordered.
@@ -149,11 +164,12 @@ async def generate_response(message: str, context_text: str, history: list | Non
             log.warning("llm budget exhausted after %d/%d models", chain.index(model), len(chain))
             break
 
+        max_tokens = _output_token_budget(settings)
         payload = {
             "model": model,
             "messages": messages,
             "temperature": settings.llm_temperature,
-            "max_tokens": settings.llm_max_tokens,
+            "max_tokens": max_tokens,
         }
         # Only sent when configured: a reasoning budget is an OpenRouter-shaped
         # parameter and a plain OpenAI endpoint rejects unknown body fields. It is
@@ -163,47 +179,70 @@ async def generate_response(message: str, context_text: str, history: list | Non
         # the user as a dead assistant.
         if settings.llm_reasoning_effort:
             payload["reasoning"] = {"effort": settings.llm_reasoning_effort}
-        try:
-            data = await request_json(
-                "POST",
-                f"{settings.llm_base_url.rstrip('/')}/chat/completions",
-                provider="llm",
-                json_body=payload,
-                headers=headers,
-                timeout=min(settings.llm_timeout_s, remaining),
-                retries=1,
-                retry_statuses=_LLM_NO_RETRY_STATUS,
-            )
-        except ProviderError as exc:
-            # A rate limit or a 5xx on one free-tier model says nothing about the
-            # next one, so the chain continues instead of giving up here.
-            log.warning("llm call failed model=%s: %s", model, exc)
-            if exc.status == 429:
-                rate_limited = True
-            continue
 
-        try:
-            content = data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError):
-            log.warning("llm returned an unexpected body shape model=%s", model)
-            continue
+        truncated_retry = False
+        while True:
+            remaining = budget_s - (time.perf_counter() - started)
+            if remaining <= 0.5:
+                break
+            try:
+                data = await request_json(
+                    "POST",
+                    f"{settings.llm_base_url.rstrip('/')}/chat/completions",
+                    provider="llm",
+                    json_body=payload,
+                    headers=headers,
+                    timeout=min(settings.llm_timeout_s, remaining),
+                    retries=1,
+                    retry_statuses=_LLM_NO_RETRY_STATUS,
+                )
+            except ProviderError as exc:
+                # A rate limit or a 5xx on one free-tier model says nothing about the
+                # next one, so the chain continues instead of giving up here.
+                log.warning("llm call failed model=%s: %s", model, exc)
+                if exc.status == 429:
+                    rate_limited = True
+                break
 
-        if not (content or "").strip():
-            # Some reasoning endpoints answer 200 with no text and everything under
-            # `reasoning`. Returning that blank would render an empty bubble, which
-            # reads as a dead assistant, so try the next model instead.
-            log.warning("llm returned empty content model=%s", model)
-            continue
+            try:
+                choice = data["choices"][0]
+                content = choice["message"]["content"]
+            except (KeyError, IndexError, TypeError):
+                log.warning("llm returned an unexpected body shape model=%s", model)
+                break
 
-        _llm_succeeded()
-        usage = data.get("usage") or {}
-        return {
-            "response": content.strip(),
-            "provider": model,
-            "degraded": False,
-            "prompt_tokens": int(usage.get("prompt_tokens") or 0),
-            "completion_tokens": int(usage.get("completion_tokens") or 0),
-        }
+            if choice.get("finish_reason") == "length" and not truncated_retry:
+                if max_tokens >= _MAX_OUTPUT_TOKENS:
+                    log.warning("llm output still truncated at the maximum budget model=%s", model)
+                elif remaining > 1.0:
+                    truncated_retry = True
+                    max_tokens = min(max_tokens * 2, _MAX_OUTPUT_TOKENS)
+                    payload = {**payload, "max_tokens": max_tokens}
+                    log.warning(
+                        "llm output truncated model=%s; retrying with max_tokens=%d",
+                        model,
+                        max_tokens,
+                    )
+                    continue
+
+            if not (content or "").strip():
+                # Some reasoning endpoints answer 200 with no text and everything under
+                # `reasoning`. Returning that blank would render an empty bubble, which
+                # reads as a dead assistant, so try the next model instead.
+                log.warning("llm returned empty content model=%s", model)
+                break
+
+            _llm_succeeded()
+            usage = data.get("usage") or {}
+            return {
+                "response": content.strip(),
+                "provider": model,
+                "degraded": False,
+                "prompt_tokens": int(usage.get("prompt_tokens") or 0),
+                "completion_tokens": int(usage.get("completion_tokens") or 0),
+            }
+        # The inner loop ends when this model cannot produce a usable answer; the
+        # outer chain then gets a chance with the next model.
 
     # Every model in the chain failed. Only now is a rate limit a property of this
     # deployment rather than of one upstream provider, so the breaker is charged

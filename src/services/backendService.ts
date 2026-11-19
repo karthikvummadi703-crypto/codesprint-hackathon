@@ -2,6 +2,12 @@ import { apiRequest } from './apiClient';
 import { API_BASE_URL } from './firebase';
 import { getAppToken } from './authService';
 
+/** Values of `method` returned by /api/predictions. Keep in sync with backend/api/air.py. */
+export const PREDICTION_METHOD = {
+  MODEL: 'provider-forecast',
+  HEURISTIC: 'heuristic-prototype',
+} as const;
+
 async function authHeaders(): Promise<{ token: string | null }> {
   return { token: await getAppToken() };
 }
@@ -10,9 +16,10 @@ export async function fetchAQI(params: {
   lat?: number;
   lon?: number;
   city?: string;
+  force?: boolean;
 }): Promise<Record<string, any>> {
   const { token } = await authHeaders();
-  return apiRequest(`/api/aqi?${locationQuery(params).toString()}`, { token });
+  return apiRequest(`/api/aqi?${locationQuery(params).toString()}`, { token, force: params.force });
 }
 
 export async function fetchPredictions(params: {
@@ -20,11 +27,12 @@ export async function fetchPredictions(params: {
   lon?: number;
   city?: string;
   days?: number;
+  force?: boolean;
 }): Promise<Record<string, any>> {
   const { token } = await authHeaders();
   const query = locationQuery(params);
   if (params.days !== undefined) query.set('days', String(params.days));
-  return apiRequest(`/api/predictions?${query.toString()}`, { token });
+  return apiRequest(`/api/predictions?${query.toString()}`, { token, force: params.force });
 }
 
 export interface PlaceSuggestion {
@@ -82,6 +90,9 @@ export async function sendChatMessage(
      */
     documentIds?: string[];
     history?: { role: 'user' | 'assistant'; content: string }[];
+    household?: Record<string, unknown>;
+    routines?: Record<string, unknown>[];
+    routineContext?: string;
   }
 ): Promise<ChatResult> {
   const { token } = await authHeaders();
@@ -97,6 +108,9 @@ export async function sendChatMessage(
       documentIds:
         context?.documentIds && context.documentIds.length > 0 ? context.documentIds : null,
       history: context?.history || null,
+      household: context?.household || null,
+      routines: context?.routines || null,
+      routineContext: context?.routineContext || null,
     },
     token,
   });
@@ -248,12 +262,13 @@ export async function fetchWeather(params: {
   city?: string;
   hours?: number;
   days?: number;
+  force?: boolean;
 }): Promise<WeatherResponse> {
   const { token } = await authHeaders();
   const query = locationQuery(params);
   if (params.hours !== undefined) query.set('hours', String(params.hours));
   if (params.days !== undefined) query.set('days', String(params.days));
-  return apiRequest<WeatherResponse>(`/api/weather?${query.toString()}`, { token });
+  return apiRequest<WeatherResponse>(`/api/weather?${query.toString()}`, { token, force: params.force });
 }
 
 export async function fetchWeatherSummary(params: {
@@ -261,11 +276,12 @@ export async function fetchWeatherSummary(params: {
   lon?: number;
   city?: string;
   days?: number;
+  force?: boolean;
 }): Promise<{ summary: string; location: string; source: string; timestamp: string }> {
   const { token } = await authHeaders();
   const query = locationQuery(params);
   if (params.days !== undefined) query.set('days', String(params.days));
-  return apiRequest(`/api/weather/summary?${query.toString()}`, { token });
+  return apiRequest(`/api/weather/summary?${query.toString()}`, { token, force: params.force });
 }
 
 export async function backendHealth(): Promise<boolean> {

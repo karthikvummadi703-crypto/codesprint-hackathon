@@ -34,6 +34,11 @@ async def lifespan(_: FastAPI):
             log.info("  %s: %s", capability, "enabled" if enabled else "disabled")
     if settings.allowed_origins:
         log.info("  allowed_origins: %s", ", ".join(settings.allowed_origins))
+    if settings.is_production and not settings.firebase_admin_configured:
+        log.warning(
+            "Firebase Admin is not configured: document persistence falls back to "
+            "process-local storage and will not survive a cold start."
+        )
     yield
     await close_client()
     log.info("AirGuard AI backend stopped")

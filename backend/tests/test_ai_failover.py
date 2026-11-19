@@ -150,6 +150,73 @@ def test_token_usage_is_reported_from_the_model_that_answered(monkeypatch):
 
 
 # --------------------------------------------------------------------------------------
+# Output budget
+# --------------------------------------------------------------------------------------
+
+
+def test_reasoning_models_get_output_headroom(monkeypatch):
+    """Reasoning tokens are part of max_tokens, so a small cap clips the answer."""
+    _configure(monkeypatch, "reasoning-model")
+    monkeypatch.setenv("LLM_MAX_TOKENS", "300")
+    monkeypatch.setenv("LLM_REASONING_EFFORT", "low")
+    seen: list[int] = []
+
+    async def fake_request(method, url, *, provider, json_body=None, **_):
+        seen.append(json_body["max_tokens"])
+        return _completion("A complete answer.")
+
+    monkeypatch.setattr(ai_service, "request_json", fake_request)
+    result = anyio.run(ai_service.generate_response, "What is the AQI?", CONTEXT)
+
+    assert result["response"] == "A complete answer."
+    assert seen == [ai_service._REASONING_MIN_OUTPUT_TOKENS]
+
+
+def test_non_reasoning_models_keep_the_configured_budget(monkeypatch):
+    _configure(monkeypatch, "plain-model")
+    monkeypatch.setenv("LLM_MAX_TOKENS", "250")
+    monkeypatch.setenv("LLM_REASONING_EFFORT", "")
+    seen: list[int] = []
+
+    async def fake_request(method, url, *, provider, json_body=None, **_):
+        seen.append(json_body["max_tokens"])
+        return _completion("Answer.")
+
+    monkeypatch.setattr(ai_service, "request_json", fake_request)
+    anyio.run(ai_service.generate_response, "What is the AQI?", CONTEXT)
+    assert seen == [250]
+
+
+def test_truncated_answer_is_retried_with_a_larger_budget(monkeypatch):
+    """A clipped half-sentence must never reach the user if a retry can fix it."""
+    _configure(monkeypatch, "reasoning-model")
+    monkeypatch.setenv("LLM_MAX_TOKENS", "300")
+    monkeypatch.setenv("LLM_REASONING_EFFORT", "low")
+    budgets: list[int] = []
+
+    async def fake_request(method, url, *, provider, json_body=None, **_):
+        budgets.append(json_body["max_tokens"])
+        if len(budgets) == 1:
+            return {
+                "choices": [
+                    {"message": {"content": "The air quality is currently"}, "finish_reason": "length"}
+                ],
+                "usage": {},
+            }
+        return _completion("The air quality is currently Unhealthy, so limit outdoor exertion.")
+
+    monkeypatch.setattr(ai_service, "request_json", fake_request)
+    result = anyio.run(ai_service.generate_response, "What is the AQI?", CONTEXT)
+
+    assert result["degraded"] is False
+    assert result["response"].endswith("limit outdoor exertion.")
+    assert budgets == [
+        ai_service._REASONING_MIN_OUTPUT_TOKENS,
+        ai_service._REASONING_MIN_OUTPUT_TOKENS * 2,
+    ]
+
+
+# --------------------------------------------------------------------------------------
 # Degrading only when the whole chain fails
 # --------------------------------------------------------------------------------------
 

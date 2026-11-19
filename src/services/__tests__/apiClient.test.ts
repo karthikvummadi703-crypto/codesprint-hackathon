@@ -32,6 +32,18 @@ describe('apiRequest caching and coalescing', () => {
     expect(second).toEqual(first);
   });
 
+  it('bypasses the cache and any in-flight request when force is set', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ aqi: 10 }))
+      .mockResolvedValueOnce(jsonResponse({ aqi: 20 }));
+
+    await apiRequest('/api/aqi?lat=1&lon=2');
+    const refreshed = await apiRequest<{ aqi: number }>('/api/aqi?lat=1&lon=2', { force: true });
+
+    expect(refreshed).toEqual({ aqi: 20 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('coalesces concurrent identical GETs into one request', async () => {
     let release: (v: Response) => void = () => {};
     fetchMock.mockImplementation(

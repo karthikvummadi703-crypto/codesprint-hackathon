@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input, Label } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
-import { User, Settings, Bell, Shield, Check, AlertCircle } from 'lucide-react';
+import { User, Settings, Bell, Shield, Check, AlertCircle, Upload, Trash2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getUser, saveUser } from '../services/dataService';
 import { initialsFor } from '../services/profileService';
+import { fileToAvatarDataUrl } from '../services/imageService';
 
 export default function SettingsPage() {
-  const { user, displayName, updateName } = useAuth();
+  const { user, displayName, avatarUrl, syncProfileLocally, updateAvatar } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'privacy'>('profile');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -21,6 +22,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -52,7 +55,7 @@ export default function SettingsPage() {
     setLoading(true);
     setError('');
     try {
-      await saveUser(user.uid, {
+      const patch = {
         name,
         email,
         location,
@@ -62,15 +65,52 @@ export default function SettingsPage() {
           alertThreshold: threshold,
         },
         updatedAt: new Date().toISOString(),
-      });
-      // Refresh the shared name so the sidebar updates on the next render.
-      await updateName(name);
+      };
+      await saveUser(user.uid, patch);
+      // refresh the shared profile in memory; saveUser already persisted it.
+      syncProfileLocally(patch);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const flashSaved = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Clear the input so re-selecting the same file still fires a change event.
+    e.target.value = '';
+    if (!file) return;
+    setPhotoBusy(true);
+    setError('');
+    try {
+      const dataUrl = await fileToAvatarDataUrl(file);
+      await updateAvatar(dataUrl);
+      flashSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setPhotoBusy(true);
+    setError('');
+    try {
+      await updateAvatar(null);
+      flashSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPhotoBusy(false);
     }
   };
 
@@ -102,12 +142,21 @@ export default function SettingsPage() {
 
       <div className="max-w-4xl mx-auto px-6 mt-8 flex flex-col md:flex-row gap-6">
         {/* Navigation Tabs */}
-        <div className="w-full md:w-64 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
+        <div
+          role="tablist"
+          aria-label="Settings sections"
+          aria-orientation="vertical"
+          className="w-full md:w-64 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0"
+        >
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls="settings-panel"
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all shrink-0 ${
                   activeTab === tab.id
@@ -123,7 +172,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Dynamic Settings Content */}
-        <Card className="flex-1">
+        <Card id="settings-panel" role="tabpanel" className="flex-1">
           <form onSubmit={handleSave}>
             {activeTab === 'profile' && (
               <div className="space-y-6">
@@ -132,18 +181,52 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="px-0 py-0 space-y-4">
                   <div className="flex items-center gap-4 py-2">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-2xl font-bold">
-                      {user?.photoURL ? (
-                        <img src={user.photoURL} alt="" className="h-full w-full rounded-2xl object-cover" />
+                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-2xl font-bold overflow-hidden shrink-0">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
                       ) : (
                         initials
                       )}
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-800">Avatar Image</h4>
+                      <h3 className="text-sm font-semibold text-slate-800">Profile Photo</h3>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {user?.isDev ? 'Dev mode avatar placeholder' : 'Profile photo from your account'}
+                        {user?.isDev
+                          ? 'Stored in this browser while in dev mode.'
+                          : 'Saved to your profile and shown across the app.'}
                       </p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={photoBusy || !loaded}
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          {avatarUrl ? 'Change' : 'Upload'}
+                        </Button>
+                        {avatarUrl && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemovePhoto}
+                            disabled={photoBusy || !loaded}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Remove
+                          </Button>
+                        )}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          aria-label="Upload profile photo"
+                          onChange={handlePhotoChange}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -157,7 +240,10 @@ export default function SettingsPage() {
 
                   <div>
                     <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    <Input id="email" type="email" value={email} readOnly aria-readonly="true" />
+                    <p className="mt-1.5 text-[11px] text-slate-400 leading-relaxed">
+                      Managed by your sign-in provider and shown here for reference.
+                    </p>
                   </div>
 
                   <div>
@@ -175,10 +261,11 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="px-0 py-0 space-y-4">
                   <div>
-                    <Label>Measurement Units</Label>
-                    <div className="flex gap-3">
+                    <Label id="units-label">Measurement Units</Label>
+                    <div role="group" aria-labelledby="units-label" className="flex gap-3">
                       <button
                         type="button"
+                        aria-pressed={units === 'metric'}
                         onClick={() => setUnits('metric')}
                         className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-all ${
                           units === 'metric'
@@ -190,6 +277,7 @@ export default function SettingsPage() {
                       </button>
                       <button
                         type="button"
+                        aria-pressed={units === 'imperial'}
                         onClick={() => setUnits('imperial')}
                         className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-all ${
                           units === 'imperial'
@@ -213,11 +301,14 @@ export default function SettingsPage() {
                 <CardContent className="px-0 py-0 space-y-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-semibold text-slate-800">Alert Notifications</h4>
+                      <h3 id="alert-notifications-label" className="text-sm font-semibold text-slate-800">Alert Notifications</h3>
                       <p className="text-xs text-slate-400 mt-0.5">Receive immediate warnings when air pollution spikes</p>
                     </div>
                     <button
                       type="button"
+                      role="switch"
+                      aria-checked={notifications}
+                      aria-labelledby="alert-notifications-label"
                       onClick={() => setNotifications(!notifications)}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                         notifications ? 'bg-brand-600' : 'bg-slate-200'
@@ -242,6 +333,7 @@ export default function SettingsPage() {
                           max="300"
                           step="10"
                           value={threshold}
+                          aria-valuetext={`${threshold} AQI`}
                           onChange={(e) => setThreshold(parseInt(e.target.value))}
                           className="flex-1 accent-brand-600 h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer"
                         />
@@ -265,7 +357,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="px-0 py-0 space-y-4">
                   <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-slate-800">Data & Access</h4>
+                    <h3 className="text-sm font-semibold text-slate-800">Data & Access</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
                       Your data (air quality history, chats, uploaded documents, carbon trips) is stored under your
                       account only. {user?.isDev
@@ -278,7 +370,7 @@ export default function SettingsPage() {
             )}
 
             {error && (
-              <div className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700">
+              <div role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700">
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>

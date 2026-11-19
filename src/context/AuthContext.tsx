@@ -16,6 +16,7 @@ import {
   appLogout,
 } from '../services/authService';
 import { clearResponseCache } from '../services/apiClient';
+import { saveUser } from '../services/dataService';
 import {
   UserProfile,
   ensureProfile,
@@ -28,6 +29,11 @@ interface AuthContextValue {
   user: AppUser | null;
   /** The user's real name, resolved from their profile then the auth provider. */
   displayName: string;
+  /**
+   * The avatar to render: the profile override when set, otherwise the auth
+   * provider's photo. `null` means "show initials".
+   */
+  avatarUrl: string | null;
   profile: UserProfile | null;
   /** True until the profile for the current user has been read. */
   profileLoading: boolean;
@@ -39,6 +45,10 @@ interface AuthContextValue {
   logout: () => Promise<void>;
   /** Persist a name change and refresh the resolved name everywhere. */
   updateName: (name: string) => Promise<void>;
+  /** Persist a profile photo (data URL) or clear it with `null`. */
+  updateAvatar: (photoURL: string | null) => Promise<void>;
+  /** Refresh the in-memory profile after a settings save without a second write. */
+  syncProfileLocally: (patch: Partial<UserProfile>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -89,6 +99,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const displayName = resolveDisplayName(user, profile);
+  // `??` (not `||`): an explicit `null` on the profile means the user removed
+  // their photo, so it must not silently fall back to the provider's picture.
+  const avatarUrl = profile?.photoURL ?? user?.photoURL ?? null;
 
   const updateName = useCallback(
     async (name: string) => {
@@ -101,13 +114,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [user],
   );
 
+  const updateAvatar = useCallback(
+    async (photoURL: string | null) => {
+      if (!user) throw new Error('Not signed in.');
+      await saveUser(user.uid, { photoURL });
+      setProfile((prev) => ({ ...(prev ?? {}), photoURL }));
+    },
+    [user],
+  );
+
+  const syncProfileLocally = useCallback((patch: Partial<UserProfile>) => {
+    setProfile((prev) => ({ ...(prev ?? {}), ...patch }));
+  }, []);
+
   const value: AuthContextValue = {
     user,
     displayName,
+    avatarUrl,
     profile,
     profileLoading,
     initializing,
     updateName,
+    updateAvatar,
+    syncProfileLocally,
     signup: async (name, email, password) => {
       const user = await appSignUp(name, email, password);
       await ensureProfile(user);
@@ -161,7 +190,16 @@ export function firebaseErrorMessage(err: unknown): string {
     case 'auth/network-request-failed':
       return 'Network error. Check your connection.';
     case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
       return 'Google sign-in was cancelled.';
+    case 'auth/popup-blocked':
+      return 'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.';
+    case 'auth/unauthorized-domain':
+      return 'This domain is not authorized for Google sign-in. Add localhost (or 127.0.0.1) under Firebase Authentication > Settings > Authorized domains.';
+    case 'auth/account-exists-with-different-credential':
+      return 'An account already exists with this email using a different sign-in method.';
+    case 'auth/operation-not-allowed':
+      return 'Google sign-in is not enabled for this Firebase project. Enable the Google provider in Firebase Authentication.';
     default:
       return msg.replace(/^Firebase: /, '').replace(/ \(auth\/[^)]*\)\.?$/, '');
   }

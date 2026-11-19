@@ -18,6 +18,7 @@ const PredictionsPage = lazy(() => import('./pages/PredictionsPage'));
 const CarbonFootprintPage = lazy(() => import('./pages/CarbonFootprintPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const WeatherReportPage = lazy(() => import('./pages/WeatherReportPage'));
+const RoutinesPage = lazy(() => import('./pages/RoutinesPage'));
 
 function PageSpinner({ label }: { label: string }) {
   return (
@@ -100,6 +101,7 @@ function AppRoutes() {
         <Route path="predictions" element={<LazyPage><PredictionsPage /></LazyPage>} />
         <Route path="weather" element={<LazyPage><WeatherReportPage /></LazyPage>} />
         <Route path="carbon" element={<LazyPage><CarbonFootprintPage /></LazyPage>} />
+        <Route path="routines" element={<LazyPage><RoutinesPage /></LazyPage>} />
         <Route path="settings" element={<LazyPage><SettingsPage /></LazyPage>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>

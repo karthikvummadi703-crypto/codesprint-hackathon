@@ -110,13 +110,13 @@ export default function WeatherReportPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     if (!location) return;
     setLoading(true);
     setError('');
     try {
       const params = toLocationParams(location);
-      const data = await fetchWeather({ ...params, hours: 24, days: 7 });
+      const data = await fetchWeather({ ...params, hours: 24, days: 7, force });
       setWeather(data);
     } catch (e) {
       setWeather(null);
@@ -166,7 +166,7 @@ export default function WeatherReportPage() {
                 {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
-            <Button variant="outline" size="sm" onClick={load} loading={loading} className="h-9">
+            <Button variant="outline" size="sm" onClick={() => load(true)} loading={loading} className="h-9">
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
           </div>
@@ -176,7 +176,7 @@ export default function WeatherReportPage() {
       <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
         {/* error */}
         {error && (
-          <div className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+          <div role="alert" className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
             <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Weather data unavailable</p>

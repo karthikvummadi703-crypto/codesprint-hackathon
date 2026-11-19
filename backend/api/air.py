@@ -3,16 +3,17 @@
 from __future__ import annotations
 
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 
-from api.deps import CurrentUid, coordinates, env_cache
+from api.deps import OptionalUid, coordinates, env_cache
 from cache import coord_key
 from config import get_settings
+from errors import AppError
 from logging_config import get_logger
-from schemas import AirQualityResponse, PredictionsResponse
+from schemas import AirQualityResponse, AqiHistoryResponse, PredictionsResponse
 from services import air_quality_service
 
 log = get_logger("airguard.api.air")
@@ -31,7 +32,7 @@ _MAX_POINT_GAP_S = 5400
 
 @router.get("/aqi", response_model=AirQualityResponse)
 async def get_aqi(
-    uid: CurrentUid,
+    _uid: OptionalUid,
     where: Annotated[dict, Depends(coordinates)],
 ) -> AirQualityResponse:
     """Current air quality for the requested location.
@@ -57,9 +58,60 @@ async def get_aqi(
     return AirQualityResponse(**payload)
 
 
+@router.get("/aqi/history", response_model=AqiHistoryResponse)
+async def get_aqi_history(
+    _uid: OptionalUid,
+    where: Annotated[dict, Depends(coordinates)],
+    start: Annotated[date | None, Query(description="Inclusive start date (YYYY-MM-DD)")] = None,
+    end: Annotated[date | None, Query(description="Inclusive end date (YYYY-MM-DD)")] = None,
+) -> AqiHistoryResponse:
+    """Observed daily air quality for a past date range.
+
+    Reaches back years via the provider's reanalysis archive (unlike the forecast
+    endpoint, whose `past_days` window is ~92 days). The range is clamped to the
+    past and to 366 days so one request cannot pull an unbounded series.
+    """
+    settings = get_settings()
+    location, _ = await air_quality_service.resolve_location(
+        where["lat"], where["lon"], where["city"]
+    )
+
+    today = datetime.now(timezone.utc).date()
+    end_date = min(end or today, today)
+    start_date = start or (end_date - timedelta(days=29))
+    if start_date > end_date:
+        raise AppError("start must be on or before end", status.HTTP_422_UNPROCESSABLE_ENTITY)
+    if (end_date - start_date).days > 366:
+        start_date = end_date - timedelta(days=366)
+
+    bucket = coord_key(location["latitude"], location["longitude"])
+    key = f"aqi-history:{bucket}:{start_date.isoformat()}:{end_date.isoformat()}"
+
+    async def _load() -> list[dict]:
+        return (
+            await air_quality_service.fetch_aqi_history(
+                location["latitude"],
+                location["longitude"],
+                start_date.isoformat(),
+                end_date.isoformat(),
+            )
+            or []
+        )
+
+    points = await env_cache.get_or_set(key, settings.cache_ttl_geocode_s, _load)
+    return AqiHistoryResponse(
+        location=location,
+        startDate=start_date.isoformat(),
+        endDate=end_date.isoformat(),
+        points=points,
+        source="open-meteo-air",
+        timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    )
+
+
 @router.get("/predictions", response_model=PredictionsResponse)
 async def get_predictions(
-    uid: CurrentUid,
+    _uid: OptionalUid,
     where: Annotated[dict, Depends(coordinates)],
     days: Annotated[int, Query(ge=1, le=7)] = 5,
 ) -> PredictionsResponse:

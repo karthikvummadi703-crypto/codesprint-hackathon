@@ -27,19 +27,32 @@ export function clearResponseCache(prefix?: string): void {
     return;
   }
   for (const key of [...responseCache.keys()]) if (key.startsWith(prefix)) responseCache.delete(key);
+  for (const key of [...inflight.keys()]) if (key.startsWith(prefix)) inflight.delete(key);
 }
 
 export async function apiRequest<T>(
   path: string,
-  options: { method?: string; body?: unknown; token?: string | null; headers?: Record<string, string> } = {}
+  options: {
+    method?: string;
+    body?: unknown;
+    token?: string | null;
+    headers?: Record<string, string>;
+    /** Skip the short-lived cache — used by explicit Refresh actions. */
+    force?: boolean;
+  } = {}
 ): Promise<T> {
-  const { method = 'GET', body, token, headers = {} } = options;
+  const { method = 'GET', body, token, headers = {}, force = false } = options;
 
   const cacheable = method === 'GET' && !NEVER_CACHE.test(path);
   // Keyed by identity too, so a cached public lookup can never cross accounts.
   const key = `${token ?? 'anon'}|${path}`;
 
-  if (cacheable) {
+  if (cacheable && force) {
+    responseCache.delete(key);
+    inflight.delete(key);
+  }
+
+  if (cacheable && !force) {
     const hit = responseCache.get(key);
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value as T;
     // Coalesce: two components asking for the same location at the same time
@@ -82,7 +95,10 @@ export async function apiRequest<T>(
   if (cacheable) {
     inflight.set(key, run);
     // Only a settled success is cached, so a failure always retries next time.
-    run.catch(() => {}).finally(() => inflight.delete(key));
+    // Guard the delete so a superseded forced request cannot evict a newer one.
+    run.catch(() => {}).finally(() => {
+      if (inflight.get(key) === run) inflight.delete(key);
+    });
   }
 
   return run as Promise<T>;

@@ -24,7 +24,7 @@ export const isFirebaseConfigured = Boolean(
  * quietly call the visitor's own machine, so the default has to follow the build
  * mode. `import.meta.env.PROD` is inlined at build time.
  */
-const DEV_API_BASE_URL = 'http://localhost:8001';
+const DEV_API_BASE_URL = 'http://127.0.0.1:8001';
 // Empty in production because the Vite build and the API are served from the
 // same Vercel origin: requests then go to a relative /api path, which needs no
 // CORS grant and no hardcoded backend hostname to go stale. Set

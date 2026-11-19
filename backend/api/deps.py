@@ -18,6 +18,21 @@ env_cache = TTLCache(get_settings().cache_max_entries)
 CurrentUid = Annotated[str, Depends(get_uid)]
 
 
+async def optional_uid(request: Request) -> str | None:
+    """Resolve a uid when a token is present, otherwise allow anonymous access.
+
+    Public environmental data routes use this so the app works before sign-in.
+    A malformed or forbidden token is still rejected instead of silently becoming
+    anonymous, which keeps auth mistakes visible to callers.
+    """
+    if not request.headers.get("Authorization"):
+        return None
+    return await get_uid(request)
+
+
+OptionalUid = Annotated[str | None, Depends(optional_uid)]
+
+
 def coordinates(
     lat: Annotated[float | None, Query(ge=-90, le=90)] = None,
     lon: Annotated[float | None, Query(ge=-180, le=180)] = None,

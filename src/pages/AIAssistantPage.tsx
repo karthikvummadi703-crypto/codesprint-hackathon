@@ -8,7 +8,6 @@ import {
   FileText,
   AlertCircle,
   MessageSquare,
-  HelpCircle,
   UploadCloud,
   File,
   X,
@@ -18,7 +17,6 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Badge } from '../components/ui/Badge';
 import { sendChatMessage, uploadDocumentForRag, deleteRagFile } from '../services/backendService';
 import { uploadToStorage, deleteFromStorage, isStorageConfigured } from '../services/storageService';
 import { useAuth } from '../context/AuthContext';
@@ -36,6 +34,7 @@ import {
   listAirQualityRecords,
   listCarbonTrips,
   getLatestPredictions,
+  getLifestyleSettings,
 } from '../services/dataService';
 import { ChatSession, ChatMessage, KnowledgeFile } from '../types';
 
@@ -45,6 +44,8 @@ const SUGGESTED_PROMPTS = [
   'Analyze my uploaded report',
   'Compare my pollution history',
   'How can I reduce my carbon footprint?',
+  'What should my household do during winter smog?',
+  'How can I improve indoor air quality at home?',
   'What are the health effects of PM2.5?',
 ];
 
@@ -104,6 +105,11 @@ export default function AIAssistantPage() {
   const [pendingAttachment, setPendingAttachment] = useState<KnowledgeFile | null>(null);
   const [attachmentError, setAttachmentError] = useState('');
   const [dragActive, setDragActive] = useState(false);
+  const [lifestyle, setLifestyle] = useState<{
+    household?: Record<string, unknown>;
+    routines?: Record<string, unknown>[];
+    routineContext?: string;
+  } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const attachInputRef = useRef<HTMLInputElement>(null);
@@ -118,23 +124,33 @@ export default function AIAssistantPage() {
   const reloadData = useCallback(async () => {
     if (!user) return;
     try {
-      const [convos, uploads] = await Promise.all([
+      const [convos, uploads, lifestyleData] = await Promise.all([
         listConversations(user.uid),
         listUploads(user.uid),
+        getLifestyleSettings(user.uid).catch(() => null),
       ]);
-      const hydrated: ChatSession[] = [];
-      for (const c of convos) {
-        const msgs = await listMessages(user.uid, c.id);
-        hydrated.push({
-          id: c.id,
-          title: c.title,
-          messages: msgs.map(toChatMessage),
-          updatedAt: new Date(c.updatedAt),
-          createdAt: new Date(c.createdAt),
-        });
-      }
+      const hydrated: ChatSession[] = await Promise.all(
+        convos.map(async (c) => {
+          const msgs = await listMessages(user.uid, c.id).catch(() => []);
+          return {
+            id: c.id,
+            title: c.title,
+            messages: msgs.map(toChatMessage),
+            updatedAt: new Date(c.updatedAt),
+            createdAt: new Date(c.createdAt),
+          };
+        })
+      );
       setSessions(hydrated);
       setUploadedFiles(uploads.map(toKnowledgeFile));
+      setLifestyle({
+        household: lifestyleData?.household as Record<string, unknown> | undefined,
+        routines: lifestyleData?.routines as Record<string, unknown>[] | undefined,
+        routineContext:
+          typeof lifestyleData?.routinePromptContext === 'string'
+            ? lifestyleData.routinePromptContext
+            : undefined,
+      });
       if (hydrated.length > 0) {
         setCurrentSessionId((prev) => prev || hydrated[0].id);
       } else {
@@ -322,6 +338,9 @@ export default function AIAssistantPage() {
         // someone else retrieves nothing.
         documentIds: attachment?.ragFileId ? [attachment.ragFileId] : undefined,
         history,
+        household: lifestyle?.household,
+        routines: lifestyle?.routines,
+        routineContext: lifestyle?.routineContext,
       });
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -381,16 +400,18 @@ export default function AIAssistantPage() {
     await uploadFiles(Array.from(files));
   };
 
-  const uploadFiles = async (incoming: File[]) => {
-    if (!user) return;
+  const uploadFiles = async (incoming: File[]): Promise<KnowledgeFile[]> => {
+    if (!user) return [];
+    setAttachmentError('');
+    const uploaded: KnowledgeFile[] = [];
     for (const file of incoming) {
       const extension = file.name.split('.').pop()?.toLowerCase();
       if (extension !== 'pdf' && extension !== 'csv' && extension !== 'txt') {
-        alert('Invalid file format. Please upload PDF, CSV, or TXT.');
+        setAttachmentError(`Unsupported file type: ${file.name}. Upload PDF, CSV, or TXT.`);
         continue;
       }
       if (file.size > 10 * 1024 * 1024) {
-        alert('File is larger than 10MB. Please upload a smaller file.');
+        setAttachmentError(`${file.name} is larger than 10MB. Choose a smaller file.`);
         continue;
       }
 
@@ -431,18 +452,20 @@ export default function AIAssistantPage() {
           ragFileId: ragResult?.fileId || null,
           storagePath: storageUrl ? `users/${user.uid}/uploads/${file.name}` : null,
         }).catch(() => {});
-        setUploadedFiles((prev) =>
-          prev.map((f) =>
-            f.id === fileId ? { ...f, status: 'ready', ragFileId: ragResult?.fileId } : f
-          )
-        );
+        const readyFile: KnowledgeFile = {
+          ...newFile,
+          status: 'ready',
+          ragFileId: ragResult?.fileId,
+        };
+        setUploadedFiles((prev) => prev.map((f) => (f.id === fileId ? readyFile : f)));
+        uploaded.push(readyFile);
       } catch (err) {
         ragSucceeded = false;
         const msg = err instanceof Error ? err.message : String(err);
         setUploadedFiles((prev) =>
           prev.map((f) => (f.id === fileId ? { ...f, status: 'error' } : f))
         );
-        alert(`Upload failed: ${msg}. Make sure the backend is running.`);
+        setAttachmentError(`Upload failed: ${msg}. Make sure the backend is running.`);
       } finally {
         if (!ragSucceeded) {
           setUploadProgress((prev) => {
@@ -453,6 +476,7 @@ export default function AIAssistantPage() {
         }
       }
     }
+    return uploaded;
   };
 
   const handleDeleteFile = async (file: KnowledgeFile) => {
@@ -485,11 +509,11 @@ export default function AIAssistantPage() {
     setDragActive(false);
     const dropped = Array.from(e.dataTransfer?.files ?? []);
     if (dropped.length === 0) return;
-    await uploadFiles(dropped);
+    const uploaded = await uploadFiles(dropped);
     // A single dropped file is also staged for the current message, which is
     // what makes drag-and-drop usable for "what does this report say?".
-    const first = uploadedFiles.find((f) => f.name === dropped[0]?.name);
-    if (first && first.status === 'ready') setPendingAttachment(first);
+    const first = uploaded.find((f) => f.status === 'ready');
+    if (first) setPendingAttachment(first);
   };
 
   const filteredSessions = sessions.filter((s) =>
@@ -498,6 +522,7 @@ export default function AIAssistantPage() {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
+      <h1 className="sr-only">AI Environmental Assistant</h1>
       {/* Secondary sidebar - Chat history */}
       <div className="w-80 border-r border-slate-200 bg-white flex flex-col hidden md:flex">
         <div className="p-4 border-b border-slate-100 flex flex-col gap-3">
@@ -508,6 +533,7 @@ export default function AIAssistantPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
               type="text"
+              aria-label="Search chat history"
               placeholder="Search chat history..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -524,22 +550,31 @@ export default function AIAssistantPage() {
             filteredSessions.map((session) => (
               <div
                 key={session.id}
-                onClick={() => setCurrentSessionId(session.id)}
-                className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm cursor-pointer transition-colors ${
+                className={`group flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors ${
                   session.id === currentSessionId
                     ? 'bg-brand-50 text-brand-800 font-semibold'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <MessageSquare className={`h-4 w-4 shrink-0 ${session.id === currentSessionId ? 'text-brand-600' : 'text-slate-400'}`} />
-                  <span className="truncate">{session.title}</span>
-                </div>
                 <button
-                  onClick={(e) => handleDeleteSession(session.id, e)}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-all"
+                  type="button"
+                  aria-current={session.id === currentSessionId ? 'true' : undefined}
+                  onClick={() => setCurrentSessionId(session.id)}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <MessageSquare
+                    className={`h-4 w-4 shrink-0 ${session.id === currentSessionId ? 'text-brand-600' : 'text-slate-400'}`}
+                    aria-hidden="true"
+                  />
+                  <span className="truncate">{session.title}</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Delete conversation ${session.title}`}
+                  onClick={(e) => handleDeleteSession(session.id, e)}
+                  className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-red-500 transition-all"
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </div>
             ))
@@ -576,7 +611,12 @@ export default function AIAssistantPage() {
           </div>
 
           {/* Chat messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50">
+          <div
+            role="log"
+            aria-live="polite"
+            aria-label="Chat messages"
+            className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50"
+          >
             {activeSession?.messages.length === 0 ? (
               <div className="max-w-xl mx-auto text-center py-16 space-y-4">
                 <div className="h-12 w-12 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center mx-auto shadow-sm">
@@ -636,7 +676,11 @@ export default function AIAssistantPage() {
                     <div className="h-8 w-8 rounded-lg bg-brand-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
                       A
                     </div>
-                    <div className="bg-white border border-slate-100 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center gap-1">
+                    <div
+                      role="status"
+                      aria-label="Assistant is typing"
+                      className="bg-white border border-slate-100 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center gap-1"
+                    >
                       <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                       <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
                       <span className="h-1.5 w-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -687,6 +731,8 @@ export default function AIAssistantPage() {
                     </span>
                   )}
                   <button
+                    type="button"
+                    aria-label="Remove attachment"
                     onClick={() => {
                       setPendingAttachment(null);
                       setAttachmentError('');
@@ -694,13 +740,13 @@ export default function AIAssistantPage() {
                     className="ml-auto p-0.5 rounded text-brand-500 hover:text-brand-700"
                     title="Remove attachment"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
                 </div>
               )}
 
               {attachmentError && (
-                <p className="text-[11px] text-red-600 mb-2 flex items-center gap-1">
+                <p role="alert" className="text-[11px] text-red-600 mb-2 flex items-center gap-1">
                   <AlertCircle className="h-3.5 w-3.5" /> {attachmentError}
                 </p>
               )}
@@ -708,11 +754,12 @@ export default function AIAssistantPage() {
               <div className="flex gap-2 items-end">
                 <button
                   type="button"
+                  aria-label="Attach a document to this message"
                   onClick={() => attachInputRef.current?.click()}
                   className="h-11 w-11 shrink-0 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:text-brand-600 hover:border-brand-300 transition-colors"
                   title="Attach a document to this message"
                 >
-                  <Paperclip className="h-4.5 w-4.5" />
+                  <Paperclip className="h-4.5 w-4.5" aria-hidden="true" />
                 </button>
                 <input
                   type="file"
@@ -723,6 +770,7 @@ export default function AIAssistantPage() {
                 />
                 <Input
                   type="text"
+                  aria-label="Message AirGuard AI"
                   placeholder={
                     pendingAttachment
                       ? `Ask about ${pendingAttachment.name}…`
@@ -741,11 +789,12 @@ export default function AIAssistantPage() {
                   className="h-11 border-slate-200 pr-10"
                 />
                 <Button
+                  aria-label="Send message"
                   onClick={() => handleSendMessage(inputMessage)}
                   disabled={!inputMessage.trim() || isLoading}
                   className="h-11 px-4"
                 >
-                  <Send className="h-4.5 w-4.5" />
+                  <Send className="h-4.5 w-4.5" aria-hidden="true" />
                 </Button>
               </div>
 
@@ -793,14 +842,28 @@ export default function AIAssistantPage() {
           <div className="w-80 border-l border-slate-200 h-full flex flex-col bg-white z-10 shrink-0">
             <div className="h-16 border-b border-slate-100 flex items-center justify-between px-5 shrink-0">
               <h3 className="font-bold text-slate-800 text-sm">Knowledge Uploads</h3>
-              <button onClick={() => setShowUploadPanel(false)} className="p-1 hover:bg-slate-100 rounded-lg">
-                <X className="h-4 w-4 text-slate-500" />
+              <button
+                type="button"
+                aria-label="Close knowledge uploads"
+                onClick={() => setShowUploadPanel(false)}
+                className="p-1 hover:bg-slate-100 rounded-lg"
+              >
+                <X className="h-4 w-4 text-slate-500" aria-hidden="true" />
               </button>
             </div>
 
             <div className="p-4 border-b border-slate-100 shrink-0">
               <div
+                role="button"
+                tabIndex={0}
+                aria-label="Upload environmental report"
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
                 className="border-2 border-dashed border-slate-200 hover:border-brand-500 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-50 hover:bg-brand-50/20"
               >
                 <UploadCloud className="h-8 w-8 text-slate-400 mx-auto mb-2" />
@@ -861,11 +924,13 @@ export default function AIAssistantPage() {
                       <CheckCircle className="h-4 w-4 text-emerald-500" />
                     )}
                     <button
+                      type="button"
+                      aria-label={`Delete ${file.name}`}
                       onClick={() => handleDeleteFile(file)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"
+                      className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all"
                       title="Delete file"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   </div>
                 </div>

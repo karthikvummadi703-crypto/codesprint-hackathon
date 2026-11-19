@@ -7,6 +7,8 @@ measured, and say so plainly when data is missing.
 
 from __future__ import annotations
 
+from datetime import date
+
 from services import ai_context, ai_service, query_router as qr
 
 LOCATION = {"name": "Gudur", "latitude": 14.1489, "longitude": 79.8530, "country": "India"}
@@ -92,6 +94,62 @@ class TestQueryRouter:
 
     def test_wants_location(self):
         assert qr.wants_location("air_quality")
+
+
+class TestHistoricalRouting:
+    def test_explicit_year_is_historical(self):
+        assert qr.classify("what was the air quality in 2023?") == "historical"
+        assert qr.BLOCK_AQI_HISTORY in qr.blocks_for("historical")
+
+    def test_last_year_is_historical(self):
+        assert qr.classify("how was the air quality last year?") == "historical"
+
+    def test_named_month_is_historical(self):
+        assert qr.classify("was it polluted in November?") == "historical"
+
+    def test_modal_may_does_not_trigger_history(self):
+        assert qr.classify("it may rain tomorrow") != "historical"
+
+    def test_plain_aqi_question_stays_current(self):
+        assert qr.classify("what is the aqi right now?") == "air_quality"
+
+    def test_history_window_for_explicit_year(self):
+        assert qr.history_window("air quality in 2023", today=date(2026, 6, 1)) == (
+            "2023-01-01",
+            "2023-12-31",
+            "2023",
+        )
+
+    def test_history_window_for_last_year(self):
+        assert qr.history_window("how was last year", today=date(2026, 6, 1)) == (
+            "2025-01-01",
+            "2025-12-31",
+            "2025",
+        )
+
+    def test_history_window_for_named_month(self):
+        assert qr.history_window("was it bad in November", today=date(2026, 6, 1)) == (
+            "2025-11-01",
+            "2025-11-30",
+            "November 2025",
+        )
+
+    def test_history_window_for_month_and_year(self):
+        assert qr.history_window("how was November 2023", today=date(2026, 6, 1)) == (
+            "2023-11-01",
+            "2023-11-30",
+            "November 2023",
+        )
+
+    def test_history_window_for_recent_days(self):
+        assert qr.history_window("show me the last 10 days", today=date(2026, 6, 1)) == (
+            "2026-05-23",
+            "2026-06-01",
+            "the last 10 days",
+        )
+
+    def test_history_window_without_a_period_is_none(self):
+        assert qr.history_window("how is the air", today=date(2026, 6, 1)) is None
 
 
 class TestContextBuilder:
@@ -184,6 +242,41 @@ class TestContextBuilder:
         text, _, _ = self.build(message="how has it changed since yesterday?", history=[])
         assert "no stored readings" in text.lower()
 
+    def test_observed_history_is_rendered_with_provenance(self):
+        observed = [
+            {"date": "2023-11-01", "aqiMean": 120, "aqiMax": 180, "aqiMin": 90, "dominant": "PM2.5"},
+            {"date": "2023-11-02", "aqiMean": 60, "aqiMax": 75, "aqiMin": 45, "dominant": "PM2.5"},
+        ]
+        text, sections, coverage = self.build(
+            message="how was the air in 2023?",
+            aqi_history=observed,
+            history_label="2023",
+        )
+        assert any(s.startswith("HISTORICAL AIR QUALITY") for s in sections)
+        assert "2023-11-01" in text
+        assert "measured reanalysis" in text
+        assert "not a forecast" in text.lower()
+        assert coverage["aqi_history"] is True
+
+    def test_long_observed_history_is_rolled_up_by_month(self):
+        observed = [
+            {"date": f"2023-{month:02d}-{day:02d}", "aqiMean": 100 + month, "aqiMax": 150, "aqiMin": 60, "dominant": "PM2.5"}
+            for month in range(1, 13)
+            for day in range(1, 6)
+        ]
+        text, _, _ = self.build(
+            message="how was the air in 2023?",
+            aqi_history=observed,
+            history_label="2023",
+        )
+        assert "2023-01:" in text
+        assert "2023-12:" in text
+        assert "Period summary" in text
+
+    def test_observed_history_coverage_is_false_when_absent(self):
+        _, _, coverage = self.build(message="how is the air?")
+        assert coverage["aqi_history"] is False
+
     def test_vulnerability_reasoning_uses_real_numbers(self):
         text, _, _ = self.build(message="is it safe to run outside?")
         assert "142" in text
@@ -211,6 +304,40 @@ class TestContextBuilder:
         assert ai_context._compass(270) == "W"
         assert ai_context._compass(360) == "N"
         assert ai_context._compass(45) == "NE"
+
+    def test_household_plan_is_labelled_as_user_provided(self):
+        text, sections, coverage = self.build(
+            household={"members": [{"name": "Riya", "kind": "child"}]},
+            routines=[
+                {
+                    "id": "windows",
+                    "title": "Time your window opening",
+                    "category": "indoor-air",
+                    "priority": "high",
+                    "detail": "Keep windows closed during rush hours.",
+                    "impact": "Less outdoor PM2.5 settles indoors.",
+                }
+            ],
+        )
+        assert any(s.startswith("HOUSEHOLD & DAILY ROUTINE PLAN") for s in sections)
+        assert "Riya" in text
+        assert "child" in text
+        assert "Time your window opening" in text
+        assert "not measured" in text.lower()
+        assert coverage["household"] is True
+
+    def test_prebuilt_routine_context_is_used_verbatim(self):
+        text, _, coverage = self.build(
+            routine_context="Household: Riya (child). Plan: run the HEPA purifier."
+        )
+        assert "run the HEPA purifier" in text
+        assert "not measured" in text.lower()
+        assert coverage["household"] is True
+
+    def test_household_coverage_is_false_without_a_plan(self):
+        _, sections, coverage = self.build()
+        assert coverage["household"] is False
+        assert not any(s.startswith("HOUSEHOLD & DAILY ROUTINE PLAN") for s in sections)
 
 
 class TestSystemPrompt:

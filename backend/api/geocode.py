@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query
 
-from api.deps import CurrentUid, env_cache
+from api.deps import OptionalUid, env_cache
 from config import get_settings
 from logging_config import get_logger
 from schemas import PlaceSearchResponse
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api", tags=["geocoding"])
 
 @router.get("/geocode/search", response_model=PlaceSearchResponse)
 async def search(
-    uid: CurrentUid,
+    _uid: OptionalUid,
     q: Annotated[str, Query(min_length=2, max_length=120)],
     limit: Annotated[int, Query(ge=1, le=10)] = 5,
 ) -> PlaceSearchResponse:
@@ -39,7 +39,7 @@ async def search(
 
 @router.get("/geocode/reverse", response_model=PlaceSearchResponse)
 async def reverse(
-    uid: CurrentUid,
+    _uid: OptionalUid,
     lat: Annotated[float, Query(ge=-90, le=90)],
     lon: Annotated[float, Query(ge=-180, le=180)],
 ) -> PlaceSearchResponse:
