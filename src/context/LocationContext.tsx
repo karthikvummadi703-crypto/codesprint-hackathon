@@ -86,7 +86,7 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<LocationContextValue>(
     () => ({ location, setLocation, clearLocation }),
-    [location, setLocation, clearLocation]
+    [location, setLocation, clearLocation],
   );
 
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;

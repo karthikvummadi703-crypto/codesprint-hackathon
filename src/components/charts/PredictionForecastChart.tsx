@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   ComposedChart,
   Bar,
@@ -84,7 +83,12 @@ export default function PredictionForecastChart({ forecasts }: PredictionForecas
         <ResponsiveContainer width="100%" height={240}>
           <ComposedChart data={chartData} margin={{ top: 10, right: 5, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: '#94A3B8' }}
+              tickLine={false}
+              axisLine={false}
+            />
             <YAxis
               tick={{ fontSize: 11, fill: '#94A3B8' }}
               tickLine={false}

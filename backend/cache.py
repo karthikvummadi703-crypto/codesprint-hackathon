@@ -10,8 +10,9 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import OrderedDict
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from logging_config import get_logger
 
@@ -27,7 +28,7 @@ class _Entry:
 class TTLCache:
     def __init__(self, max_entries: int = 512) -> None:
         self._max_entries = max(1, max_entries)
-        self._store: "OrderedDict[str, _Entry]" = OrderedDict()
+        self._store: OrderedDict[str, _Entry] = OrderedDict()
         self._lock = asyncio.Lock()
         self.hits = 0
         self.misses = 0

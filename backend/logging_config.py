@@ -53,9 +53,7 @@ def setup_logging(level: str = "INFO") -> None:
     if _CONFIGURED:
         return
     handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(
-        _Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s", datefmt="%H:%M:%S")
-    )
+    handler.setFormatter(_Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s", datefmt="%H:%M:%S"))
     root = logging.getLogger()
     root.handlers = [handler]
     root.setLevel(getattr(logging, level.upper(), logging.INFO))

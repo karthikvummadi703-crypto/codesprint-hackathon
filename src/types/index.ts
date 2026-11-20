@@ -20,12 +20,7 @@ export interface LocationInfo {
 }
 
 export type AQIStatus =
-  | 'Good'
-  | 'Moderate'
-  | 'Unhealthy for Sensitive Groups'
-  | 'Unhealthy'
-  | 'Very Unhealthy'
-  | 'Hazardous';
+  'Good' | 'Moderate' | 'Unhealthy for Sensitive Groups' | 'Unhealthy' | 'Very Unhealthy' | 'Hazardous';
 
 export interface PollutantDetail {
   id: string;

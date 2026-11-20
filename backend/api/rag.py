@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-import anyio
 from typing import Annotated
 
+import anyio
 from fastapi import APIRouter, File, UploadFile
 
 from api.deps import CurrentUid
 from config import get_settings
 from errors import AppError, NotFoundError
 from logging_config import get_logger
-from schemas import RagFileListResponse, RagUploadResponse
+from schemas import RagFileListResponse, RagFileOut, RagUploadResponse
 from services import rag_service
 
 log = get_logger("airguard.api.rag")
@@ -36,9 +36,7 @@ async def upload(uid: CurrentUid, file: Annotated[UploadFile, File(...)]) -> Rag
         raise AppError("The uploaded file is empty.")
 
     try:
-        result = await anyio.to_thread.run_sync(
-            rag_service.process_document, uid, filename, data
-        )
+        result = await anyio.to_thread.run_sync(rag_service.process_document, uid, filename, data)
     except rag_service.RagStoreError as exc:
         raise AppError(str(exc)) from exc
 
@@ -49,7 +47,7 @@ async def upload(uid: CurrentUid, file: Annotated[UploadFile, File(...)]) -> Rag
 async def list_files(uid: CurrentUid) -> RagFileListResponse:
     """Documents indexed for the caller."""
     files = await anyio.to_thread.run_sync(rag_service.list_documents, uid)
-    return RagFileListResponse(files=files)
+    return RagFileListResponse(files=[RagFileOut(**file) for file in files])
 
 
 @router.delete("/files/{file_id}")

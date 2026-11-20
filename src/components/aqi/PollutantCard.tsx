@@ -1,4 +1,3 @@
-import React from 'react';
 import { PollutantDetail } from '../../types';
 import { getAQIBadgeVariant, Badge } from '../ui/Badge';
 import { cn } from '../ui/Button';
@@ -44,13 +43,15 @@ export default function PollutantCard({ pollutant }: PollutantCardProps) {
       <div className="mb-3">
         <div className="flex justify-between text-[11px] text-slate-400 mb-1">
           <span>0</span>
-          <span>Safe limit: {pollutant.safeLimit} {pollutant.unit}</span>
+          <span>
+            Safe limit: {pollutant.safeLimit} {pollutant.unit}
+          </span>
         </div>
         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
           <div
             className={cn(
               'h-full rounded-full transition-all duration-500',
-              isOver ? 'bg-orange-400' : getPollutantBarColor(pollutant.id)
+              isOver ? 'bg-orange-400' : getPollutantBarColor(pollutant.id),
             )}
             style={{ width: `${pct}%` }}
           />

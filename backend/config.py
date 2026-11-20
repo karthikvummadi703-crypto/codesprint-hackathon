@@ -147,11 +147,7 @@ class Settings:
 
     @property
     def firebase_admin_configured(self) -> bool:
-        return bool(
-            self.firebase_project_id
-            and self.firebase_client_email
-            and self.firebase_private_key
-        )
+        return bool(self.firebase_project_id and self.firebase_client_email and self.firebase_private_key)
 
 
 PRODUCTION_ORIGINS = (
@@ -222,7 +218,7 @@ def get_settings() -> Settings:
         llm_api_key=_env("LLM_API_KEY"),
         llm_base_url=_env("LLM_BASE_URL", "https://api.openai.com/v1"),
         llm_model=_env("LLM_MODEL", "gpt-4o-mini"),
-        llm_fallback_models=_env_list("LLM_FALLBACK_MODELS"),
+        llm_fallback_models=tuple(_env_list("LLM_FALLBACK_MODELS")),
         llm_reasoning_effort=_env("LLM_REASONING_EFFORT"),
         llm_timeout_s=_env_float("LLM_TIMEOUT_S", 20.0),
         llm_total_budget_s=_env_float("LLM_TOTAL_BUDGET_S", 18.0),
@@ -231,9 +227,7 @@ def get_settings() -> Settings:
         openweather_key=_env("OPENWEATHER_APPID") or _env("AIR_QUALITY_API_KEY"),
         google_aq_api_key=_env("GOOGLE_AQ_API_KEY") or _env("GOOGLE_AIR_QUALITY_API_KEY"),
         open_meteo_base_url=_env("OPEN_METEO_BASE_URL", "https://api.open-meteo.com/v1"),
-        open_meteo_air_base_url=_env(
-            "OPEN_METEO_AIR_BASE_URL", "https://air-quality-api.open-meteo.com/v1"
-        ),
+        open_meteo_air_base_url=_env("OPEN_METEO_AIR_BASE_URL", "https://air-quality-api.open-meteo.com/v1"),
         nominatim_base_url=_env("NOMINATIM_BASE_URL", "https://nominatim.openstreetmap.org"),
         nominatim_user_agent=_env("NOMINATIM_USER_AGENT", "AirGuard-AI/2.0"),
         firebase_project_id=_env("FIREBASE_PROJECT_ID"),

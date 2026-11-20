@@ -154,7 +154,9 @@ export default function CarbonFootprintPage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-slate-900">Carbon Footprint Calculator</h1>
-            <p className="text-xs text-slate-500 mt-1">Estimate and offset your travel-related carbon emissions</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Estimate and offset your travel-related carbon emissions
+            </p>
           </div>
           {totalCO2Saved > 0 && (
             <Badge variant="success" className="h-7 text-xs gap-1 shrink-0">
@@ -166,7 +168,10 @@ export default function CarbonFootprintPage() {
 
       <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
         {error && (
-          <div role="status" className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-800">
+          <div
+            role="status"
+            className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs text-amber-800"
+          >
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Backend unavailable — used local calculation instead.</p>
@@ -220,7 +225,11 @@ export default function CarbonFootprintPage() {
 
                 <div>
                   <Label id="travel-mode-label">Mode of Travel</Label>
-                  <div role="group" aria-labelledby="travel-mode-label" className="grid grid-cols-3 sm:grid-cols-7 gap-2">
+                  <div
+                    role="group"
+                    aria-labelledby="travel-mode-label"
+                    className="grid grid-cols-3 sm:grid-cols-7 gap-2"
+                  >
                     {TRAVEL_MODES.map((mode) => (
                       <button
                         key={mode}
@@ -260,7 +269,8 @@ export default function CarbonFootprintPage() {
                   <div>
                     <div className="text-[10px] uppercase font-bold text-slate-400">Estimated CO2 Impact</div>
                     <div className="text-4xl font-extrabold text-brand-800 mt-1">
-                      {calculatedTrip.co2eKg} <span className="text-lg font-normal text-brand-600">kg CO₂e</span>
+                      {calculatedTrip.co2eKg}{' '}
+                      <span className="text-lg font-normal text-brand-600">kg CO₂e</span>
                     </div>
                   </div>
 
@@ -283,8 +293,8 @@ export default function CarbonFootprintPage() {
                     <div className="bg-emerald-100/50 border border-emerald-200 rounded-xl p-3 flex items-start gap-2.5 text-xs text-emerald-800">
                       <ShieldCheck className="h-4 w-4 mt-0.5" />
                       <div>
-                        <strong>Nice job!</strong> By using {calculatedTrip.mode} instead of a regular car, you saved{' '}
-                        <strong>{calculatedTrip.savings} kg CO₂e</strong>.
+                        <strong>Nice job!</strong> By using {calculatedTrip.mode} instead of a regular car,
+                        you saved <strong>{calculatedTrip.savings} kg CO₂e</strong>.
                       </div>
                     </div>
                   ) : null}
@@ -308,7 +318,8 @@ export default function CarbonFootprintPage() {
                   <div>
                     <h3 className="font-semibold text-slate-800">No Calculation Active</h3>
                     <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-                      Fill out the form on the left to see travel carbon emissions and environmental alternatives.
+                      Fill out the form on the left to see travel carbon emissions and environmental
+                      alternatives.
                     </p>
                   </div>
                 </CardContent>
@@ -320,8 +331,9 @@ export default function CarbonFootprintPage() {
               <CardContent className="flex gap-3 text-xs text-brand-800 leading-relaxed pt-6">
                 <Info className="h-4 w-4 shrink-0 text-brand-600" />
                 <div>
-                  <strong>Tip:</strong> Opting for public transport or active travel instead of a personal car cuts
-                  your travel footprint by up to <strong>80%</strong>. Your saved trips are synced to your account.
+                  <strong>Tip:</strong> Opting for public transport or active travel instead of a personal car
+                  cuts your travel footprint by up to <strong>80%</strong>. Your saved trips are synced to
+                  your account.
                 </div>
               </CardContent>
             </Card>
@@ -338,20 +350,59 @@ export default function CarbonFootprintPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
-                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Route</th>
-                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Distance</th>
-                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Mode</th>
-                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">CO₂e Impact</th>
-                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Savings</th>
-                    <th scope="col" className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    >
+                      Date
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    >
+                      Route
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    >
+                      Distance
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    >
+                      Mode
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    >
+                      CO₂e Impact
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    >
+                      Savings
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    >
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {trips.map((trip) => (
                     <tr key={trip.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4 text-xs text-slate-500">
-                        {trip.date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {trip.date.toLocaleDateString([], {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-slate-900">
                         {trip.origin} → {trip.destination}

@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from datetime import date
 
-from services import ai_context, ai_service, query_router as qr
+from services import ai_context, ai_service
+from services import query_router as qr
 
 LOCATION = {"name": "Gudur", "latitude": 14.1489, "longitude": 79.8530, "country": "India"}
 AQI = {
@@ -260,7 +261,13 @@ class TestContextBuilder:
 
     def test_long_observed_history_is_rolled_up_by_month(self):
         observed = [
-            {"date": f"2023-{month:02d}-{day:02d}", "aqiMean": 100 + month, "aqiMax": 150, "aqiMin": 60, "dominant": "PM2.5"}
+            {
+                "date": f"2023-{month:02d}-{day:02d}",
+                "aqiMean": 100 + month,
+                "aqiMax": 150,
+                "aqiMin": 60,
+                "dominant": "PM2.5",
+            }
             for month in range(1, 13)
             for day in range(1, 6)
         ]

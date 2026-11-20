@@ -43,7 +43,7 @@ function NavItem({
           'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
           isActive
             ? 'bg-brand-50 text-brand-700 shadow-sm'
-            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800',
         )
       }
     >
@@ -52,13 +52,11 @@ function NavItem({
           <Icon
             className={cn(
               'h-5 w-5 flex-shrink-0 transition-colors',
-              isActive ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600'
+              isActive ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-600',
             )}
           />
           {name}
-          {isActive && (
-            <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-500" />
-          )}
+          {isActive && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-brand-500" />}
         </>
       )}
     </NavLink>
@@ -109,9 +107,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         <div className="mb-2 px-3 pt-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Main Menu
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Main Menu</p>
         </div>
         {NAV_ITEMS.map((item) => (
           <NavItem key={item.href} {...item} onClick={onClose} />

@@ -55,7 +55,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col items-center gap-3">
           <svg className="animate-spin h-8 w-8 text-brand-600" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
           </svg>
           <span className="text-sm text-slate-500">Loading AirGuard AI…</span>
         </div>
@@ -80,9 +84,30 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
-      <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
-      <Route path="/forgot-password" element={<PublicOnlyRoute><ForgotPasswordPage /></PublicOnlyRoute>} />
+      <Route
+        path="/login"
+        element={
+          <PublicOnlyRoute>
+            <LoginPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <PublicOnlyRoute>
+            <SignupPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicOnlyRoute>
+            <ForgotPasswordPage />
+          </PublicOnlyRoute>
+        }
+      />
 
       {/* Authenticated Routes */}
       <Route
@@ -96,13 +121,62 @@ function AppRoutes() {
         }
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<LazyPage><DashboardPage /></LazyPage>} />
-        <Route path="ai" element={<LazyPage><AIAssistantPage /></LazyPage>} />
-        <Route path="predictions" element={<LazyPage><PredictionsPage /></LazyPage>} />
-        <Route path="weather" element={<LazyPage><WeatherReportPage /></LazyPage>} />
-        <Route path="carbon" element={<LazyPage><CarbonFootprintPage /></LazyPage>} />
-        <Route path="routines" element={<LazyPage><RoutinesPage /></LazyPage>} />
-        <Route path="settings" element={<LazyPage><SettingsPage /></LazyPage>} />
+        <Route
+          path="dashboard"
+          element={
+            <LazyPage>
+              <DashboardPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="ai"
+          element={
+            <LazyPage>
+              <AIAssistantPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="predictions"
+          element={
+            <LazyPage>
+              <PredictionsPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="weather"
+          element={
+            <LazyPage>
+              <WeatherReportPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="carbon"
+          element={
+            <LazyPage>
+              <CarbonFootprintPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="routines"
+          element={
+            <LazyPage>
+              <RoutinesPage />
+            </LazyPage>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <LazyPage>
+              <SettingsPage />
+            </LazyPage>
+          }
+        />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

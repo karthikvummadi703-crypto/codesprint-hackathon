@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar, { MobileMenuButton } from './Sidebar';
 
@@ -16,7 +16,9 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <a href="#main-content" className="skip-link">Skip to main content</a>
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex lg:flex-shrink-0">
         <div className="flex w-64 flex-col">

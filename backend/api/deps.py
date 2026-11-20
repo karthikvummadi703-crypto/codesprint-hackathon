@@ -50,9 +50,7 @@ def coordinates(
         # Both present: coordinates win, matching the pinned dashboard location.
         city = None
     if lat is None and not city:
-        raise AppError(
-            "Provide either lat/lon or a city name", status.HTTP_422_UNPROCESSABLE_ENTITY
-        )
+        raise AppError("Provide either lat/lon or a city name", status.HTTP_422_UNPROCESSABLE_ENTITY)
     return {"lat": lat, "lon": lon, "city": city}
 
 

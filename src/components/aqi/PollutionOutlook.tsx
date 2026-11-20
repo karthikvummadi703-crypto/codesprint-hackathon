@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MapPin, Info, AlertCircle, Loader2 } from 'lucide-react';
 import { LocationInfo, PredictionForecast, AQIStatus } from '../../types';
 import { fetchPredictions } from '../../services/backendService';
@@ -70,10 +70,7 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
     };
   }, [activeName, activeLat, activeLon]);
 
-  const points = useMemo(
-    () => forecast.filter((f) => Number.isFinite(f.aqi)).slice(0, 8),
-    [forecast]
-  );
+  const points = useMemo(() => forecast.filter((f) => Number.isFinite(f.aqi)).slice(0, 8), [forecast]);
 
   const band = bandFor(aqi);
   const isModelForecast = method === 'provider-forecast';
@@ -163,10 +160,7 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
             </div>
             <div className="flex gap-1 mt-1">
               {points.map((p) => (
-                <span
-                  key={`${p.label}-x`}
-                  className="flex-1 text-center text-[9px] text-slate-400 truncate"
-                >
+                <span key={`${p.label}-x`} className="flex-1 text-center text-[9px] text-slate-400 truncate">
                   {p.timeOffsetHours <= 0 ? 'now' : `+${p.timeOffsetHours}h`}
                 </span>
               ))}

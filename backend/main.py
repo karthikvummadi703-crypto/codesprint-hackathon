@@ -14,7 +14,7 @@ load_dotenv()
 from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from api import air, ai, carbon, geocode, health, rag, weather  # noqa: E402
+from api import ai, air, carbon, geocode, health, rag, weather  # noqa: E402
 from config import describe_configuration, get_settings  # noqa: E402
 from errors import register_exception_handlers  # noqa: E402
 from http_client import close_client  # noqa: E402

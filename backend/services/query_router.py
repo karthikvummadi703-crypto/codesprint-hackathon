@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 # Context blocks the prompt builder can include.
 BLOCK_WEATHER_NOW = "weather_now"
@@ -45,74 +45,177 @@ _RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "greeting",
         (
-            "hello", "hi ", "hi there", "hey", "good morning", "good afternoon",
-            "good evening", "how are you", "who are you", "what can you do",
-            "your name", "thanks", "thank you",
+            "hello",
+            "hi ",
+            "hi there",
+            "hey",
+            "good morning",
+            "good afternoon",
+            "good evening",
+            "how are you",
+            "who are you",
+            "what can you do",
+            "your name",
+            "thanks",
+            "thank you",
         ),
     ),
     (
         "rain",
         (
-            "rain", "raining", "rainfall", "precipitation", "shower", "umbrella",
-            "wet", "drizzle", "humid", "monsoon", "thunderstorm", "storm", "snow",
+            "rain",
+            "raining",
+            "rainfall",
+            "precipitation",
+            "shower",
+            "umbrella",
+            "wet",
+            "drizzle",
+            "humid",
+            "monsoon",
+            "thunderstorm",
+            "storm",
+            "snow",
         ),
     ),
     (
         "weather",
         (
-            "weather", "temperature", "hot", "cold", "wind", "humidity", "forecast",
-            "sunny", "cloud", "visibility", "uv", "heat", "chilly", "degree",
+            "weather",
+            "temperature",
+            "hot",
+            "cold",
+            "wind",
+            "humidity",
+            "forecast",
+            "sunny",
+            "cloud",
+            "visibility",
+            "uv",
+            "heat",
+            "chilly",
+            "degree",
         ),
     ),
     (
         "safety",
         (
-            "safe to go", "safe outside", "is it safe", "go outside", "outdoor",
-            "exercise", "jog", "run", "walk", "children", "kids", "elderly",
-            "asthma", "breathe", "sensitive group", "mask", "allergy",
-            "allergen", "health", "vulnerable",
+            "safe to go",
+            "safe outside",
+            "is it safe",
+            "go outside",
+            "outdoor",
+            "exercise",
+            "jog",
+            "run",
+            "walk",
+            "children",
+            "kids",
+            "elderly",
+            "asthma",
+            "breathe",
+            "sensitive group",
+            "mask",
+            "allergy",
+            "allergen",
+            "health",
+            "vulnerable",
         ),
     ),
     (
         "carbon",
         (
-            "carbon", "co2", "co2e", "footprint", "emission", "greenhouse",
-            "commute", "trip", "travel", "flight", "transit",
+            "carbon",
+            "co2",
+            "co2e",
+            "footprint",
+            "emission",
+            "greenhouse",
+            "commute",
+            "trip",
+            "travel",
+            "flight",
+            "transit",
         ),
     ),
     (
         "documents",
         (
-            "document", "upload", "report", "pdf", "my file", "csv", "knowledge base",
-            "my data", "attached",
+            "document",
+            "upload",
+            "report",
+            "pdf",
+            "my file",
+            "csv",
+            "knowledge base",
+            "my data",
+            "attached",
         ),
     ),
     (
         "comparison",
         (
-            "compare", "compared", "versus", "vs ", "difference", "yesterday",
-            "last week", "change", "trend", "history", "historical", "since",
+            "compare",
+            "compared",
+            "versus",
+            "vs ",
+            "difference",
+            "yesterday",
+            "last week",
+            "change",
+            "trend",
+            "history",
+            "historical",
+            "since",
         ),
     ),
     (
         "cause",
         (
-            "why", "cause", "reason", "source of", "who emits", "where does",
-            "coming from", "attribution", "because of",
+            "why",
+            "cause",
+            "reason",
+            "source of",
+            "who emits",
+            "where does",
+            "coming from",
+            "attribution",
+            "because of",
         ),
     ),
     (
         "forecast",
         (
-            "tomorrow", "tonight", "next 24", "next 48", "next few days", "outlook",
-            "will aqi", "going to", "expected", "coming hours", "later",
+            "tomorrow",
+            "tonight",
+            "next 24",
+            "next 48",
+            "next few days",
+            "outlook",
+            "will aqi",
+            "going to",
+            "expected",
+            "coming hours",
+            "later",
         ),
     ),
     (
         "air_quality",
         (
-            "aqi", "air quality", "pollution", "pollutant", "pm2.5", "pm10", "no2",
-            "so2", "ozone", "o3", "particulate", "smog", "how bad", "air",
+            "aqi",
+            "air quality",
+            "pollution",
+            "pollutant",
+            "pm2.5",
+            "pm10",
+            "no2",
+            "so2",
+            "ozone",
+            "o3",
+            "particulate",
+            "smog",
+            "how bad",
+            "air",
         ),
     ),
 )
@@ -208,22 +311,62 @@ def wants_location(intent: str) -> bool:
 # would otherwise stop at "documents" and the model would never see live data to
 # compare against.
 _DOC_TERMS = (
-    "document", "report", "pdf", "uploaded", "upload", "attachment", "attached",
-    "my file", "the file", "this file", "knowledge base", "csv",
+    "document",
+    "report",
+    "pdf",
+    "uploaded",
+    "upload",
+    "attachment",
+    "attached",
+    "my file",
+    "the file",
+    "this file",
+    "knowledge base",
+    "csv",
 )
 
 # Questions about a document as a whole, which relevance ranking cannot answer.
 _SUMMARY_TERMS = (
-    "summarise", "summarize", "summary", "overview of", "key findings",
-    "main findings", "important findings", "what is in this", "what does it say",
-    "explain the", "describe the", "highlight", "takeaways", "conclusion",
+    "summarise",
+    "summarize",
+    "summary",
+    "overview of",
+    "key findings",
+    "main findings",
+    "important findings",
+    "what is in this",
+    "what does it say",
+    "explain the",
+    "describe the",
+    "highlight",
+    "takeaways",
+    "conclusion",
 )
 
 # An environmental topic appearing alongside a document reference.
 _ENV_TERMS = (
-    "weather", "temperature", "rain", "rainfall", "humidity", "wind", "forecast",
-    "aqi", "air quality", "pollution", "pollutant", "pm2.5", "pm10", "no2", "o3",
-    "outdoor", "safe", "health", "compare", "current conditions", "now", "today",
+    "weather",
+    "temperature",
+    "rain",
+    "rainfall",
+    "humidity",
+    "wind",
+    "forecast",
+    "aqi",
+    "air quality",
+    "pollution",
+    "pollutant",
+    "pm2.5",
+    "pm10",
+    "no2",
+    "o3",
+    "outdoor",
+    "safe",
+    "health",
+    "compare",
+    "current conditions",
+    "now",
+    "today",
 )
 
 
@@ -246,16 +389,41 @@ _DAYS_RE = re.compile(r"\b(?:last|past|previous)\s+(\d{1,3})\s+days?\b")
 
 # Phrases that anchor a question to a past period.
 _HISTORY_TERMS = (
-    "last year", "previous year", "past year", "years ago", "last 12 months",
-    "past 12 months", "this year", "year to date", "ytd",
-    "last month", "previous month", "past month",
-    "last week", "past week", "this week", "last 7 days", "past 7 days",
-    "yesterday", "historical", "history", "annual average", "yearly",
+    "last year",
+    "previous year",
+    "past year",
+    "years ago",
+    "last 12 months",
+    "past 12 months",
+    "this year",
+    "year to date",
+    "ytd",
+    "last month",
+    "previous month",
+    "past month",
+    "last week",
+    "past week",
+    "this week",
+    "last 7 days",
+    "past 7 days",
+    "yesterday",
+    "historical",
+    "history",
+    "annual average",
+    "yearly",
 )
 
 _MONTH_NUMBERS = {
-    "january": 1, "february": 2, "march": 3, "april": 4, "june": 6,
-    "july": 7, "august": 8, "september": 9, "october": 10, "november": 11,
+    "january": 1,
+    "february": 2,
+    "march": 3,
+    "april": 4,
+    "june": 6,
+    "july": 7,
+    "august": 8,
+    "september": 9,
+    "october": 10,
+    "november": 11,
     "december": 12,
 }
 # "may" is excluded from bare matching because it is overwhelmingly the modal verb
@@ -286,15 +454,13 @@ def wants_historical(message: str) -> bool:
     return bool(_DAYS_RE.search(text))
 
 
-def history_window(
-    message: str, today: date | None = None
-) -> tuple[str, str, str] | None:
+def history_window(message: str, today: date | None = None) -> tuple[str, str, str] | None:
     """Resolve a past period to (start_date, end_date, human_label).
 
     Returns None when the message names no recognisable period, so callers can
     skip the provider call rather than guessing at a range.
     """
-    today = today or datetime.now(timezone.utc).date()
+    today = today or datetime.now(UTC).date()
     text = f" {message.lower().strip()} "
 
     years = _YEAR_RE.findall(text)
@@ -320,7 +486,9 @@ def history_window(
         start = date(last_prev.year, last_prev.month, 1)
         return (start.isoformat(), last_prev.isoformat(), start.strftime("%B %Y"))
 
-    if any(phrase in text for phrase in ("last week", "past week", "this week", "last 7 days", "past 7 days")):
+    if any(
+        phrase in text for phrase in ("last week", "past week", "this week", "last 7 days", "past 7 days")
+    ):
         return ((today - timedelta(days=6)).isoformat(), today.isoformat(), "the last 7 days")
 
     if "yesterday" in text:
@@ -329,7 +497,11 @@ def history_window(
 
     recent = _recent_days(text)
     if recent:
-        return ((today - timedelta(days=recent - 1)).isoformat(), today.isoformat(), f"the last {recent} days")
+        return (
+            (today - timedelta(days=recent - 1)).isoformat(),
+            today.isoformat(),
+            f"the last {recent} days",
+        )
 
     return _season_window(text, today)
 

@@ -9,9 +9,9 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 import pytest
+from test_providers_and_cache import patch_json
 
 from services import air_quality_service as aq
-from test_providers_and_cache import patch_json
 
 
 class TestSubIndex:
@@ -61,9 +61,7 @@ class TestSubIndex:
 
 class TestComputeAqi:
     def test_clean_air_is_good(self):
-        result = aq.compute_aqi(
-            {"pm2_5": 5.0, "pm10": 10.0, "no2": 5.0, "so2": 2.0, "co": 200.0, "o3": 20.0}
-        )
+        result = aq.compute_aqi({"pm2_5": 5.0, "pm10": 10.0, "no2": 5.0, "so2": 2.0, "co": 200.0, "o3": 20.0})
         assert result["aqi"] <= 50
         assert aq.aqi_category(result["aqi"]) == "Good"
 

@@ -11,7 +11,9 @@ import { fileToAvatarDataUrl } from '../services/imageService';
 
 export default function SettingsPage() {
   const { user, displayName, avatarUrl, syncProfileLocally, updateAvatar } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'privacy'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'privacy'>(
+    'profile',
+  );
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [location, setLocation] = useState('');
@@ -234,7 +236,8 @@ export default function SettingsPage() {
                     <Label htmlFor="name">Full Name</Label>
                     <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
                     <p className="mt-1.5 text-[11px] text-slate-400 leading-relaxed">
-                      This name is shown in the sidebar and greetings. Leave it blank and your sign-in email is used instead.
+                      This name is shown in the sidebar and greetings. Leave it blank and your sign-in email
+                      is used instead.
                     </p>
                   </div>
 
@@ -248,7 +251,12 @@ export default function SettingsPage() {
 
                   <div>
                     <Label htmlFor="location">Default Location</Label>
-                    <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} required />
+                    <Input
+                      id="location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      required
+                    />
                   </div>
                 </CardContent>
               </div>
@@ -301,8 +309,12 @@ export default function SettingsPage() {
                 <CardContent className="px-0 py-0 space-y-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 id="alert-notifications-label" className="text-sm font-semibold text-slate-800">Alert Notifications</h3>
-                      <p className="text-xs text-slate-400 mt-0.5">Receive immediate warnings when air pollution spikes</p>
+                      <h3 id="alert-notifications-label" className="text-sm font-semibold text-slate-800">
+                        Alert Notifications
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Receive immediate warnings when air pollution spikes
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -342,7 +354,8 @@ export default function SettingsPage() {
                         </Badge>
                       </div>
                       <p className="text-[10px] text-slate-400 leading-relaxed mt-1">
-                        Notifications will fire whenever local readings exceed {threshold} AQI (Moderate/Unhealthy).
+                        Notifications will fire whenever local readings exceed {threshold} AQI
+                        (Moderate/Unhealthy).
                       </p>
                     </div>
                   )}
@@ -359,8 +372,9 @@ export default function SettingsPage() {
                   <div className="space-y-3">
                     <h3 className="text-sm font-semibold text-slate-800">Data & Access</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      Your data (air quality history, chats, uploaded documents, carbon trips) is stored under your
-                      account only. {user?.isDev
+                      Your data (air quality history, chats, uploaded documents, carbon trips) is stored under
+                      your account only.{' '}
+                      {user?.isDev
                         ? 'You are currently in dev mode, so data is stored locally in this browser.'
                         : 'Data is stored in your private Firestore collections.'}
                     </p>
@@ -370,7 +384,10 @@ export default function SettingsPage() {
             )}
 
             {error && (
-              <div role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700">
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700"
+              >
                 <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>

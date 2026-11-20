@@ -1,4 +1,3 @@
-import React from 'react';
 import { getAQIColor } from '../ui/Badge';
 
 interface AQIGaugeProps {
@@ -49,13 +48,7 @@ export default function AQIGauge({ aqi, size = 200 }: AQIGaugeProps) {
   return (
     <svg width={size} height={size * 0.75} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
       {/* Background arc */}
-      <path
-        d={bgPath}
-        fill="none"
-        stroke="#E2E8F0"
-        strokeWidth={strokeW}
-        strokeLinecap="round"
-      />
+      <path d={bgPath} fill="none" stroke="#E2E8F0" strokeWidth={strokeW} strokeLinecap="round" />
 
       {/* Colored gradient stops */}
       <defs>
@@ -71,13 +64,7 @@ export default function AQIGauge({ aqi, size = 200 }: AQIGaugeProps) {
 
       {/* Active arc */}
       {fgPath && (
-        <path
-          d={fgPath}
-          fill="none"
-          stroke="url(#aqiGrad)"
-          strokeWidth={strokeW}
-          strokeLinecap="round"
-        />
+        <path d={fgPath} fill="none" stroke="url(#aqiGrad)" strokeWidth={strokeW} strokeLinecap="round" />
       )}
 
       {/* Needle */}

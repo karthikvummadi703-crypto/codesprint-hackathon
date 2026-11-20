@@ -1,0 +1,60 @@
+repos:
+  - repo: local
+    hooks:
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+        entry: python -m pre_commit_hooks.trailing_whitespace_fixer
+        language: system
+      - id: end-of-file-fixer
+        name: fix end of files
+        entry: python -m pre_commit_hooks.end_of_file_fixer
+        language: system
+      - id: check-yaml
+        name: check yaml
+        entry: python -m pre_commit_hooks.check_yaml
+        language: system
+        types: [yaml]
+      - id: check-json
+        name: check json
+        entry: python -m pre_commit_hooks.check_json
+        language: system
+        types: [json]
+        exclude: ^tsconfig\.json$
+      - id: check-merge-conflict
+        name: check for merge conflicts
+        entry: python -m pre_commit_hooks.check_merge_conflict
+        language: system
+      - id: detect-private-key
+        name: detect private key
+        entry: python -m pre_commit_hooks.detect_private_key
+        language: system
+      - id: prettier
+        name: prettier
+        entry: npm run format:check
+        language: system
+        pass_filenames: false
+      - id: eslint
+        name: eslint
+        entry: npm run lint
+        language: system
+        pass_filenames: false
+      - id: typecheck
+        name: typecheck
+        entry: npm run typecheck
+        language: system
+        pass_filenames: false
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check backend
+        language: system
+        pass_filenames: false
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format --check backend
+        language: system
+        pass_filenames: false
+      - id: mypy
+        name: mypy
+        entry: python -m mypy --config-file backend/pyproject.toml backend
+        language: system
+        pass_filenames: false

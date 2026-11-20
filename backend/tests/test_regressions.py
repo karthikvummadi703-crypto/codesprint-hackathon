@@ -10,8 +10,8 @@ import io
 
 import pytest
 
-from services import ai_context, ai_service, query_router as qr, rag_service, weather_service
-
+from services import ai_context, ai_service, rag_service, weather_service
+from services import query_router as qr
 
 # ── ISSUE 3: the current-hour lookup ─────────────────────────────────────
 
@@ -95,9 +95,10 @@ class TestDocumentContextSurvivesParsing:
         assert "60 ug/m3" in self.build()._documents_section()
 
     def test_filename_is_attributed(self):
-        assert "city-plan.pdf" in self.build(
-            [{"fileName": "city-plan.pdf", "chunk": "text", "score": 0.4}]
-        )._documents_section()
+        assert (
+            "city-plan.pdf"
+            in self.build([{"fileName": "city-plan.pdf", "chunk": "text", "score": 0.4}])._documents_section()
+        )
 
     def test_sections_are_only_included_when_documents_are_retrieved(self):
         text, sections, coverage = self.build().build("what does my report say?")
@@ -153,10 +154,13 @@ def _pdf(text: str) -> bytes:
     xref = out.tell()
     out.write(b"xref\n0 " + str(len(objects) + 1).encode() + b"\n0000000000 65535 f \n")
     for offset in offsets:
-        out.write(("%010d 00000 n \n" % offset).encode())
+        out.write(f"{offset:010d} 00000 n \n".encode())
     out.write(
-        b"trailer\n<< /Size " + str(len(objects) + 1).encode() + b" /Root 1 0 R >>\nstartxref\n"
-        + str(xref).encode() + b"\n%%EOF\n"
+        b"trailer\n<< /Size "
+        + str(len(objects) + 1).encode()
+        + b" /Root 1 0 R >>\nstartxref\n"
+        + str(xref).encode()
+        + b"\n%%EOF\n"
     )
     return out.getvalue()
 
@@ -223,10 +227,6 @@ class TestDocumentValidation:
     def test_headerless_pdf_is_rejected(self):
         with pytest.raises(rag_service.RagStoreError):
             rag_service._extract_text("bad.pdf", b"\x89PNG\r\n\x1a\n" + b"0" * 200)
-
-    def test_valid_pdf_is_accepted(self):
-        text = rag_service._extract_text("ok.pdf", _pdf("Readable content here."))
-        assert "Readable" in text
 
     def test_valid_pdf_is_accepted(self):
         text = rag_service._extract_text("ok.pdf", _pdf("Readable content here."))

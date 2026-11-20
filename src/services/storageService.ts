@@ -9,7 +9,7 @@ export function uploadToStorage(
   uid: string,
   fileName: string,
   file: File,
-  onProgress?: (pct: number) => void
+  onProgress?: (pct: number) => void,
 ): Promise<string> {
   if (!isFirebaseConfigured || !storage) {
     throw new Error('Firebase Storage is not configured.');
@@ -29,7 +29,7 @@ export function uploadToStorage(
       async () => {
         const url = await getDownloadURL(uploadTask.snapshot.ref);
         resolve(url);
-      }
+      },
     );
   });
 }

@@ -48,7 +48,10 @@ class TestDevTokenGate:
         )
         response = client.get("/api/aqi?lat=17.38&lon=78.49", headers={"Authorization": "Bearer dev:anyone"})
         assert response.status_code == 401
-        assert "dev" not in response.json().get("detail", "").lower() or "not" in response.json()["detail"].lower()
+        assert (
+            "dev" not in response.json().get("detail", "").lower()
+            or "not" in response.json()["detail"].lower()
+        )
 
     def test_dev_token_accepted_when_explicitly_allowed(self, monkeypatch):
         client = build_client(monkeypatch, ENVIRONMENT="test", ALLOW_DEV_AUTH="true")
@@ -57,19 +60,23 @@ class TestDevTokenGate:
         assert response.status_code == 200
 
     def test_missing_token_is_rejected_on_private_routes(self, monkeypatch):
-        client = build_client(monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo")
+        client = build_client(
+            monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo"
+        )
         assert client.get("/api/rag/files").status_code == 401
 
     def test_malformed_header_is_rejected(self, monkeypatch):
-        client = build_client(monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo")
+        client = build_client(
+            monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo"
+        )
         for header in ("", "Bearer", "Basic dev:x", "dev:x", "Bearer  "):
-            response = client.get(
-                "/api/rag/files", headers={"Authorization": header}
-            )
+            response = client.get("/api/rag/files", headers={"Authorization": header})
             assert response.status_code == 401, header
 
     def test_public_health_needs_no_token(self, monkeypatch):
-        client = build_client(monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo")
+        client = build_client(
+            monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo"
+        )
         assert client.get("/api/health").status_code == 200
 
     def test_public_environment_routes_need_no_token(self, monkeypatch):
@@ -79,7 +86,9 @@ class TestDevTokenGate:
             return []
 
         monkeypatch.setattr(geocoding_service, "search_places", _no_places)
-        client = build_client(monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo")
+        client = build_client(
+            monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo"
+        )
         assert client.get("/api/geocode/search?q=Chennai").status_code == 200
 
 
@@ -114,9 +123,7 @@ class TestValidation:
 
     def test_extra_coordinates_take_priority_over_city(self, client, auth):
         """A pinned coordinate must win; the old code let city win."""
-        response = client.get(
-            "/api/aqi?lat=17.38&lon=78.49&city=Delhi", headers=auth
-        )
+        response = client.get("/api/aqi?lat=17.38&lon=78.49&city=Delhi", headers=auth)
         assert response.status_code == 200
         body = response.json()
         assert body["location"]["latitude"] == pytest.approx(17.38)
@@ -133,7 +140,13 @@ class TestAqiHistoryRoute:
 
         async def fake_location(lat=None, lon=None, city=None, **kwargs):
             return (
-                {"name": "Gudur", "latitude": 14.1489, "longitude": 79.8530, "region": "AP", "country": "India"},
+                {
+                    "name": "Gudur",
+                    "latitude": 14.1489,
+                    "longitude": 79.8530,
+                    "region": "AP",
+                    "country": "India",
+                },
                 "coordinates",
             )
 
@@ -193,7 +206,9 @@ class TestErrorHandling:
 
     def test_cors_preflight_from_allowed_origin(self, monkeypatch):
         """The deployed frontend origin must be accepted in production."""
-        client = build_client(monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo")
+        client = build_client(
+            monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo"
+        )
         for origin in (
             "https://codesprint-hackathon.web.app",
             "https://codesprint-hackathon.firebaseapp.com",
@@ -237,9 +252,8 @@ class TestErrorHandling:
 
     def test_server_error_detail_is_not_leaked(self, monkeypatch):
         """An unexpected crash must not return its message to the client."""
-        import main as backend_main
-
         import api.weather as weather_router
+        import main as backend_main
 
         async def boom(*args, **kwargs):
             raise RuntimeError("internal detail /secret/path")
@@ -248,25 +262,27 @@ class TestErrorHandling:
         # `raise_server_exceptions=False` observes the real 500 response body
         # instead of letting Starlette re-raise into the test.
         with TestClient(backend_main.app, raise_server_exceptions=False) as client:
-            response = client.get("/api/weather?lat=17.38&lon=78.49", headers={"Authorization": "Bearer dev:test-user"})
+            response = client.get(
+                "/api/weather?lat=17.38&lon=78.49", headers={"Authorization": "Bearer dev:test-user"}
+            )
         assert response.status_code == 500
         assert "secret" not in response.text.lower()
         assert "Traceback" not in response.text
         assert response.json()["detail"] == "Internal server error."
 
     def test_provider_failure_returns_service_unavailable(self, monkeypatch):
-        import main as backend_main
-
-        from http_client import ProviderError
-
         import api.weather as weather_router
+        import main as backend_main
+        from http_client import ProviderError
 
         async def down(*args, **kwargs):
             raise ProviderError("open-meteo", "connection refused")
 
         monkeypatch.setattr(weather_router.weather_service, "fetch_weather", down)
         with TestClient(backend_main.app) as client:
-            response = client.get("/api/weather?lat=17.38&lon=78.49", headers={"Authorization": "Bearer dev:test-user"})
+            response = client.get(
+                "/api/weather?lat=17.38&lon=78.49", headers={"Authorization": "Bearer dev:test-user"}
+            )
         assert response.status_code == 503
         assert "open-meteo" in response.json()["detail"]
 

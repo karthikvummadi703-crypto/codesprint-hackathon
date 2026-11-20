@@ -31,9 +31,7 @@ export function isWinterSmogSeason(now: Date = new Date()): boolean {
 
 export function hasSensitiveMembers(household: HouseholdProfile | null): boolean {
   return Boolean(
-    household?.members.some(
-      (m) => m.kind === 'child' || m.kind === 'senior' || m.kind === 'respiratory'
-    )
+    household?.members.some((m) => m.kind === 'child' || m.kind === 'senior' || m.kind === 'respiratory'),
   );
 }
 
@@ -74,7 +72,8 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
     detail: severe
       ? 'Keep windows closed during rush hours and open them briefly only when outdoor air is cleaner.'
       : 'Air the home for 5–10 minutes in the early morning, away from traffic peaks.',
-    impact: 'Reduces the amount of outdoor PM2.5 that settles indoors, without eliminating useful ventilation.',
+    impact:
+      'Reduces the amount of outdoor PM2.5 that settles indoors, without eliminating useful ventilation.',
     priority: severe ? 'high' : 'medium',
   });
 
@@ -84,7 +83,8 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
     category: 'indoor-air',
     detail:
       'Use a HEPA purifier sized for the room, or a DIY box-fan filter, and replace filters on schedule.',
-    impact: 'A correctly sized HEPA filter removes most fine particles from the room air you breathe for hours.',
+    impact:
+      'A correctly sized HEPA filter removes most fine particles from the room air you breathe for hours.',
     priority: severe || sensitive ? 'high' : 'medium',
   });
 
@@ -93,7 +93,8 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
     title: 'Ventilate cooking without pulling in smog',
     category: 'indoor-air',
     detail: 'Use a range hood vented outdoors, cook on lower heat, and avoid frying during pollution peaks.',
-    impact: 'Cooking is a major indoor particle source; capturing it at the source avoids adding to outdoor pollution.',
+    impact:
+      'Cooking is a major indoor particle source; capturing it at the source avoids adding to outdoor pollution.',
     priority: 'medium',
   });
 
@@ -124,7 +125,8 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
     title: 'Shift errands away from traffic peaks',
     category: 'low-emission',
     detail: 'Combine errands into one trip and travel after rush hour where possible.',
-    impact: 'Fewer cold starts and less time idling means lower tailpipe emissions in your own neighbourhood.',
+    impact:
+      'Fewer cold starts and less time idling means lower tailpipe emissions in your own neighbourhood.',
     priority: 'medium',
   });
 
@@ -184,7 +186,8 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
       title: 'Keep warm without dry indoor air',
       category: 'winter-smog',
       detail: 'Heat the room you use most and keep humidity in range rather than overheating the whole home.',
-      impact: 'Warm, conditioned air reduces cold-air triggers for breathing conditions while limiting energy use.',
+      impact:
+        'Warm, conditioned air reduces cold-air triggers for breathing conditions while limiting energy use.',
       priority: 'medium',
     });
   }
@@ -194,8 +197,10 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
       id: 'household-check',
       title: 'Check in with sensitive household members',
       category: 'household',
-      detail: 'Ask about symptoms, keep medication and a mask ready, and shorten exertion for those affected.',
-      impact: 'Children, older adults and people with breathing conditions feel particle exposure first; early action prevents escalation.',
+      detail:
+        'Ask about symptoms, keep medication and a mask ready, and shorten exertion for those affected.',
+      impact:
+        'Children, older adults and people with breathing conditions feel particle exposure first; early action prevents escalation.',
       priority: 'high',
     });
   }
@@ -213,7 +218,10 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
   return routines.sort((a, b) => order[a.priority] - order[b.priority]);
 }
 
-export function routinesToPromptContext(routines: DailyRoutine[], household: HouseholdProfile | null): string {
+export function routinesToPromptContext(
+  routines: DailyRoutine[],
+  household: HouseholdProfile | null,
+): string {
   if (routines.length === 0 && !household) return '';
   const lines = [
     'Household and daily routine context (user-provided; not measured):',

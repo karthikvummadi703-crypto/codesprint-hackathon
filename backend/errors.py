@@ -81,7 +81,10 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def _validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
         # Surface only field locations and messages, never submitted values.
         problems = [
-            {"field": ".".join(str(p) for p in err.get("loc", [])[1:]) or "body", "issue": err.get("msg", "invalid")}
+            {
+                "field": ".".join(str(p) for p in err.get("loc", [])[1:]) or "body",
+                "issue": err.get("msg", "invalid"),
+            }
             for err in exc.errors()
         ]
         return JSONResponse(

@@ -37,12 +37,12 @@ async def get_uid(request: Request) -> str:
     if not header.lower().startswith(BEARER_PREFIX):
         raise AuthenticationError("Missing authentication token")
 
-    token = header[len(BEARER_PREFIX):].strip()
+    token = header[len(BEARER_PREFIX) :].strip()
     if not token:
         raise AuthenticationError("Missing authentication token")
 
     if token.startswith(DEV_TOKEN_PREFIX):
-        uid = token[len(DEV_TOKEN_PREFIX):].strip()
+        uid = token[len(DEV_TOKEN_PREFIX) :].strip()
         if not uid:
             raise AuthenticationError("Malformed authentication token")
         settings = get_settings()
@@ -56,8 +56,8 @@ async def get_uid(request: Request) -> str:
     # certificates. It must be awaited: an un-awaited coroutine object is truthy,
     # so a missing `await` here would silently hand the caller a coroutine as if
     # it were a verified uid.
-    uid = await firebase_service.verify_id_token(token)
-    if not uid:
+    verified_uid = await firebase_service.verify_id_token(token)
+    if not verified_uid:
         raise AuthenticationError("Invalid or expired token")
-    request.state.uid = uid
-    return uid
+    request.state.uid = verified_uid
+    return verified_uid

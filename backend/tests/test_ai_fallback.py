@@ -8,13 +8,13 @@ the real context, name the real place, and never emit a bare timestamp or an
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from services import ai_context, ai_service
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 
 
 def build_context(question: str = "", **overrides):
@@ -33,7 +33,11 @@ def build_context(question: str = "", **overrides):
             "pollutants": [{"id": "pm25", "name": "PM2.5", "value": 42.0, "unit": "µg/m³"}],
         },
         "aqi_forecast": [
-            {"timestamp": (NOW + timedelta(hours=hours)).isoformat().replace("+00:00", "Z"), "aqi": aqi, "dominant": "pm25"}
+            {
+                "timestamp": (NOW + timedelta(hours=hours)).isoformat().replace("+00:00", "Z"),
+                "aqi": aqi,
+                "dominant": "pm25",
+            }
             for hours, aqi in ((3, 75), (12, 118), (30, 140))
         ],
         "weather": {
@@ -128,9 +132,23 @@ class TestGroundedAnswers:
         assert "Outlook: ." not in reply
 
     def test_forecast_only_weather_answers_are_populated(self):
-        reply = answer("will it rain tomorrow?", weather={"daily": [
-            {"date": "2026-09-30", "condition": "Heavy rain", "temperatureMax": 26.0, "temperatureMin": 20.0,
-             "precipitationProbabilityMax": 90, "precipitationSum": 12.0, "windSpeedMax": 20.0}], "source": "open-meteo"})
+        reply = answer(
+            "will it rain tomorrow?",
+            weather={
+                "daily": [
+                    {
+                        "date": "2026-09-30",
+                        "condition": "Heavy rain",
+                        "temperatureMax": 26.0,
+                        "temperatureMin": 20.0,
+                        "precipitationProbabilityMax": 90,
+                        "precipitationSum": 12.0,
+                        "windSpeedMax": 20.0,
+                    }
+                ],
+                "source": "open-meteo",
+            },
+        )
         assert "Heavy rain" in reply
         assert "Outlook: ." not in reply
 
@@ -157,9 +175,15 @@ class TestSafetyBand:
         [(25, "good"), (80, "moderate"), (130, "sensitive groups"), (180, "unhealthy for everyone")],
     )
     def test_guidance_matches_the_band(self, aqi, expected):
-        context = build_context(air_quality={
-            "aqi": aqi, "status": "x", "dominantPollutant": "PM2.5", "source": "open-meteo", "pollutants": [],
-        })
+        context = build_context(
+            air_quality={
+                "aqi": aqi,
+                "status": "x",
+                "dominantPollutant": "PM2.5",
+                "source": "open-meteo",
+                "pollutants": [],
+            }
+        )
         reply = ai_service.fallback_response("is it safe to run outside?", context)
         assert expected in reply.lower()
         assert str(aqi) in reply
@@ -181,10 +205,15 @@ class TestHonestyWhenDataIsMissing:
         assert "no aqi measurement" in reply.lower()
 
     def test_estimated_data_is_not_presented_as_observed(self):
-        context = build_context(air_quality={
-            "aqi": 60, "status": "Moderate", "dominantPollutant": "PM2.5",
-            "source": "estimated", "pollutants": [],
-        })
+        context = build_context(
+            air_quality={
+                "aqi": 60,
+                "status": "Moderate",
+                "dominantPollutant": "PM2.5",
+                "source": "estimated",
+                "pollutants": [],
+            }
+        )
         reply = ai_service.fallback_response("how is the air right now?", context)
         assert "modelled" in reply.lower() or "estimated" in reply.lower()
 
@@ -193,8 +222,14 @@ class TestHonestyWhenDataIsMissing:
 
     def test_empty_context_does_not_crash(self):
         empty = ai_context.ContextBuilder(
-            location={}, air_quality=None, aqi_forecast=None, weather=None,
-            predictions=[], carbon_trips=[], history=[], rag_chunks=[],
+            location={},
+            air_quality=None,
+            aqi_forecast=None,
+            weather=None,
+            predictions=[],
+            carbon_trips=[],
+            history=[],
+            rag_chunks=[],
         ).build("how is the air?")[0]
         for question in ("how is the air?", "what is the weather?", "why?", "compare", "summarise my report"):
             assert isinstance(ai_service.fallback_response(question, empty), str)

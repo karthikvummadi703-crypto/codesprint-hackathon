@@ -9,7 +9,7 @@ WMO code table: https://open-meteo.com/en/docs
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from config import get_settings
 from http_client import ProviderError, request_json
@@ -87,6 +87,7 @@ WMO_CODES: dict[int, str] = {
     96: "Thunderstorm with hail",
     99: "Severe thunderstorm with hail",
 }
+
 
 # Categories used by the UI to pick an icon and accent colour.
 def weather_family(code: int) -> str:
@@ -275,11 +276,15 @@ def _build_daily(daily: dict, tz_name: str) -> list[dict]:
                 "temperatureMax": _as_float(_at(daily, "temperature_2m_max", i)),
                 "temperatureMin": _as_float(_at(daily, "temperature_2m_min", i)),
                 "precipitationSum": _as_float(_at(daily, "precipitation_sum", i)),
-                "precipitationProbabilityMax": int(_as_float(_at(daily, "precipitation_probability_max", i), 0.0)),
+                "precipitationProbabilityMax": int(
+                    _as_float(_at(daily, "precipitation_probability_max", i), 0.0)
+                ),
                 "windSpeedMax": _as_float(_at(daily, "wind_speed_10m_max", i)),
                 "windDirectionDominant": int(_as_float(_at(daily, "wind_direction_10m_dominant", i), 0.0)),
                 "uvIndexMax": _as_opt_float(_at(daily, "uv_index_max", i)),
-                "sunrise": _to_utc_iso(_at(daily, "sunrise", i), tz_name) if _at(daily, "sunrise", i) else None,
+                "sunrise": _to_utc_iso(_at(daily, "sunrise", i), tz_name)
+                if _at(daily, "sunrise", i)
+                else None,
                 "sunset": _to_utc_iso(_at(daily, "sunset", i), tz_name) if _at(daily, "sunset", i) else None,
             }
         )
@@ -391,4 +396,4 @@ def _to_utc_iso(local_naive: str, tz_name: str) -> str:
                 tz_name,
             )
             offset = timedelta(0)
-    return (naive.replace(tzinfo=timezone.utc) - offset).isoformat().replace("+00:00", "Z")
+    return (naive.replace(tzinfo=UTC) - offset).isoformat().replace("+00:00", "Z")

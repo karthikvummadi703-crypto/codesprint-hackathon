@@ -94,7 +94,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     },
-    [user, setLocation]
+    [user, setLocation],
   );
 
   useEffect(() => {
@@ -178,10 +178,10 @@ export default function DashboardPage() {
             ? 'Location permission denied. Enable location access or search manually.'
             : err.code === err.POSITION_UNAVAILABLE
               ? 'Location unavailable. Please search for a city instead.'
-              : 'Unable to fetch your location. Please try again.'
+              : 'Unable to fetch your location. Please try again.',
         );
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 10000 },
     );
   };
 
@@ -199,7 +199,11 @@ export default function DashboardPage() {
               <MapPin className="h-3.5 w-3.5 text-brand-600" />
               <span className="font-medium text-slate-700">{currentLocation || activeLocation.name}</span>
               {isEstimated && (
-                <Badge variant="warning" className="ml-2 text-[10px]" title="Derived from weather, not a measurement">
+                <Badge
+                  variant="warning"
+                  className="ml-2 text-[10px]"
+                  title="Derived from weather, not a measurement"
+                >
                   Modelled
                 </Badge>
               )}
@@ -301,12 +305,17 @@ export default function DashboardPage() {
 
       {error && (
         <div className="max-w-7xl mx-auto px-6 mt-6">
-          <div role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700"
+          >
             <AlertCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
             <div className="flex-1">
               <p className="font-semibold">Could not load air quality data</p>
               <p className="text-xs mt-1">{error}</p>
-              <p className="text-xs mt-1">Make sure the backend is running (uvicorn main:app --reload --port 8001).</p>
+              <p className="text-xs mt-1">
+                Make sure the backend is running (uvicorn main:app --reload --port 8001).
+              </p>
             </div>
             <Button
               variant="outline"
@@ -339,7 +348,9 @@ export default function DashboardPage() {
                       {aqiData.status}
                     </Badge>
                     <div className="text-xs text-slate-400 mt-1 flex items-center gap-1 justify-center">
-                      <span>Dominant Pollutant: <strong>{aqiData.dominantPollutant}</strong></span>
+                      <span>
+                        Dominant Pollutant: <strong>{aqiData.dominantPollutant}</strong>
+                      </span>
                       <span className="text-red-500 font-semibold flex items-center gap-0.5">
                         <ArrowUpRight className="h-3 w-3" />+{aqiData.change24h} (24h)
                       </span>
@@ -365,11 +376,7 @@ export default function DashboardPage() {
           {/* Health Advisory card */}
           <div className="lg:col-span-8 h-full flex flex-col gap-6">
             {aqiData && (
-              <HealthAdvisory
-                status={aqiData.status}
-                advisory={aqiData.healthAdvisory}
-                aqi={aqiData.aqi}
-              />
+              <HealthAdvisory status={aqiData.status} advisory={aqiData.healthAdvisory} aqi={aqiData.aqi} />
             )}
 
             <WeatherCard params={toLocationParams(activeLocation)} />
@@ -388,7 +395,8 @@ export default function DashboardPage() {
                       {aqiData.aqi > 100
                         ? 'Sensitive groups should reduce prolonged outdoor exertion. Wearing a mask is recommended during your commute.'
                         : 'Air quality is within acceptable limits for most people.'}{' '}
-                      Airflow patterns in the coming hours will influence how levels evolve — check Predictions for the 24-hour outlook.
+                      Airflow patterns in the coming hours will influence how levels evolve — check
+                      Predictions for the 24-hour outlook.
                     </p>
                   </div>
                 </CardContent>

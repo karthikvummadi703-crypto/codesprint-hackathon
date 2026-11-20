@@ -9,7 +9,11 @@
     "test:watch": "vitest",
     "test:backend": "cd backend && python -m pytest -q",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write src index.html eslint.config.js vite.config.ts tailwind.config.js postcss.config.js",
+    "format:check": "prettier --check src index.html eslint.config.js vite.config.ts tailwind.config.js postcss.config.js",
+    "lint:backend": "cd backend && ruff check . && ruff format --check .",
+    "typecheck:backend": "cd backend && python -m mypy ."
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -39,6 +43,7 @@
     "jest-axe": "^11.0.0",
     "jsdom": "^31.0.1",
     "postcss": "^8.5.26",
+    "prettier": "^3.10.1",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.73.0",

@@ -10,11 +10,7 @@ import { fetchWeather, WeatherResponse } from '../services/backendService';
  * weather card showing 0°C when the provider is down would read as a real
  * measurement, which is exactly what this whole project is meant to avoid.
  */
-export default function WeatherCard({
-  params,
-}: {
-  params: { lat?: number; lon?: number; city?: string };
-}) {
+export default function WeatherCard({ params }: { params: { lat?: number; lon?: number; city?: string } }) {
   const [weather, setWeather] = useState<WeatherResponse | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -99,7 +95,10 @@ export default function WeatherCard({
             </div>
             <p className="text-sm text-slate-600 mt-0.5">{current.condition}</p>
             {current.feelsLike !== null && (
-              <p className="text-xs text-slate-400 mt-0.5">Feels like {Math.round(current.feelsLike)}{tempUnit}</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Feels like {Math.round(current.feelsLike)}
+                {tempUnit}
+              </p>
             )}
           </div>
           <Cloud className="h-10 w-10 text-slate-300 shrink-0" />

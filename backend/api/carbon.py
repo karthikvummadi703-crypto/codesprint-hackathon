@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
 from fastapi import APIRouter
 
 from api.deps import OptionalUid

@@ -286,7 +286,7 @@ def test_breaker_clears_itself_after_the_cooldown_and_a_successful_probe(monkeyp
     assert ai_service._breaker_is_open() is True
 
     # Cooldown elapses.
-    ai_service._rate_limit_open_until = 0.0
+    ai_service.breaker.open_until = 0.0
 
     async def ok(method, url, *, provider, json_body=None, **_):
         return _completion("Recovered.")
@@ -296,7 +296,7 @@ def test_breaker_clears_itself_after_the_cooldown_and_a_successful_probe(monkeyp
 
     assert result["degraded"] is False
     assert result["response"] == "Recovered."
-    assert ai_service._rate_limit_streak == 0
+    assert ai_service.breaker.streak == 0
     assert ai_service._breaker_is_open() is False
 
 

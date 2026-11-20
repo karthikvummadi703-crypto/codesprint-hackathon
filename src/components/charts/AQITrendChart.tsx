@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   AreaChart,
   Area,
@@ -50,12 +49,7 @@ export default function AQITrendChart({ data }: AQITrendChartProps) {
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-          <XAxis
-            dataKey="time"
-            tick={{ fontSize: 11, fill: '#94A3B8' }}
-            tickLine={false}
-            axisLine={false}
-          />
+          <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} />
           <YAxis
             tick={{ fontSize: 11, fill: '#94A3B8' }}
             tickLine={false}
@@ -63,8 +57,20 @@ export default function AQITrendChart({ data }: AQITrendChartProps) {
             domain={[80, 180]}
           />
           <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine y={150} stroke="#EF4444" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: 'Unhealthy', fill: '#EF4444', fontSize: 10, position: 'insideTopRight' }} />
-          <ReferenceLine y={100} stroke="#F59E0B" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: 'Moderate', fill: '#F59E0B', fontSize: 10, position: 'insideTopRight' }} />
+          <ReferenceLine
+            y={150}
+            stroke="#EF4444"
+            strokeDasharray="4 4"
+            strokeWidth={1.5}
+            label={{ value: 'Unhealthy', fill: '#EF4444', fontSize: 10, position: 'insideTopRight' }}
+          />
+          <ReferenceLine
+            y={100}
+            stroke="#F59E0B"
+            strokeDasharray="4 4"
+            strokeWidth={1.5}
+            label={{ value: 'Moderate', fill: '#F59E0B', fontSize: 10, position: 'insideTopRight' }}
+          />
           <Area
             type="monotone"
             dataKey="aqi"

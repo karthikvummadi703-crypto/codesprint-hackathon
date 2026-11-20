@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapPin, Navigation, Search, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -83,7 +83,11 @@ export default function LocationPicker({ compact = false, onPicked }: LocationPi
           onPicked?.(loc);
         } catch {
           // A generic label is honest; fabricating a place name would not be.
-          const loc: ActiveLocation = { name: 'My location', latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+          const loc: ActiveLocation = {
+            name: 'My location',
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
           setLocation(loc);
           onPicked?.(loc);
         } finally {
@@ -95,10 +99,10 @@ export default function LocationPicker({ compact = false, onPicked }: LocationPi
         setError(
           e.code === e.PERMISSION_DENIED
             ? 'Location permission was denied. Search for a city instead.'
-            : 'Could not determine your location. Search for a city instead.'
+            : 'Could not determine your location. Search for a city instead.',
         );
       },
-      { timeout: 10000 }
+      { timeout: 10000 },
     );
   };
 
@@ -114,43 +118,41 @@ export default function LocationPicker({ compact = false, onPicked }: LocationPi
       >
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              type="text"
-              role="combobox"
-              aria-label="Search for a city or place"
-              aria-expanded={showSuggestions && (searching || suggestions.length > 0)}
-              aria-controls="location-picker-suggestions"
-              aria-autocomplete="list"
-              aria-activedescendant={
-                activeIndex >= 0 ? `location-picker-option-${activeIndex}` : undefined
-              }
-              placeholder="Search for a city or place..."
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setShowSuggestions(true);
+          <Input
+            type="text"
+            role="combobox"
+            aria-label="Search for a city or place"
+            aria-expanded={showSuggestions && (searching || suggestions.length > 0)}
+            aria-controls="location-picker-suggestions"
+            aria-autocomplete="list"
+            aria-activedescendant={activeIndex >= 0 ? `location-picker-option-${activeIndex}` : undefined}
+            placeholder="Search for a city or place..."
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setShowSuggestions(true);
+              setActiveIndex(-1);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setActiveIndex((i) => Math.max(i - 1, -1));
+              } else if (e.key === 'Escape') {
+                setShowSuggestions(false);
                 setActiveIndex(-1);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  setActiveIndex((i) => Math.max(i - 1, -1));
-                } else if (e.key === 'Escape') {
-                  setShowSuggestions(false);
-                  setActiveIndex(-1);
-                } else if (e.key === 'Enter' && activeIndex >= 0 && suggestions[activeIndex]) {
-                  e.preventDefault();
-                  pick(suggestions[activeIndex]);
-                }
-              }}
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-              className="pl-9 h-10 border-slate-200"
-              autoComplete="off"
-            />
+              } else if (e.key === 'Enter' && activeIndex >= 0 && suggestions[activeIndex]) {
+                e.preventDefault();
+                pick(suggestions[activeIndex]);
+              }
+            }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            className="pl-9 h-10 border-slate-200"
+            autoComplete="off"
+          />
           {showSuggestions && (searching || suggestions.length > 0) && (
             <ul
               id="location-picker-suggestions"
@@ -189,7 +191,13 @@ export default function LocationPicker({ compact = false, onPicked }: LocationPi
             </ul>
           )}
         </div>
-        <Button type="submit" variant="outline" size="sm" className="h-10 px-4 shrink-0" disabled={suggestions.length === 0}>
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          className="h-10 px-4 shrink-0"
+          disabled={suggestions.length === 0}
+        >
           Set
         </Button>
         <Button
@@ -209,7 +217,11 @@ export default function LocationPicker({ compact = false, onPicked }: LocationPi
           )}
         </Button>
       </form>
-      {error && <p role="alert" className="text-[11px] text-red-600 mt-2">{error}</p>}
+      {error && (
+        <p role="alert" className="text-[11px] text-red-600 mt-2">
+          {error}
+        </p>
+      )}
     </>
   );
 
@@ -233,13 +245,11 @@ export default function LocationPicker({ compact = false, onPicked }: LocationPi
         </div>
         <h1 className="text-xl font-bold text-slate-900">Where should we measure?</h1>
         <p className="text-sm text-slate-500 mt-2 mb-6">
-          AirGuard reports air quality for a real place, so it needs a location before it can show
-          anything. We do not pick one for you.
+          AirGuard reports air quality for a real place, so it needs a location before it can show anything.
+          We do not pick one for you.
         </p>
         {body}
-        <p className="text-[11px] text-slate-400 mt-5">
-          You can change this at any time from the dashboard.
-        </p>
+        <p className="text-[11px] text-slate-400 mt-5">You can change this at any time from the dashboard.</p>
       </div>
     </div>
   );

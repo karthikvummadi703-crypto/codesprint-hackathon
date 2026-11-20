@@ -65,7 +65,10 @@ export async function saveUser(uid: string, data: Json): Promise<void> {
     }
   }
   const prev = await getUser(uid);
-  localStorage.setItem(`${DEV_PREFIX}${uid}_profile`, JSON.stringify({ ...(prev || {}), ...data, updatedAt: isoNow() }));
+  localStorage.setItem(
+    `${DEV_PREFIX}${uid}_profile`,
+    JSON.stringify({ ...(prev || {}), ...data, updatedAt: isoNow() }),
+  );
 }
 
 export async function updateUser(uid: string, data: Json): Promise<void> {
@@ -105,7 +108,12 @@ export async function createConversation(uid: string, title: string): Promise<st
   return id;
 }
 
-export async function updateConversation(uid: string, convId: string, title: string, updatedAt?: string): Promise<void> {
+export async function updateConversation(
+  uid: string,
+  convId: string,
+  title: string,
+  updatedAt?: string,
+): Promise<void> {
   const now = updatedAt || isoNow();
   if (isFirebaseConfigured && db) {
     try {
@@ -116,7 +124,7 @@ export async function updateConversation(uid: string, convId: string, title: str
     }
   }
   const items = devRead(uid, 'conversations').map((c) =>
-    c.id === convId ? { ...c, title, updatedAt: now } : c
+    c.id === convId ? { ...c, title, updatedAt: now } : c,
   );
   devWrite(uid, 'conversations', items);
 }
@@ -133,7 +141,7 @@ export async function deleteConversation(uid: string, convId: string): Promise<v
   devWrite(
     uid,
     'conversations',
-    devRead(uid, 'conversations').filter((c) => c.id !== convId)
+    devRead(uid, 'conversations').filter((c) => c.id !== convId),
   );
   localStorage.removeItem(`${DEV_PREFIX}${uid}_messages_${convId}`);
 }
@@ -142,7 +150,10 @@ export async function deleteConversation(uid: string, convId: string): Promise<v
 export async function listMessages(uid: string, convId: string): Promise<any[]> {
   if (isFirebaseConfigured && db) {
     try {
-      const q = query(collection(db, 'users', uid, 'conversations', convId, 'messages'), orderBy('timestamp', 'asc'));
+      const q = query(
+        collection(db, 'users', uid, 'conversations', convId, 'messages'),
+        orderBy('timestamp', 'asc'),
+      );
       const snap = await getDocs(q);
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     } catch (err) {
@@ -152,7 +163,11 @@ export async function listMessages(uid: string, convId: string): Promise<any[]> 
   return devRead(uid, `messages_${convId}`);
 }
 
-export async function addMessage(uid: string, convId: string, msg: { role: string; content: string }): Promise<void> {
+export async function addMessage(
+  uid: string,
+  convId: string,
+  msg: { role: string; content: string },
+): Promise<void> {
   const data = { ...msg, timestamp: isoNow() };
   if (isFirebaseConfigured && db) {
     try {
@@ -274,7 +289,7 @@ export async function deleteCarbonTrip(uid: string, tripId: string): Promise<voi
   devWrite(
     uid,
     'carbonTrips',
-    devRead(uid, 'carbonTrips').filter((t) => t.id !== tripId)
+    devRead(uid, 'carbonTrips').filter((t) => t.id !== tripId),
   );
 }
 
@@ -319,7 +334,7 @@ export async function deleteUpload(uid: string, fileId: string): Promise<void> {
   devWrite(
     uid,
     'uploads',
-    devRead(uid, 'uploads').filter((f) => f.id !== fileId)
+    devRead(uid, 'uploads').filter((f) => f.id !== fileId),
   );
 }
 
@@ -372,7 +387,10 @@ export async function saveLifestyleSettings(uid: string, data: Json): Promise<vo
     }
   }
   const prev = (await getLifestyleSettings(uid)) ?? {};
-  localStorage.setItem(`${DEV_PREFIX}${uid}_lifestyle`, JSON.stringify({ ...prev, ...data, updatedAt: isoNow() }));
+  localStorage.setItem(
+    `${DEV_PREFIX}${uid}_lifestyle`,
+    JSON.stringify({ ...prev, ...data, updatedAt: isoNow() }),
+  );
 }
 
 // Re-export for convenience

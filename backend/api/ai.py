@@ -12,7 +12,7 @@ import asyncio
 import time
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Query
 
 from api.deps import CurrentUid, env_cache
 from cache import coord_key
@@ -49,7 +49,9 @@ async def chat(
         # Weather and AQI are independent upstream calls, so run them together
         # rather than paying the slower one's latency twice over.
         need_aqi = query_router.BLOCK_AQI_NOW in blocks or query_router.BLOCK_AQI_FORECAST in blocks
-        need_weather = query_router.BLOCK_WEATHER_NOW in blocks or query_router.BLOCK_WEATHER_FORECAST in blocks
+        need_weather = (
+            query_router.BLOCK_WEATHER_NOW in blocks or query_router.BLOCK_WEATHER_FORECAST in blocks
+        )
         if need_aqi or need_weather:
             results = await asyncio.gather(
                 _load_air_quality(location, settings) if need_aqi else _no_air_quality(),
@@ -59,7 +61,9 @@ async def chat(
 
     # A client-supplied weather block is only used when the backend could not
     # fetch one, so a stale page payload never overrides a live reading.
-    weather_for_context = live_weather or (payload.weather if query_router.BLOCK_WEATHER_NOW in blocks else None)
+    weather_for_context = live_weather or (
+        payload.weather if query_router.BLOCK_WEATHER_NOW in blocks else None
+    )
     aqi_for_context = live_aqi or (
         payload.aqHistory[0] if payload.aqHistory and query_router.BLOCK_AQI_NOW in blocks else None
     )
@@ -144,9 +148,7 @@ def _needs_documents(message: str, document_ids: list[str] | None, intent: str) 
     return query_router.wants_documents(intent) or query_router.is_summary_request(message)
 
 
-async def _retrieve_documents(
-    uid: str, message: str, document_ids: list[str] | None
-) -> list[dict]:
+async def _retrieve_documents(uid: str, message: str, document_ids: list[str] | None) -> list[dict]:
     """Pull relevant excerpts for the caller's own documents.
 
     Retrieval never leaves the caller's uid namespace, so a `documentIds` value
@@ -221,9 +223,12 @@ async def _load_history(
     key = f"ai-aqi-history:{coord_key(location['latitude'], location['longitude'])}:{start}:{end}"
 
     async def _load() -> list[dict]:
-        return await air_quality_service.fetch_aqi_history(
-            location["latitude"], location["longitude"], start, end
-        ) or []
+        return (
+            await air_quality_service.fetch_aqi_history(
+                location["latitude"], location["longitude"], start, end
+            )
+            or []
+        )
 
     try:
         rows = await env_cache.get_or_set(key, settings.cache_ttl_geocode_s, _load)

@@ -10,10 +10,7 @@
 export const AVATAR_SIZE = 256;
 export const MAX_AVATAR_SOURCE_BYTES = 8 * 1024 * 1024;
 
-export async function fileToAvatarDataUrl(
-  file: File,
-  size: number = AVATAR_SIZE,
-): Promise<string> {
+export async function fileToAvatarDataUrl(file: File, size: number = AVATAR_SIZE): Promise<string> {
   if (!file.type.startsWith('image/')) {
     throw new Error('Please choose an image file (PNG or JPEG).');
   }

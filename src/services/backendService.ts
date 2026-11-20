@@ -47,7 +47,9 @@ export interface PlaceSuggestion {
 export async function searchLocations(query: string, limit = 5): Promise<PlaceSuggestion[]> {
   const { token } = await authHeaders();
   const q = new URLSearchParams({ q: query, limit: String(limit) });
-  const data = await apiRequest<{ places: PlaceSuggestion[] }>(`/api/geocode/search?${q.toString()}`, { token });
+  const data = await apiRequest<{ places: PlaceSuggestion[] }>(`/api/geocode/search?${q.toString()}`, {
+    token,
+  });
   return data?.places ?? [];
 }
 
@@ -55,10 +57,9 @@ export async function reverseGeocode(lat: number, lon: number): Promise<PlaceSug
   const { token } = await authHeaders();
   const q = new URLSearchParams({ lat: String(lat), lon: String(lon) });
   // The endpoint returns { places: [...] }, not a bare place.
-  const data = await apiRequest<{ places?: PlaceSuggestion[] }>(
-    `/api/geocode/reverse?${q.toString()}`,
-    { token }
-  );
+  const data = await apiRequest<{ places?: PlaceSuggestion[] }>(`/api/geocode/reverse?${q.toString()}`, {
+    token,
+  });
   const place = data?.places?.[0];
   if (!place) throw new Error('Could not resolve this location.');
   return place;
@@ -93,7 +94,7 @@ export async function sendChatMessage(
     household?: Record<string, unknown>;
     routines?: Record<string, unknown>[];
     routineContext?: string;
-  }
+  },
 ): Promise<ChatResult> {
   const { token } = await authHeaders();
   return apiRequest<ChatResult>('/api/ai/chat', {
@@ -105,8 +106,7 @@ export async function sendChatMessage(
       carbonTrips: context?.carbonTrips || null,
       predictions: context?.predictions || null,
       weather: context?.weather || null,
-      documentIds:
-        context?.documentIds && context.documentIds.length > 0 ? context.documentIds : null,
+      documentIds: context?.documentIds && context.documentIds.length > 0 ? context.documentIds : null,
       history: context?.history || null,
       household: context?.household || null,
       routines: context?.routines || null,
@@ -125,14 +125,11 @@ export async function uploadDocumentForRag(file: File): Promise<{
   const { token } = await authHeaders();
   const form = new FormData();
   form.append('file', file);
-  const res = await fetch(
-    `${API_BASE_URL}/api/rag/upload`,
-    {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: form,
-    }
-  );
+  const res = await fetch(`${API_BASE_URL}/api/rag/upload`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
   if (!res.ok) {
     let detail = `Upload failed (${res.status})`;
     try {

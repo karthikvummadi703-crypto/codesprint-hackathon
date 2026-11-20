@@ -36,7 +36,7 @@ log = get_logger("airguard.rag")
 try:
     from PyPDF2 import PdfReader
 except ImportError:  # pragma: no cover
-    PdfReader = None  # type: ignore[assignment]
+    PdfReader = None  # type: ignore[misc, assignment]
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -124,7 +124,7 @@ def _load_store(uid: str) -> dict:
         path = _store_path(uid)
         if os.path.exists(path):
             try:
-                with open(path, "r", encoding="utf-8") as handle:
+                with open(path, encoding="utf-8") as handle:
                     return json.load(handle)
             except Exception as exc:
                 log.warning("could not read RAG store file: %s", type(exc).__name__)

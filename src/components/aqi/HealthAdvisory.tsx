@@ -8,7 +8,10 @@ interface HealthAdvisoryProps {
   aqi: number;
 }
 
-const advisoryConfig: Record<AQIStatus, { bg: string; border: string; icon: React.ElementType; iconColor: string; title: string }> = {
+const advisoryConfig: Record<
+  AQIStatus,
+  { bg: string; border: string; icon: React.ElementType; iconColor: string; title: string }
+> = {
   Good: {
     bg: 'bg-emerald-50',
     border: 'border-emerald-200',
@@ -72,7 +75,9 @@ export default function HealthAdvisory({ status, advisory, aqi }: HealthAdvisory
         </div>
         <div>
           <div className="text-sm font-semibold text-slate-800">{config.title}</div>
-          <div className="text-xs text-slate-500">AQI {aqi} • {status}</div>
+          <div className="text-xs text-slate-500">
+            AQI {aqi} • {status}
+          </div>
         </div>
       </div>
       <p className="text-sm text-slate-700 leading-relaxed mb-3">{advisory}</p>

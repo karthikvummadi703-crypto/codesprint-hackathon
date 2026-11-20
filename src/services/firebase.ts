@@ -13,9 +13,7 @@ const config = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-export const isFirebaseConfigured = Boolean(
-  config.apiKey && config.projectId && config.appId
-);
+export const isFirebaseConfigured = Boolean(config.apiKey && config.projectId && config.appId);
 
 /**
  * Backend origin.

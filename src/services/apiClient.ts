@@ -39,7 +39,7 @@ export async function apiRequest<T>(
     headers?: Record<string, string>;
     /** Skip the short-lived cache — used by explicit Refresh actions. */
     force?: boolean;
-  } = {}
+  } = {},
 ): Promise<T> {
   const { method = 'GET', body, token, headers = {}, force = false } = options;
 
@@ -96,9 +96,11 @@ export async function apiRequest<T>(
     inflight.set(key, run);
     // Only a settled success is cached, so a failure always retries next time.
     // Guard the delete so a superseded forced request cannot evict a newer one.
-    run.catch(() => {}).finally(() => {
-      if (inflight.get(key) === run) inflight.delete(key);
-    });
+    run
+      .catch(() => {})
+      .finally(() => {
+        if (inflight.get(key) === run) inflight.delete(key);
+      });
   }
 
   return run as Promise<T>;

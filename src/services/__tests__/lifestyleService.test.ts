@@ -128,7 +128,7 @@ describe('routinesToPromptContext', () => {
         household: family,
         now: new Date(2026, 0, 15),
       }),
-      family
+      family,
     );
 
     expect(text.toLowerCase()).toContain('not measured');

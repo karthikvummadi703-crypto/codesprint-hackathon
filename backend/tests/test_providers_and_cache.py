@@ -83,7 +83,9 @@ class TestProviderChain:
                     "pollutants": [
                         {"code": "PM25", "concentration": {"value": 20.0, "units": "µg/m3"}},
                     ],
-                    "indexes": [{"code": "usa_epa", "aqi": 45, "category": "GOOD", "dominantPollutant": "pm25"}],
+                    "indexes": [
+                        {"code": "usa_epa", "aqi": 45, "category": "GOOD", "dominantPollutant": "pm25"}
+                    ],
                 }
             return {"current": {"time": "2026-01-01T12:00", "pm2_5": 5.0, "us_aqi": 12}}
 
@@ -139,8 +141,11 @@ class TestLocationResolution:
         The old behaviour let `city` win, so Predictions always forecast the
         default city regardless of what the user selected.
         """
+
         async def fake(method, url, **kwargs):
-            return [{"lat": "0.0", "lon": "0.0", "display_name": "Somewhere Else", "address": {"country": "X"}}]
+            return [
+                {"lat": "0.0", "lon": "0.0", "display_name": "Somewhere Else", "address": {"country": "X"}}
+            ]
 
         patch_json(monkeypatch, fake)
         location, source = await aq.resolve_location(17.38, 78.49, "Gudur")
@@ -149,7 +154,14 @@ class TestLocationResolution:
 
     async def test_city_is_geocoded_when_no_coordinates(self, monkeypatch):
         async def fake(method, url, **kwargs):
-            return [{"lat": "28.61", "lon": "77.20", "display_name": "Delhi, India", "address": {"country": "India"}}]
+            return [
+                {
+                    "lat": "28.61",
+                    "lon": "77.20",
+                    "display_name": "Delhi, India",
+                    "address": {"country": "India"},
+                }
+            ]
 
         patch_json(monkeypatch, fake)
         location, source = await aq.resolve_location(None, None, "Delhi")

@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-  useRef,
-} from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import {
   AppUser,
   onAppAuthStateChange,
@@ -84,11 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     const handleAuthError = () => {
-      appLogout().then(() => {
-        clearResponseCache();
-        setUser(null);
-        setProfile(null);
-      }).catch(console.error);
+      appLogout()
+        .then(() => {
+          clearResponseCache();
+          setUser(null);
+          setProfile(null);
+        })
+        .catch(console.error);
     };
     window.addEventListener('auth-error', handleAuthError);
 
