@@ -29,7 +29,9 @@ class TTLCache:
     def __init__(self, max_entries: int = 512) -> None:
         self._max_entries = max(1, max_entries)
         self._store: OrderedDict[str, _Entry] = OrderedDict()
+        self._inflight: dict[str, asyncio.Task[Any]] = {}
         self._lock = asyncio.Lock()
+        self._generation = 0
         self.hits = 0
         self.misses = 0
 
@@ -66,6 +68,7 @@ class TTLCache:
             doomed = [k for k in self._store if k.startswith(prefix)]
             for key in doomed:
                 self._store.pop(key, None)
+            self._generation += 1
             if doomed:
                 log.info("cache invalidated prefix=%s entries=%d", prefix, len(doomed))
             return len(doomed)
@@ -73,6 +76,7 @@ class TTLCache:
     async def clear(self) -> None:
         async with self._lock:
             self._store.clear()
+            self._generation += 1
 
     def stats(self) -> dict:
         total = self.hits + self.misses
@@ -83,29 +87,46 @@ class TTLCache:
             "hit_rate": round(self.hits / total, 3) if total else 0.0,
         }
 
+    async def _run_factory(
+        self, key: str, ttl_s: int, factory: Callable[[], Awaitable[Any]], generation: int
+    ) -> Any:
+        value = await factory()
+        if ttl_s <= 0:
+            return value
+        async with self._lock:
+            if generation != self._generation:
+                return value
+            self._store[key] = _Entry(value, time.monotonic() + ttl_s)
+            self._store.move_to_end(key)
+            while len(self._store) > self._max_entries:
+                self._store.popitem(last=False)
+        return value
+
     async def get_or_set(self, key: str, ttl_s: int, factory: Callable[[], Awaitable[Any]]) -> Any:
         """Return cached value or run `factory`, coalescing concurrent misses.
 
         Concurrent callers that miss on the same key await a single factory run
-        rather than each hitting the upstream provider.
+        rather than each hitting the upstream provider. Different keys remain
+        independent, so one slow provider never blocks another cache entry.
         """
         cached = await self.get(key)
         if cached is not None:
             return cached
         async with self._lock:
-            entry = self._store.get(key)
-            if entry is not None and entry.expires_at > time.monotonic():
-                self._store.move_to_end(key)
-                self.hits += 1
-                return entry.value
-            value = await factory()
-            if ttl_s > 0:
-                self._store[key] = _Entry(value, time.monotonic() + ttl_s)
-                self._store.move_to_end(key)
-                while len(self._store) > self._max_entries:
-                    self._store.popitem(last=False)
-            self.misses += 1
-            return value
+            task = self._inflight.get(key)
+            if task is None:
+                task = asyncio.create_task(self._run_factory(key, ttl_s, factory, self._generation))
+                self._inflight[key] = task
+                owner = True
+            else:
+                owner = False
+        try:
+            return await asyncio.shield(task)
+        finally:
+            if owner:
+                async with self._lock:
+                    if self._inflight.get(key) is task:
+                        self._inflight.pop(key, None)
 
 
 def coord_key(lat: float, lon: float, precision: int = 2) -> str:

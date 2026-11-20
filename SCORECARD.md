@@ -26,7 +26,7 @@
 | Large backend services split | Complete | AQI and context packages plus fallback/breaker extraction |
 | Strict TypeScript checks | Complete | `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns` |
 | Prettier/Ruff/mypy/pytest gates | Complete | Local hooks and CI gates added |
-| All checks | Green | Frontend 49 tests; backend 243 tests after Phase 3 additions |
+| All checks | Green | Frontend 49 tests; backend 247 tests after Phases 3-4 additions |
 
 ## Phase 3 - Security hardening
 
@@ -40,10 +40,22 @@
 | Dependency audit | Complete | Pinned FastAPI/starlette, python-multipart, python-dotenv, pytest, pytest-asyncio to fixed versions; `pip-audit` clean |
 | Route-surface test | Updated | Uses OpenAPI schema instead of internal FastAPI route wrappers |
 
+## Phase 4 - Efficiency and caching
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Cache single-flight | Complete | Per-key tasks replace one global lock around provider calls; different keys run concurrently |
+| Cache invalidation safety | Complete | Generation counter prevents an in-flight fetch from repopulating an invalidated location prefix |
+| Carbon distance lookup | Complete | Origin and destination geocode concurrently via `asyncio.gather` |
+| Assistant context size | Complete | Carbon trips limited to the backend's 200-item cap before chat requests |
+| React context stability | Complete | `AuthContext` value and callbacks memoized to reduce consumer re-renders |
+| Location search races | Complete | Cancelled-effect guards prevent stale responses overwriting newer results in three search surfaces |
+| Bundle splitting | Already present | Route lazy loading and manual chunks remain unchanged from baseline |
+
 ## Deferred or intentionally unchanged
 
 - `backend/http_client.py` still uses `follow_redirects=True`; upstream URLs are configuration-driven, and changing redirect behaviour could alter provider calls.
 - HSTS/CSP enforcement must also be confirmed in hosted Firebase/Vercel project settings after deployment.
-- Frontend bundle splitting and lazy loading are tracked for Phase 4.
+- Canonical raw-provider cache keys for weather/AQI history/AQI forecast are deferred; current shaped keys are intentionally separate to avoid a prior list/dict collision.
 - Accessibility refinements and expanded edge-case tests are tracked for later phases.
 - Starlette deprecation warnings from current FastAPI test client are non-failing; dependency audit is clean.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 import http_client
@@ -10,7 +12,7 @@ from cache import TTLCache, coord_key
 from config import get_settings
 from http_client import ProviderError
 from services import air_quality_service as aq
-from services import geocoding_service
+from services import carbon_service, geocoding_service
 
 # Modules that did `from http_client import request_json`, and therefore hold their
 # own reference that must be patched as well as the definition.
@@ -216,6 +218,53 @@ class TestCaching:
         await cache.get_or_set("k", 0, factory)
         assert calls == 2
 
+    async def test_concurrent_misses_for_different_keys_run_in_parallel(self):
+        cache = TTLCache(max_entries=8)
+        started: set[str] = set()
+        release = asyncio.Event()
+        both_started = asyncio.Event()
+
+        async def factory(key: str) -> str:
+            started.add(key)
+            if len(started) == 2:
+                both_started.set()
+            await release.wait()
+            return key
+
+        tasks = [
+            asyncio.create_task(cache.get_or_set(key, 60, lambda key=key: factory(key))) for key in ("a", "b")
+        ]
+        await asyncio.wait_for(both_started.wait(), 1)
+        assert started == {"a", "b"}
+        release.set()
+        assert await asyncio.gather(*tasks) == ["a", "b"]
+
+    async def test_same_key_miss_is_counted_once_per_caller(self):
+        cache = TTLCache(max_entries=8)
+
+        async def factory() -> int:
+            return 1
+
+        await cache.get_or_set("k", 60, factory)
+        assert cache.stats()["misses"] == 1
+
+    async def test_invalidation_drops_inflight_result(self):
+        cache = TTLCache(max_entries=8)
+        started = asyncio.Event()
+        release = asyncio.Event()
+
+        async def factory() -> str:
+            started.set()
+            await release.wait()
+            return "stale"
+
+        task = asyncio.create_task(cache.get_or_set("loc:a", 60, factory))
+        await started.wait()
+        await cache.invalidate_prefix("loc:")
+        release.set()
+        assert await task == "stale"
+        assert await cache.get("loc:a") is None
+
     async def test_max_entries_is_enforced(self):
         cache = TTLCache(max_entries=3)
         for index in range(10):
@@ -259,6 +308,27 @@ class TestCaching:
         await env_cache.set(keys["ai_forecast"], [{"day": 1}], 60)
         assert isinstance(await env_cache.get(keys["predictions"]), dict)
         assert isinstance(await env_cache.get(keys["ai_forecast"]), list)
+
+
+class TestCarbonPerformance:
+    async def test_estimate_distance_geocodes_endpoints_concurrently(self, monkeypatch):
+        started: list[str] = []
+        release = asyncio.Event()
+        both_started = asyncio.Event()
+
+        async def fake_geocode(place: str) -> tuple[float, float]:
+            started.append(place)
+            if len(started) == 2:
+                both_started.set()
+            await release.wait()
+            return (10.0, 20.0) if place == "origin" else (10.01, 20.0)
+
+        monkeypatch.setattr(carbon_service, "_geocode", fake_geocode)
+        task = asyncio.create_task(carbon_service.estimate_distance("origin", "destination"))
+        await asyncio.wait_for(both_started.wait(), 1)
+        assert started == ["origin", "destination"]
+        release.set()
+        assert await task > 0
 
 
 class TestSettings:

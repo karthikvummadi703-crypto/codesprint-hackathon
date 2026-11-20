@@ -7,6 +7,7 @@ from a great-circle calculation over geocoded endpoints.
 
 from __future__ import annotations
 
+import asyncio
 import math
 
 from config import get_settings
@@ -60,8 +61,7 @@ async def _geocode(place: str) -> tuple[float | None, float | None]:
 
 async def estimate_distance(origin: str, destination: str) -> float | None:
     """Great-circle distance between two named places, or None if unresolvable."""
-    lat1, lon1 = await _geocode(origin)
-    lat2, lon2 = await _geocode(destination)
+    (lat1, lon1), (lat2, lon2) = await asyncio.gather(_geocode(origin), _geocode(destination))
     if lat1 is None or lon1 is None or lat2 is None or lon2 is None:
         return None
     return round(haversine_km(lat1, lon1, lat2, lon2), 2)

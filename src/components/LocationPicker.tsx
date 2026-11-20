@@ -35,14 +35,24 @@ export default function LocationPicker({ compact = false, onPicked }: LocationPi
       setActiveIndex(-1);
       return;
     }
+    let cancelled = false;
     setSearching(true);
     const t = setTimeout(() => {
       searchLocations(q, 5)
-        .then(setSuggestions)
-        .catch(() => setSuggestions([]))
-        .finally(() => setSearching(false));
+        .then((results) => {
+          if (!cancelled) setSuggestions(results);
+        })
+        .catch(() => {
+          if (!cancelled) setSuggestions([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSearching(false);
+        });
     }, 300);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [query]);
 
   const pick = (s: PlaceSuggestion) => {

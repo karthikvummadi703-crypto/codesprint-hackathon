@@ -264,17 +264,21 @@ export async function addCarbonTrip(uid: string, trip: Json): Promise<string> {
   return id;
 }
 
-export async function listCarbonTrips(uid: string): Promise<any[]> {
+export async function listCarbonTrips(uid: string, max?: number): Promise<any[]> {
   if (isFirebaseConfigured && db) {
     try {
-      const q = query(collection(db, 'users', uid, 'carbonTrips'), orderBy('date', 'desc'));
+      const trips = collection(db, 'users', uid, 'carbonTrips');
+      const q = max
+        ? query(trips, orderBy('date', 'desc'), fsLimit(max))
+        : query(trips, orderBy('date', 'desc'));
       const snap = await getDocs(q);
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     } catch (err) {
       console.warn('Firestore listCarbonTrips failed, falling back to local storage:', err);
     }
   }
-  return devRead(uid, 'carbonTrips').sort((a, b) => (a.date > b.date ? -1 : 1));
+  const items = devRead(uid, 'carbonTrips').sort((a, b) => (a.date > b.date ? -1 : 1));
+  return max ? items.slice(0, max) : items;
 }
 
 export async function deleteCarbonTrip(uid: string, tripId: string): Promise<void> {

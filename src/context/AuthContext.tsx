@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppUser,
   onAppAuthStateChange,
@@ -122,39 +122,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile((prev) => ({ ...(prev ?? {}), ...patch }));
   }, []);
 
-  const value: AuthContextValue = {
-    user,
-    displayName,
-    avatarUrl,
-    profile,
-    profileLoading,
-    initializing,
-    updateName,
-    updateAvatar,
-    syncProfileLocally,
-    signup: async (name, email, password) => {
-      const user = await appSignUp(name, email, password);
-      await ensureProfile(user);
-    },
-    login: async (email, password) => {
-      const user = await appLogin(email, password);
-      await ensureProfile(user);
-    },
-    loginWithGoogle: async () => {
-      const user = await appLoginWithGoogle();
-      await ensureProfile(user);
-    },
-    resetPassword: async (email) => {
-      await appResetPassword(email);
-    },
-    logout: async () => {
-      await appLogout();
-      // Cached GETs are keyed by token, so drop them on sign-out rather than
-      // relying on the key alone.
-      clearResponseCache();
-      setProfile(null);
-    },
-  };
+  const signup = useCallback(async (name: string, email: string, password: string) => {
+    const signedUpUser = await appSignUp(name, email, password);
+    await ensureProfile(signedUpUser);
+  }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
+    const loggedInUser = await appLogin(email, password);
+    await ensureProfile(loggedInUser);
+  }, []);
+
+  const loginWithGoogle = useCallback(async () => {
+    const googleUser = await appLoginWithGoogle();
+    await ensureProfile(googleUser);
+  }, []);
+
+  const resetPassword = useCallback(async (email: string) => {
+    await appResetPassword(email);
+  }, []);
+
+  const logout = useCallback(async () => {
+    await appLogout();
+    // Cached GETs are keyed by token, so drop them on sign-out rather than
+    // relying on the key alone.
+    clearResponseCache();
+    setProfile(null);
+  }, []);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      displayName,
+      avatarUrl,
+      profile,
+      profileLoading,
+      initializing,
+      signup,
+      login,
+      loginWithGoogle,
+      resetPassword,
+      logout,
+      updateName,
+      updateAvatar,
+      syncProfileLocally,
+    }),
+    [
+      user,
+      displayName,
+      avatarUrl,
+      profile,
+      profileLoading,
+      initializing,
+      signup,
+      login,
+      loginWithGoogle,
+      resetPassword,
+      logout,
+      updateName,
+      updateAvatar,
+      syncProfileLocally,
+    ],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

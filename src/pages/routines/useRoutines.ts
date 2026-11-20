@@ -103,12 +103,20 @@ export function useRoutines() {
       setSuggestions([]);
       return undefined;
     }
+    let cancelled = false;
     const timer = setTimeout(() => {
       searchLocations(q, 5)
-        .then(setSuggestions)
-        .catch(() => setSuggestions([]));
+        .then((results) => {
+          if (!cancelled) setSuggestions(results);
+        })
+        .catch(() => {
+          if (!cancelled) setSuggestions([]);
+        });
     }, 300);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [placeQuery]);
 
   const winter = isWinterSmogSeason();

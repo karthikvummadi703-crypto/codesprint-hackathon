@@ -34,7 +34,7 @@ export async function requestAssistantReply({
   try {
     const [aqRecords, trips, preds] = await Promise.all([
       listAirQualityRecords(uid, 5),
-      listCarbonTrips(uid),
+      listCarbonTrips(uid, 200),
       getLatestPredictions(uid),
     ]);
     aqHistory = aqRecords;
