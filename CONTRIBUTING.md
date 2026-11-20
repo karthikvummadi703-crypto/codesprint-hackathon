@@ -24,5 +24,7 @@ npm run test:backend
 pip-audit -r backend/requirements.txt -r backend/requirements-dev.txt
 ```
 
+Coverage reports are available with `npm run test:coverage` and `npm run test:backend:coverage`.
+
 `python -m pre_commit run --all-files` runs the same formatter and static checks locally.
 CI also runs `gitleaks` and `pip-audit` on every push and pull request.

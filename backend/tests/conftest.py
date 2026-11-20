@@ -38,6 +38,9 @@ def _reset_state():
     """
     import anyio
 
+    import middleware
+
+    middleware._counters.reset()
     get_settings.cache_clear()
     anyio.run(env_cache.clear)
     env_cache.hits = 0

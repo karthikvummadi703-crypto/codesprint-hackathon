@@ -26,7 +26,7 @@
 | Large backend services split | Complete | AQI and context packages plus fallback/breaker extraction |
 | Strict TypeScript checks | Complete | `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns` |
 | Prettier/Ruff/mypy/pytest gates | Complete | Local hooks and CI gates added |
-| All checks | Green | Frontend 49 tests; backend 247 tests after Phases 3-4 additions |
+| All checks | Green | Frontend 78 tests; backend 255 tests after Phases 3-5 additions |
 
 ## Phase 3 - Security hardening
 
@@ -52,10 +52,20 @@
 | Location search races | Complete | Cancelled-effect guards prevent stale responses overwriting newer results in three search surfaces |
 | Bundle splitting | Already present | Route lazy loading and manual chunks remain unchanged from baseline |
 
+## Phase 5 - Test expansion
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Frontend unit tests | Complete | Prediction helpers, assistant utils, location params, Firebase error messages |
+| Backend unit/integration tests | Complete | Rate-limit counter + middleware, carbon API contract, shared counter reset |
+| Coverage tooling | Complete | `npm run test:coverage`, `npm run test:backend:coverage` |
+| Coverage baseline | Recorded | Frontend 36% statements; backend 84% statements |
+| All checks | Green | Frontend 78 tests; backend 255 tests, 9 live tests deselected |
+
 ## Deferred or intentionally unchanged
 
 - `backend/http_client.py` still uses `follow_redirects=True`; upstream URLs are configuration-driven, and changing redirect behaviour could alter provider calls.
 - HSTS/CSP enforcement must also be confirmed in hosted Firebase/Vercel project settings after deployment.
 - Canonical raw-provider cache keys for weather/AQI history/AQI forecast are deferred; current shaped keys are intentionally separate to avoid a prior list/dict collision.
-- Accessibility refinements and expanded edge-case tests are tracked for later phases.
+- Accessibility refinements are tracked for Phase 6; further branch coverage remains a follow-up after Phase 7.
 - Starlette deprecation warnings from current FastAPI test client are non-failing; dependency audit is clean.
