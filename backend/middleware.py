@@ -1,4 +1,4 @@
-"""Request middleware: timing instrumentation and rate limiting.
+"""Request middleware: security headers, timing instrumentation and rate limiting.
 
 Rate limiting uses a fixed-window counter keyed by the verified user id when a
 token is supplied and by the socket peer address otherwise. Middleware runs
@@ -21,6 +21,18 @@ log = get_logger("airguard.http.access")
 
 # Endpoints with their own, tighter budget.
 _COSTLY_PATHS = {"/api/ai/chat", "/api/rag/upload"}
+
+_CSP = (
+    "default-src 'self'; "
+    "base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; "
+    "script-src 'self'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' data: https://fonts.gstatic.com; "
+    "img-src 'self' data: blob: https:; "
+    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com "
+    "wss://*.googleapis.com wss://*.firebaseio.com; "
+    "worker-src 'self' blob:"
+)
 
 
 class _FixedWindowCounter:
@@ -75,6 +87,26 @@ async def _identity(request: Request) -> str:
             pass
     client = request.client
     return f"ip:{client.host if client else 'unknown'}"
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response: Response = await call_next(request)
+        headers = response.headers
+        headers.setdefault("Content-Security-Policy", _CSP)
+        headers.setdefault("X-Content-Type-Options", "nosniff")
+        headers.setdefault("X-Frame-Options", "DENY")
+        headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        headers.setdefault(
+            "Permissions-Policy",
+            "camera=(), microphone=(), geolocation=(self), payment=(), usb=()",
+        )
+        if get_settings().is_production:
+            headers.setdefault(
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains; preload",
+            )
+        return response
 
 
 class TimingMiddleware(BaseHTTPMiddleware):

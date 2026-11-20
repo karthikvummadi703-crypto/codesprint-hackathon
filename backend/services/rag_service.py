@@ -34,7 +34,7 @@ from logging_config import get_logger
 log = get_logger("airguard.rag")
 
 try:
-    from PyPDF2 import PdfReader
+    from pypdf import PdfReader
 except ImportError:  # pragma: no cover
     PdfReader = None  # type: ignore[misc, assignment]
 
@@ -167,11 +167,11 @@ def _extract_text(filename: str, data: bytes) -> str:
         if not data.lstrip()[: len(PDF_MAGIC)] == PDF_MAGIC:
             raise RagStoreError("That file is not a valid PDF.")
         if PdfReader is None:
-            raise RagStoreError("PDF support is unavailable: install PyPDF2 to enable PDF uploads.")
+            raise RagStoreError("PDF support is unavailable: install pypdf to enable PDF uploads.")
         try:
             reader = PdfReader(io.BytesIO(data))
             if reader.is_encrypted:
-                # PyPDF2 can return a reader whose pages raise on access; an
+                # pypdf can return a reader whose pages raise on access; an
                 # empty password is tried first so a merely "protected" file
                 # still works, and anything else is reported clearly.
                 try:

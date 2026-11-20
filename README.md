@@ -87,7 +87,7 @@ Open <http://localhost:5173>. Backend docs are available at <http://localhost:80
 | `VITE_FIREBASE_MEASUREMENT_ID` | Optional Analytics measurement ID |
 | `VITE_API_BASE_URL` | Optional backend override; defaults to `http://localhost:8001` in dev and the deployed API URL in production |
 
-Firebase Web config values are intentionally shipped to the browser; access control comes from Firebase Auth and security rules. Never put service-account keys or LLM keys in `VITE_*` variables.
+Firebase Web config values are intentionally shipped to the browser; access control comes from Firebase Auth and security rules. Never put service-account keys or LLM keys in `VITE_*` variables. `.env.production` is not tracked; set these public `VITE_*` values in the Firebase/Vercel project settings instead of committing them.
 
 ### Backend (`backend/.env`)
 

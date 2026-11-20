@@ -19,7 +19,11 @@ from config import describe_configuration, get_settings  # noqa: E402
 from errors import register_exception_handlers  # noqa: E402
 from http_client import close_client  # noqa: E402
 from logging_config import get_logger, setup_logging  # noqa: E402
-from middleware import RateLimitMiddleware, TimingMiddleware  # noqa: E402
+from middleware import (  # noqa: E402
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    TimingMiddleware,
+)
 
 log = get_logger("airguard.main")
 
@@ -70,6 +74,7 @@ def create_app() -> FastAPI:
     )
     application.add_middleware(RateLimitMiddleware)
     application.add_middleware(TimingMiddleware)
+    application.add_middleware(SecurityHeadersMiddleware)
 
     register_exception_handlers(application)
 

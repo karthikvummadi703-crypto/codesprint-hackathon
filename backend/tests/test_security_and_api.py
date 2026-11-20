@@ -38,6 +38,25 @@ def restore_settings():
     get_settings.cache_clear()
 
 
+class TestSecurityHeaders:
+    def test_public_responses_have_hardening_headers(self, monkeypatch, restore_settings):
+        client = build_client(monkeypatch, ENVIRONMENT="test", ALLOW_DEV_AUTH="true")
+        response = client.get("/api/health")
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert response.headers["x-frame-options"] == "DENY"
+        assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"
+        assert "camera=()" in response.headers["permissions-policy"]
+        assert "default-src 'self'" in response.headers["content-security-policy"]
+        assert "strict-transport-security" not in response.headers
+
+    def test_hsts_is_added_in_production(self, monkeypatch, restore_settings):
+        client = build_client(
+            monkeypatch, ENVIRONMENT="production", ALLOW_DEV_AUTH="false", FIREBASE_PROJECT_ID="demo"
+        )
+        response = client.get("/api/health")
+        assert "max-age=31536000" in response.headers["strict-transport-security"]
+
+
 class TestDevTokenGate:
     def test_dev_token_rejected_in_production(self, monkeypatch):
         client = build_client(
@@ -289,7 +308,7 @@ class TestErrorHandling:
 
 class TestRouteSurface:
     def test_expected_routes_are_registered(self, client):
-        paths = {route.path for route in client.app.routes if hasattr(route, "path")}
+        paths = set(client.get("/api/openapi.json").json()["paths"])
         for expected in (
             "/api/health",
             "/api/aqi",

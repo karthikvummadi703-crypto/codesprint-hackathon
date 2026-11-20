@@ -5,7 +5,7 @@
 ```bash
 npm ci --legacy-peer-deps
 python -m pip install -r backend/requirements-dev.txt
-pre-commit install
+python -m pre_commit install
 ```
 
 ## Checks
@@ -21,7 +21,8 @@ npm run build
 npm run lint:backend
 npm run typecheck:backend
 npm run test:backend
+pip-audit -r backend/requirements.txt -r backend/requirements-dev.txt
 ```
 
-`pre-commit run --all-files` runs the same formatter and static checks locally.
-CI runs the frontend and backend jobs on every push and pull request.
+`python -m pre_commit run --all-files` runs the same formatter and static checks locally.
+CI also runs `gitleaks` and `pip-audit` on every push and pull request.
