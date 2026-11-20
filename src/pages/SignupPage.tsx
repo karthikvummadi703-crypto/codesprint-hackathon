@@ -62,8 +62,8 @@ export default function SignupPage() {
     setLoading(true);
     setFormError('');
     try {
-      await loginWithGoogle();
-      navigate('/dashboard');
+      const completed = await loginWithGoogle();
+      if (completed) navigate('/dashboard');
     } catch (err) {
       setFormError(firebaseErrorMessage(err));
       setLoading(false);

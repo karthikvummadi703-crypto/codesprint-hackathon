@@ -2,6 +2,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   sendPasswordResetEmail,
   signOut,
@@ -126,15 +128,31 @@ export async function appLogin(email: string, password: string): Promise<AppUser
  * "Dev User". Failing loudly is correct: the caller can explain the situation,
  * and no fabricated account is written to storage.
  */
-export async function appLoginWithGoogle(): Promise<AppUser> {
+export async function appLoginWithGoogle(): Promise<AppUser | null> {
   if (isFirebaseConfigured && auth) {
     const provider = new GoogleAuthProvider();
-    const cred = await signInWithPopup(auth, provider);
-    return toAppUser(cred.user)!;
+    try {
+      const cred = await signInWithPopup(auth, provider);
+      return toAppUser(cred.user);
+    } catch (err) {
+      if ((err as { code?: string }).code === 'auth/popup-blocked') {
+        await signInWithRedirect(auth, provider);
+        return null;
+      }
+      throw err;
+    }
   }
   throw new Error(
     'Google sign-in needs a Firebase configuration. Add your Firebase web keys to .env.local, or sign up with email and password instead.',
   );
+}
+
+export async function appCompleteGoogleRedirect(): Promise<AppUser | null> {
+  if (isFirebaseConfigured && auth) {
+    const result = await getRedirectResult(auth);
+    return result ? toAppUser(result.user) : null;
+  }
+  return null;
 }
 
 export function isGoogleSignInAvailable(): boolean {

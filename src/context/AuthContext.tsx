@@ -5,6 +5,7 @@ import {
   appSignUp,
   appLogin,
   appLoginWithGoogle,
+  appCompleteGoogleRedirect,
   appResetPassword,
   appLogout,
 } from '../services/authService';
@@ -33,7 +34,7 @@ interface AuthContextValue {
   initializing: boolean;
   signup: (name: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
+  loginWithGoogle: () => Promise<boolean>;
   resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   /** Persist a name change and refresh the resolved name everywhere. */
@@ -56,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const latestUid = useRef<string | null>(null);
 
   useEffect(() => {
+    appCompleteGoogleRedirect().catch(console.error);
     const unsub = onAppAuthStateChange(async (u) => {
       latestUid.current = u?.uid ?? null;
       setUser(u);
@@ -134,7 +136,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithGoogle = useCallback(async () => {
     const googleUser = await appLoginWithGoogle();
+    if (!googleUser) return false;
     await ensureProfile(googleUser);
+    return true;
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {

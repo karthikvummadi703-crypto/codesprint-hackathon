@@ -33,8 +33,8 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await loginWithGoogle();
-      navigate('/dashboard');
+      const completed = await loginWithGoogle();
+      if (completed) navigate('/dashboard');
     } catch (err) {
       setError(firebaseErrorMessage(err));
       setLoading(false);
