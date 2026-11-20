@@ -75,10 +75,22 @@
 | Real-component axe tests | Complete | Added coverage for AQIGauge, PollutantCard, MobileMenuButton, and ForecastTable; frontend now 82 tests |
 | All checks | Green | Format, lint, typecheck, 82 frontend tests, build, pre-commit, 255 backend tests, audit, diff check clean |
 
+## Phase 7 - Final verification
+
+| Area | Status | Evidence |
+| --- | --- | --- |
+| Code quality | Green | Prettier, ESLint, strict TypeScript, Ruff, mypy, and all pre-commit hooks pass |
+| Security | Green | Backend/hosted security headers, CI secret scanning, untracked env file, `pip-audit` clean |
+| Efficiency | Green | Per-key cache, concurrent carbon geocoding, memoized auth context, route-level chunks |
+| Testing | Improved | Frontend 82 tests; 39% statements, 40.95% branches, 32% functions, 40.3% lines; backend 255 tests, 84% statements, 9 live tests deselected |
+| Accessibility | Green | axe checks cover real components; labels, errors, roles, tables, tabs, and mobile nav semantics verified |
+| Problem alignment | Green | Prompt and UI copy centre family smog guidance, low-emission routines, and grounded impact |
+| Final tree | Clean | All checks rerun after Phase 6 commit; `git diff --check` clean |
+
 ## Deferred or intentionally unchanged
 
 - `backend/http_client.py` still uses `follow_redirects=True`; upstream URLs are configuration-driven, and changing redirect behaviour could alter provider calls.
 - HSTS/CSP enforcement must also be confirmed in hosted Firebase/Vercel project settings after deployment.
 - Canonical raw-provider cache keys for weather/AQI history/AQI forecast are deferred; current shaped keys are intentionally separate to avoid a prior list/dict collision.
-- Accessibility refinements were completed in Phase 6; further branch coverage remains a follow-up after Phase 7.
+- Accessibility refinements were completed in Phase 6; further branch coverage remains a future follow-up.
 - Starlette deprecation warnings from current FastAPI test client are non-failing; dependency audit is clean.
