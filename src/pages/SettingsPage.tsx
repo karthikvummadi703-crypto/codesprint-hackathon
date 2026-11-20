@@ -123,6 +123,35 @@ export default function SettingsPage() {
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
   ];
 
+  const handleTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const lastIndex = tabs.length - 1;
+    let nextIndex: number;
+
+    switch (event.key) {
+      case 'ArrowDown':
+      case 'ArrowRight':
+        nextIndex = index === lastIndex ? 0 : index + 1;
+        break;
+      case 'ArrowUp':
+      case 'ArrowLeft':
+        nextIndex = index === 0 ? lastIndex : index - 1;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = lastIndex;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    setActiveTab(tabs[nextIndex].id as typeof activeTab);
+    const tabButtons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+    tabButtons?.[nextIndex]?.focus();
+  };
+
   const initials = initialsFor(name || displayName || user?.email || 'U');
 
   return (
@@ -150,23 +179,26 @@ export default function SettingsPage() {
           aria-orientation="vertical"
           className="w-full md:w-64 shrink-0 flex md:flex-col gap-1 overflow-x-auto md:overflow-visible pb-2 md:pb-0"
         >
-          {tabs.map((tab) => {
+          {tabs.map((tab, index) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
+                id={`settings-tab-${tab.id}`}
                 type="button"
                 role="tab"
                 aria-selected={activeTab === tab.id}
                 aria-controls="settings-panel"
+                tabIndex={activeTab === tab.id ? 0 : -1}
                 onClick={() => setActiveTab(tab.id as any)}
+                onKeyDown={(event) => handleTabKeyDown(event, index)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all shrink-0 ${
                   activeTab === tab.id
                     ? 'bg-brand-600 text-white shadow-sm'
                     : 'bg-white border border-slate-200/50 hover:bg-slate-50 text-slate-600'
                 }`}
               >
-                <Icon className="h-4.5 w-4.5" />
+                <Icon className="h-4.5 w-4.5" aria-hidden="true" />
                 {tab.label}
               </button>
             );
@@ -174,8 +206,13 @@ export default function SettingsPage() {
         </div>
 
         {/* Dynamic Settings Content */}
-        <Card id="settings-panel" role="tabpanel" className="flex-1">
-          <form onSubmit={handleSave}>
+        <Card
+          id="settings-panel"
+          role="tabpanel"
+          aria-labelledby={`settings-tab-${activeTab}`}
+          className="flex-1"
+        >
+          <form onSubmit={handleSave} aria-describedby={error ? 'settings-error' : undefined}>
             {activeTab === 'profile' && (
               <div className="space-y-6">
                 <CardHeader className="px-0 pt-0 pb-5">
@@ -269,7 +306,9 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="px-0 py-0 space-y-4">
                   <div>
-                    <Label id="units-label">Measurement Units</Label>
+                    <span id="units-label" className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Measurement Units
+                    </span>
                     <div role="group" aria-labelledby="units-label" className="flex gap-3">
                       <button
                         type="button"
@@ -322,7 +361,7 @@ export default function SettingsPage() {
                       aria-checked={notifications}
                       aria-labelledby="alert-notifications-label"
                       onClick={() => setNotifications(!notifications)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2 ${
                         notifications ? 'bg-brand-600' : 'bg-slate-200'
                       }`}
                     >
@@ -385,16 +424,22 @@ export default function SettingsPage() {
 
             {error && (
               <div
+                id="settings-error"
                 role="alert"
                 className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700"
               >
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{error}</span>
               </div>
             )}
 
             <div className="border-t border-slate-100 mt-6 pt-5 flex justify-end">
-              <Button type="submit" loading={loading} disabled={!loaded}>
+              <Button
+                type="submit"
+                loading={loading}
+                disabled={!loaded}
+                aria-describedby={error ? 'settings-error' : undefined}
+              >
                 Save Changes
               </Button>
             </div>

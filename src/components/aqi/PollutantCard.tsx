@@ -47,7 +47,15 @@ export default function PollutantCard({ pollutant }: PollutantCardProps) {
             Safe limit: {pollutant.safeLimit} {pollutant.unit}
           </span>
         </div>
-        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className="h-2 bg-slate-100 rounded-full overflow-hidden"
+          role="progressbar"
+          aria-label={`${pollutant.name} level`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(pct)}
+          aria-valuetext={`${pollutant.value} ${pollutant.unit}, safe limit ${pollutant.safeLimit} ${pollutant.unit}`}
+        >
           <div
             className={cn(
               'h-full rounded-full transition-all duration-500',

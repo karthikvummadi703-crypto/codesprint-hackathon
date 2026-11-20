@@ -88,7 +88,11 @@ export default function SignupPage() {
             <p className="text-slate-500 text-sm mt-1">Start monitoring your environment today</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            aria-describedby={formError ? 'signup-error' : undefined}
+          >
             <div>
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -97,9 +101,12 @@ export default function SignupPage() {
                 value={form.name}
                 onChange={set('name')}
                 className="h-11"
+                aria-required="true"
+                aria-invalid={Boolean(errors.name)}
+                aria-describedby={errors.name ? 'name-error' : undefined}
               />
               {errors.name && (
-                <p role="alert" className="text-xs text-red-500 mt-1">
+                <p id="name-error" role="alert" className="text-xs text-red-500 mt-1">
                   {errors.name}
                 </p>
               )}
@@ -114,9 +121,12 @@ export default function SignupPage() {
                 value={form.email}
                 onChange={set('email')}
                 className="h-11"
+                aria-required="true"
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? 'email-error' : undefined}
               />
               {errors.email && (
-                <p role="alert" className="text-xs text-red-500 mt-1">
+                <p id="email-error" role="alert" className="text-xs text-red-500 mt-1">
                   {errors.email}
                 </p>
               )}
@@ -132,6 +142,9 @@ export default function SignupPage() {
                   value={form.password}
                   onChange={set('password')}
                   className="h-11 pr-10"
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
                 />
                 <button
                   type="button"
@@ -148,7 +161,7 @@ export default function SignupPage() {
                 </button>
               </div>
               {errors.password && (
-                <p role="alert" className="text-xs text-red-500 mt-1">
+                <p id="password-error" role="alert" className="text-xs text-red-500 mt-1">
                   {errors.password}
                 </p>
               )}
@@ -163,23 +176,32 @@ export default function SignupPage() {
                 value={form.confirm}
                 onChange={set('confirm')}
                 className="h-11"
+                aria-required="true"
+                aria-invalid={Boolean(errors.confirm)}
+                aria-describedby={errors.confirm ? 'confirm-error' : undefined}
               />
               {errors.confirm && (
-                <p role="alert" className="text-xs text-red-500 mt-1">
+                <p id="confirm-error" role="alert" className="text-xs text-red-500 mt-1">
                   {errors.confirm}
                 </p>
               )}
             </div>
 
-            <Button type="submit" className="w-full h-11 mt-2" loading={loading}>
+            <Button
+              type="submit"
+              className="w-full h-11 mt-2"
+              loading={loading}
+              aria-describedby={formError ? 'signup-error' : undefined}
+            >
               Create Account
             </Button>
             {formError && (
               <div
+                id="signup-error"
                 role="alert"
                 className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700"
               >
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{formError}</span>
               </div>
             )}

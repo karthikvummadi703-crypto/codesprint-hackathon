@@ -92,8 +92,12 @@ export default function Composer({
         )}
 
         {attachmentError && (
-          <p role="alert" className="text-[11px] text-red-600 mb-2 flex items-center gap-1">
-            <AlertCircle className="h-3.5 w-3.5" /> {attachmentError}
+          <p
+            id="attachment-error"
+            role="alert"
+            className="text-[11px] text-red-600 mb-2 flex items-center gap-1"
+          >
+            <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" /> {attachmentError}
           </p>
         )}
 
@@ -117,6 +121,7 @@ export default function Composer({
           <Input
             type="text"
             aria-label="Message AirGuard AI"
+            aria-describedby={attachmentError ? 'attachment-error' : undefined}
             placeholder={
               pendingAttachment
                 ? `Ask about ${pendingAttachment.name}…`
@@ -135,6 +140,7 @@ export default function Composer({
             className="h-11 border-slate-200 pr-10"
           />
           <Button
+            type="button"
             aria-label="Send message"
             onClick={() => onSendMessage(inputMessage)}
             disabled={!inputMessage.trim() || isLoading}

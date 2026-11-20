@@ -46,7 +46,14 @@ export default function AQIGauge({ aqi, size = 200 }: AQIGaugeProps) {
   const color = getAQIColor(aqi);
 
   return (
-    <svg width={size} height={size * 0.75} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
+    <svg
+      width={size}
+      height={size * 0.75}
+      viewBox={`0 0 ${size} ${size}`}
+      className="overflow-visible"
+      role="img"
+      aria-label={`Air Quality Index: ${aqi}`}
+    >
       {/* Background arc */}
       <path d={bgPath} fill="none" stroke="#E2E8F0" strokeWidth={strokeW} strokeLinecap="round" />
 

@@ -36,6 +36,7 @@ export default function AppLayout() {
             onClick={() => setSidebarOpen(false)}
           />
           <div
+            id="mobile-navigation"
             role="dialog"
             aria-modal="true"
             aria-label="Navigation menu"
@@ -50,7 +51,7 @@ export default function AppLayout() {
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center gap-3 px-4 h-14 border-b border-slate-200 bg-white">
-          <MobileMenuButton onClick={() => setSidebarOpen(true)} />
+          <MobileMenuButton expanded={sidebarOpen} onClick={() => setSidebarOpen(true)} />
           <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
             <span className="text-brand-600">🌿</span> AirGuard AI
           </div>

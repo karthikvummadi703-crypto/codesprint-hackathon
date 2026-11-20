@@ -224,7 +224,9 @@ export default function CarbonFootprintPage() {
                 </div>
 
                 <div>
-                  <Label id="travel-mode-label">Mode of Travel</Label>
+                  <span id="travel-mode-label" className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Mode of Travel
+                  </span>
                   <div
                     role="group"
                     aria-labelledby="travel-mode-label"
@@ -300,10 +302,10 @@ export default function CarbonFootprintPage() {
                   ) : null}
 
                   <div className="flex gap-2">
-                    <Button onClick={handleSaveTrip} className="flex-1" loading={saving}>
+                    <Button type="button" onClick={handleSaveTrip} className="flex-1" loading={saving}>
                       Save to Log
                     </Button>
-                    <Button variant="outline" onClick={() => setCalculatedTrip(null)}>
+                    <Button type="button" variant="outline" onClick={() => setCalculatedTrip(null)}>
                       Cancel
                     </Button>
                   </div>
@@ -329,7 +331,7 @@ export default function CarbonFootprintPage() {
             {/* Environmental alternative reminder */}
             <Card className="bg-brand-50 border-brand-100">
               <CardContent className="flex gap-3 text-xs text-brand-800 leading-relaxed pt-6">
-                <Info className="h-4 w-4 shrink-0 text-brand-600" />
+                <Info className="h-4 w-4 shrink-0 text-brand-600" aria-hidden="true" />
                 <div>
                   <strong>Tip:</strong> Opting for public transport or active travel instead of a personal car
                   cuts your travel footprint by up to <strong>80%</strong>. Your saved trips are synced to
@@ -348,6 +350,7 @@ export default function CarbonFootprintPage() {
           <CardContent className="p-0 overflow-x-auto">
             {trips.length > 0 ? (
               <table className="w-full text-left border-collapse">
+                <caption className="sr-only">Recent trips log</caption>
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
                     <th

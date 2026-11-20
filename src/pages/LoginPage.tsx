@@ -109,7 +109,11 @@ export default function LoginPage() {
             <p className="text-slate-500 mt-1 text-sm">Sign in to your environmental dashboard</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-5"
+            aria-describedby={error ? 'login-error' : undefined}
+          >
             <div>
               <Label htmlFor="email">Email address</Label>
               <Input
@@ -161,15 +165,21 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-11" loading={loading}>
-              Sign In <ArrowRight className="h-4 w-4" />
+            <Button
+              type="submit"
+              className="w-full h-11"
+              loading={loading}
+              aria-describedby={error ? 'login-error' : undefined}
+            >
+              Sign In <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Button>
             {error && (
               <div
+                id="login-error"
                 role="alert"
                 className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700"
               >
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{error}</span>
               </div>
             )}

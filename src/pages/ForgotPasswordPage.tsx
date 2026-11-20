@@ -50,7 +50,11 @@ export default function ForgotPasswordPage() {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4"
+                aria-describedby={error ? 'forgot-password-error' : undefined}
+              >
                 <div>
                   <Label htmlFor="email">Email Address</Label>
                   <Input
@@ -64,15 +68,21 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full h-11" loading={loading}>
+                <Button
+                  type="submit"
+                  className="w-full h-11"
+                  loading={loading}
+                  aria-describedby={error ? 'forgot-password-error' : undefined}
+                >
                   Reset Password
                 </Button>
                 {error && (
                   <div
+                    id="forgot-password-error"
                     role="alert"
                     className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700"
                   >
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
                     <span>{error}</span>
                   </div>
                 )}

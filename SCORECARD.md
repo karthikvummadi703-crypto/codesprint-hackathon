@@ -26,7 +26,7 @@
 | Large backend services split | Complete | AQI and context packages plus fallback/breaker extraction |
 | Strict TypeScript checks | Complete | `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns` |
 | Prettier/Ruff/mypy/pytest gates | Complete | Local hooks and CI gates added |
-| All checks | Green | Frontend 78 tests; backend 255 tests after Phases 3-5 additions |
+| All checks | Green | Frontend 82 tests; backend 255 tests after Phases 3-6 additions |
 
 ## Phase 3 - Security hardening
 
@@ -62,10 +62,23 @@
 | Coverage baseline | Recorded | Frontend 36% statements; backend 84% statements |
 | All checks | Green | Frontend 78 tests; backend 255 tests, 9 live tests deselected |
 
+## Phase 6 - Accessibility and UX polish
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Orphan form labels removed | Complete | Settings units and carbon travel-mode groups now use plain labelled text with `aria-labelledby` |
+| Combobox semantics | Complete | `aria-controls` is exposed only while the matching listbox is rendered in three location search surfaces |
+| Mobile navigation | Complete | Menu button exposes live `aria-expanded`/`aria-controls`; dialog has a stable id |
+| Settings tabs | Complete | Tabs have ids, roving tabindex/arrow-key navigation, labelled panel; error is associated with form and submit button |
+| Form errors | Complete | Auth/settings/assistant errors have ids, `aria-describedby`, `aria-invalid` where field-scoped, and hidden decorative icons |
+| Data visual semantics | Complete | AQI gauge uses `role="img"`, pollutant bars use `role="progressbar"`, tables have visually hidden captions |
+| Real-component axe tests | Complete | Added coverage for AQIGauge, PollutantCard, MobileMenuButton, and ForecastTable; frontend now 82 tests |
+| All checks | Green | Format, lint, typecheck, 82 frontend tests, build, pre-commit, 255 backend tests, audit, diff check clean |
+
 ## Deferred or intentionally unchanged
 
 - `backend/http_client.py` still uses `follow_redirects=True`; upstream URLs are configuration-driven, and changing redirect behaviour could alter provider calls.
 - HSTS/CSP enforcement must also be confirmed in hosted Firebase/Vercel project settings after deployment.
 - Canonical raw-provider cache keys for weather/AQI history/AQI forecast are deferred; current shaped keys are intentionally separate to avoid a prior list/dict collision.
-- Accessibility refinements are tracked for Phase 6; further branch coverage remains a follow-up after Phase 7.
+- Accessibility refinements were completed in Phase 6; further branch coverage remains a follow-up after Phase 7.
 - Starlette deprecation warnings from current FastAPI test client are non-failing; dependency audit is clean.

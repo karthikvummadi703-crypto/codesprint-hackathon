@@ -14,6 +14,7 @@ export default function ForecastTable({ forecasts }: ForecastTableProps) {
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <table className="w-full text-left border-collapse">
+          <caption className="sr-only">Detailed AQI forecast matrix</caption>
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
               <th

@@ -145,13 +145,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
   );
 }
 
-export function MobileMenuButton({ onClick }: { onClick: () => void }) {
+export function MobileMenuButton({ onClick, expanded }: { onClick: () => void; expanded: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label="Open navigation menu"
-      aria-expanded={false}
+      aria-expanded={expanded}
+      aria-controls={expanded ? 'mobile-navigation' : undefined}
       className="lg:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100"
     >
       <Menu className="h-5 w-5" aria-hidden="true" />

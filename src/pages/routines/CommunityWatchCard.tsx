@@ -46,7 +46,7 @@ export default function CommunityWatchCard({
             role="combobox"
             aria-label="Search a community place"
             aria-expanded={suggestions.length > 0}
-            aria-controls="community-place-suggestions"
+            aria-controls={suggestions.length > 0 ? 'community-place-suggestions' : undefined}
             aria-autocomplete="list"
             value={placeQuery}
             onChange={(e) => setPlaceQuery(e.target.value)}
