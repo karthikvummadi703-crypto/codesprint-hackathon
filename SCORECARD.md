@@ -1,5 +1,21 @@
 # Scorecard
 
+## Evaluation scorecard
+
+Internal self-assessment on the six evaluation factors, weighted to 100 points. Evidence comes from the final verification pass and the localhost runtime check on 20 Nov 2026.
+
+| Factor | Weight | Score | Evidence / remaining gap |
+| --- | ---: | ---: | --- |
+| Code quality | 20 | 20 | Strict TypeScript, ESLint, Prettier, Ruff, mypy, pre-commit, and build all pass; large modules split into focused units |
+| Security | 20 | 19 | Security headers, gitleaks CI, untracked env file, and clean `pip-audit`; hosted HSTS/CSP still needs post-deploy confirmation |
+| Efficiency | 15 | 14 | Per-key single-flight cache, concurrent carbon geocoding, memoized auth context, and route-level chunks; no final profiling pass |
+| Testing | 15 | 12 | 82 frontend tests and 255 backend tests; backend 84% statements but frontend only 39% statements |
+| Accessibility | 15 | 14 | Axe checks on real components plus labels, errors, roles, tables, tabs, and mobile nav semantics; manual screen-reader pass outstanding |
+| Problem alignment and functionality | 15 | 15 | Prompt/UI copy match the problem statement; localhost checks returned 200 for app, AQI, weather, predictions, geocode, and carbon endpoints |
+| **Total** | **100** | **94** | **Strong overall; remaining points are coverage, hosted header confirmation, and manual accessibility/profiling validation** |
+
+Path to 100: raise frontend statement coverage, confirm hosted HSTS/CSP after deployment, run a manual keyboard/screen-reader pass, and profile the provider/cache hot paths.
+
 ## Baseline
 
 | Area | Status | Notes |
