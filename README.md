@@ -1,6 +1,6 @@
 # AirGuard AI
 
-AirGuard AI is an environmental intelligence app for checking air quality, understanding forecasts, estimating travel carbon impact, and asking a retrieval-grounded assistant for practical guidance. It combines live environmental data with optional Firebase-backed user records and household routine context.
+AirGuard AI is a GenAI-powered clean-air companion that helps families and communities navigate severe winter smog and urban air pollution. It turns live, location-specific air-quality and weather data into practical low-emission routines, indoor air-quality habits and sustainable alternatives, and explains the direct impact of each suggestion using only measured readings and existing calculations. Optional Firebase-backed records and household routine context keep that guidance relevant to the people you care for.
 
 ## Features
 
@@ -9,7 +9,7 @@ AirGuard AI is an environmental intelligence app for checking air quality, under
 - Historical air-quality lookup (past years, named months, "last N days", and seasons) from Open-Meteo reanalysis, exposed as `GET /api/aqi/history` and answered directly by the AI assistant.
 - Weather report and carbon-footprint tracking for commute and travel modes.
 - Daily routines page for household profiles, sensitive members, community watch places, and AQI-aware routines.
-- AI assistant with conversation history, document uploads, grounded context, and household/routine-aware answers.
+- GenAI assistant with conversation history, document uploads, grounded context, and household/routine-aware answers framed as what to do, why it helps (direct impact), and the effort involved.
 - Firebase Auth, Firestore persistence, Storage-backed knowledge documents, and a client-processed profile photo (downscaled in-browser, no storage bucket required).
 - Accessible navigation, keyboard-friendly location pickers, visible focus states, ARIA roles, and reduced-motion support.
 
