@@ -199,31 +199,39 @@ export function firebaseErrorMessage(err: unknown): string {
   const e = err as { code?: string; message?: string };
   if (!e) return 'Something went wrong. Please try again.';
   const msg = e.message || String(err);
+  const suffix = typeof e.code === 'string' ? ` [${e.code}]` : '';
+  const withCode = (message: string) => `${message}${suffix}`;
   switch (e.code) {
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
     case 'auth/user-not-found':
-      return 'Invalid email or password.';
+      return withCode('Invalid email or password.');
     case 'auth/email-already-in-use':
-      return 'An account with this email already exists.';
+      return withCode('An account with this email already exists.');
     case 'auth/weak-password':
-      return 'Password should be at least 6 characters.';
+      return withCode('Password should be at least 6 characters.');
     case 'auth/too-many-requests':
-      return 'Too many attempts. Please try again later.';
+      return withCode('Too many attempts. Please try again later.');
     case 'auth/network-request-failed':
-      return 'Network error. Check your connection.';
+      return withCode('Network error. Check your connection.');
     case 'auth/popup-closed-by-user':
     case 'auth/cancelled-popup-request':
-      return 'Google sign-in was cancelled.';
+      return withCode('Google sign-in was cancelled.');
     case 'auth/popup-blocked':
-      return 'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.';
+      return withCode(
+        'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.',
+      );
     case 'auth/unauthorized-domain':
-      return 'This domain is not authorized for Google sign-in. Add localhost (or 127.0.0.1) under Firebase Authentication > Settings > Authorized domains.';
+      return withCode(
+        'This domain is not authorized for Google sign-in. Add localhost (or 127.0.0.1) under Firebase Authentication > Settings > Authorized domains.',
+      );
     case 'auth/account-exists-with-different-credential':
-      return 'An account already exists with this email using a different sign-in method.';
+      return withCode('An account already exists with this email using a different sign-in method.');
     case 'auth/operation-not-allowed':
-      return 'Google sign-in is not enabled for this Firebase project. Enable the Google provider in Firebase Authentication.';
+      return withCode(
+        'Google sign-in is not enabled for this Firebase project. Enable the Google provider in Firebase Authentication.',
+      );
     default:
-      return msg.replace(/^Firebase: /, '').replace(/ \(auth\/[^)]*\)\.?$/, '');
+      return withCode(msg.replace(/^Firebase: /, '').replace(/ \(auth\/[^)]*\)\.?$/, ''));
   }
 }

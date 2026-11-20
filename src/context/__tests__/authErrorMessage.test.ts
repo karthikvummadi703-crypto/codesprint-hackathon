@@ -30,4 +30,10 @@ describe('firebaseErrorMessage', () => {
   it('uses a safe fallback for a missing error', () => {
     expect(firebaseErrorMessage(null)).toBe('Something went wrong. Please try again.');
   });
+
+  it('keeps the raw Firebase code for diagnosis', () => {
+    expect(
+      firebaseErrorMessage({ code: 'auth/internal-error', message: 'Firebase: Internal error.' }),
+    ).toContain('[auth/internal-error]');
+  });
 });
