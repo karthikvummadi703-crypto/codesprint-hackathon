@@ -11,6 +11,19 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     restoreMocks: true,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary', 'lcov'],
+      all: true,
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/__tests__/**', 'src/**/*.test.{ts,tsx}', 'src/test/**', 'src/vite-env.d.ts'],
+      thresholds: {
+        statements: 85,
+        lines: 85,
+        branches: 80,
+        functions: 85,
+      },
+    },
   },
   build: {
     rolldownOptions: {

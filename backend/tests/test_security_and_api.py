@@ -273,7 +273,9 @@ class TestErrorHandling:
 
 class TestRouteSurface:
     def test_expected_routes_are_registered(self, client):
-        paths = {route.path for route in client.app.routes if hasattr(route, "path")}
+        response = client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.json()["paths"]
         for expected in (
             "/api/health",
             "/api/aqi",
