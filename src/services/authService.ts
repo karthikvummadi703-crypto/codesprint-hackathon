@@ -78,7 +78,7 @@ function setCurrentDevUser(account: DevAccount | null) {
 
 export function onAppAuthStateChange(cb: (user: AppUser | null) => void): () => void {
   if (isFirebaseConfigured && auth) {
-    return onAuthStateChanged(auth, (u) => cb(toAppUser(u)));
+    return onAuthStateChanged(auth, u => cb(toAppUser(u)));
   }
   // Fire immediately with current state
   cb(currentDevUser());
@@ -94,15 +94,25 @@ export async function appSignUp(name: string, email: string, password: string): 
     if (name) await updateProfile(cred.user, { displayName: name });
     return toAppUser(cred.user)!;
   }
-  await new Promise((r) => setTimeout(r, 600));
+  await new Promise(r => setTimeout(r, 600));
   const accounts = devAccounts();
-  const existing = Object.values(accounts).find((a) => a.email.toLowerCase() === email.toLowerCase());
+  const existing = Object.values(accounts).find(a => a.email.toLowerCase() === email.toLowerCase());
   if (existing) throw new Error('An account with this email already exists.');
-  const account: DevAccount = { uid: `dev-${Date.now()}`, email, name: name || email.split('@')[0] };
+  const account: DevAccount = {
+    uid: `dev-${Date.now()}`,
+    email,
+    name: name || email.split('@')[0]!,
+  };
   accounts[account.uid] = account;
   saveDevAccounts(accounts);
   setCurrentDevUser(account);
-  return { uid: account.uid, email: account.email, name: account.name, photoURL: null, isDev: true };
+  return {
+    uid: account.uid,
+    email: account.email,
+    name: account.name,
+    photoURL: null,
+    isDev: true,
+  };
 }
 
 export async function appLogin(email: string, password: string): Promise<AppUser> {
@@ -110,12 +120,20 @@ export async function appLogin(email: string, password: string): Promise<AppUser
     const cred = await signInWithEmailAndPassword(auth, email, password);
     return toAppUser(cred.user)!;
   }
-  await new Promise((r) => setTimeout(r, 600));
-  const account = Object.values(devAccounts()).find((a) => a.email.toLowerCase() === email.toLowerCase());
+  await new Promise(r => setTimeout(r, 600));
+  const account = Object.values(devAccounts()).find(
+    a => a.email.toLowerCase() === email.toLowerCase(),
+  );
   if (!account) throw new Error('No account found with this email. Please sign up first.');
   if (password.length < 8) throw new Error('Invalid email or password.');
   setCurrentDevUser(account);
-  return { uid: account.uid, email: account.email, name: account.name, photoURL: null, isDev: true };
+  return {
+    uid: account.uid,
+    email: account.email,
+    name: account.name,
+    photoURL: null,
+    isDev: true,
+  };
 }
 
 /**
@@ -146,7 +164,7 @@ export async function appResetPassword(email: string): Promise<void> {
     await sendPasswordResetEmail(auth, email);
     return;
   }
-  await new Promise((r) => setTimeout(r, 600));
+  await new Promise(r => setTimeout(r, 600));
 }
 
 export async function appLogout(): Promise<void> {

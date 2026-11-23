@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
-from errors import AppError, NotFoundError
-from http_client import ProviderError
-from schemas import CarbonRequest, ChatRequest, DistanceRequest
 
 from api import ai as ai_router
 from api import air as air_router
@@ -15,10 +12,13 @@ from api import deps
 from api import geocode as geocode_router
 from api import rag as rag_router
 from api import weather as weather_router
+from errors import AppError, NotFoundError
+from http_client import ProviderError
+from schemas import CarbonRequest, ChatRequest, DistanceRequest
 from services import air_quality_service, rag_service, weather_service
 from services import query_router as qr
 
-FROZEN_NOW = datetime(2026, 6, 1, 12, 0, tzinfo=timezone.utc)
+FROZEN_NOW = datetime(2026, 6, 1, 12, 0, tzinfo=UTC)
 
 LOCATION = {
     "name": "Gudur",
@@ -686,7 +686,7 @@ class TestAiHelpers:
         assert ai_router._clean_location({"latitude": 999, "longitude": 79.853}) == {}
 
     @pytest.mark.parametrize(
-        "message,document_ids,intent,expected",
+        ("message", "document_ids", "intent", "expected"),
         [
             ("hello", None, "greeting", False),
             ("summarise this document", None, "general", True),

@@ -29,7 +29,11 @@ function loadStored(): ActiveLocation | null {
  * re-geocoded to somewhere else. A name-only location is still valid because
  * the backend geocodes it.
  */
-export function toLocationParams(loc: ActiveLocation): { lat?: number; lon?: number; city?: string } {
+export function toLocationParams(loc: ActiveLocation): {
+  lat?: number;
+  lon?: number;
+  city?: string;
+} {
   if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
     return { lat: loc.latitude, lon: loc.longitude };
   }
@@ -79,14 +83,14 @@ export function LocationProvider({ children }: { children: React.ReactNode }) {
     if (!loc || !loc.name) return;
     // Re-pinning the same place is a no-op, so a load that resolves the
     // location it was asked for cannot retrigger itself.
-    setLocationState((prev) => (prev && isSameLocation(prev, loc) ? prev : loc));
+    setLocationState(prev => (prev && isSameLocation(prev, loc) ? prev : loc));
   }, []);
 
   const clearLocation = useCallback(() => setLocationState(null), []);
 
   const value = useMemo<LocationContextValue>(
     () => ({ location, setLocation, clearLocation }),
-    [location, setLocation, clearLocation]
+    [location, setLocation, clearLocation],
   );
 
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;

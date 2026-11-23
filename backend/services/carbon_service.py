@@ -12,7 +12,6 @@ import math
 from config import get_settings
 from http_client import ProviderError, request_json
 from logging_config import get_logger
-from services import geocoding_service
 
 log = get_logger("airguard.carbon")
 
@@ -63,7 +62,7 @@ async def estimate_distance(origin: str, destination: str) -> float | None:
     """Great-circle distance between two named places, or None if unresolvable."""
     lat1, lon1 = await _geocode(origin)
     lat2, lon2 = await _geocode(destination)
-    if lat1 is None or lat2 is None:
+    if lat1 is None or lon1 is None or lat2 is None or lon2 is None:
         return None
     return round(haversine_km(lat1, lon1, lat2, lon2), 2)
 

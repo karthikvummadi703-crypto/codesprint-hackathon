@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import random
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
@@ -13,7 +13,7 @@ from cache import coord_key
 from config import get_settings
 from errors import AppError
 from logging_config import get_logger
-from schemas import AirQualityResponse, AqiHistoryResponse, PredictionsResponse
+from schemas import AirQualityResponse, AqiHistoryResponse, LocationOut, PredictionsResponse
 from services import air_quality_service
 
 log = get_logger("airguard.api.air")
@@ -76,7 +76,7 @@ async def get_aqi_history(
         where["lat"], where["lon"], where["city"]
     )
 
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     end_date = min(end or today, today)
     start_date = start or (end_date - timedelta(days=29))
     if start_date > end_date:
@@ -100,12 +100,12 @@ async def get_aqi_history(
 
     points = await env_cache.get_or_set(key, settings.cache_ttl_geocode_s, _load)
     return AqiHistoryResponse(
-        location=location,
+        location=LocationOut(**location),
         startDate=start_date.isoformat(),
         endDate=end_date.isoformat(),
         points=points,
         source="open-meteo-air",
-        timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        timestamp=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
     )
 
 
@@ -148,7 +148,7 @@ async def get_predictions(
 
 async def _build_predictions(lat: float, lon: float, location: dict, days: int) -> dict:
     provider_points = await air_quality_service.fetch_aqi_forecast(lat, lon, days=days)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if provider_points:
         forecasts = _from_provider(provider_points, now)
@@ -213,7 +213,7 @@ def _from_provider(points: list[dict], now: datetime) -> list[dict]:
 
 def _heuristic_forecast(aqi: int, pollutants: list, now: datetime) -> list[dict]:
     """Original prototype scaling, retained as the offline fallback."""
-    rnd = random.Random(aqi)
+    rnd = random.Random(aqi)  # noqa: S311 - deterministic heuristic fallback, not cryptographic
     factors = [1.0, 1.08, 1.18, 1.1, 0.93]
     factors = [max(0.7, base + rnd.uniform(-0.05, 0.05)) for base in factors]
 
@@ -224,7 +224,7 @@ def _heuristic_forecast(aqi: int, pollutants: list, now: datetime) -> list[dict]
         return round(50 * factor, 2)
 
     forecasts = []
-    for offset, factor in zip(FORECAST_OFFSETS, factors):
+    for offset, factor in zip(FORECAST_OFFSETS, factors, strict=True):
         value = max(15, round(aqi * factor))
         # Dominant pollutant is recomputed from the scaled concentrations, so it
         # tracks whichever pollutant actually drives the reading.
@@ -267,7 +267,7 @@ def _nearest_hour(points: list[dict], offset: int, now: datetime) -> dict | None
         except (ValueError, TypeError):
             continue
         if stamp.tzinfo is None:
-            stamp = stamp.replace(tzinfo=timezone.utc)
+            stamp = stamp.replace(tzinfo=UTC)
         gap = abs((stamp - target).total_seconds())
         if best_gap is None or gap < best_gap:
             best, best_gap = point, gap

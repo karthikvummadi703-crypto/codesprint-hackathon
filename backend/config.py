@@ -222,7 +222,7 @@ def get_settings() -> Settings:
         llm_api_key=_env("LLM_API_KEY"),
         llm_base_url=_env("LLM_BASE_URL", "https://api.openai.com/v1"),
         llm_model=_env("LLM_MODEL", "gpt-4o-mini"),
-        llm_fallback_models=_env_list("LLM_FALLBACK_MODELS"),
+        llm_fallback_models=tuple(_env_list("LLM_FALLBACK_MODELS")),
         llm_reasoning_effort=_env("LLM_REASONING_EFFORT"),
         llm_timeout_s=_env_float("LLM_TIMEOUT_S", 20.0),
         llm_total_budget_s=_env_float("LLM_TOTAL_BUDGET_S", 18.0),

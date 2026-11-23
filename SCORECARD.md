@@ -94,3 +94,63 @@ The baseline route-surface test was fixed in test-only code: it now reads the Op
 - Several backend config/rate-limit edge cases behave oddly (invalid limits accepted, `Retry-After` off by one, `IndexError` for non-positive limits).
 
 These were asserted as current behavior to protect functionality rather than fixed, per the golden rule.
+
+## Phase 2 — Code Quality (complete, pending commit)
+
+Behavior-preserving refactors plus static-analysis tightening. No API response, route, UI text, prompt, or runtime behavior was intentionally changed. Two behavior-risk edits introduced during static cleanup were caught and reverted (see below).
+
+| Check | Result |
+|---|---|
+| `npm run format:check` | Passed (Prettier added) |
+| `npm run lint` | Passed |
+| `npm run typecheck` | Passed |
+| `npm test` | 41 files, 436 tests passed |
+| `npm run test:coverage` | Passed thresholds |
+| `npm run build` | Passed, no chunk-size warning |
+| `python -m ruff check .` | Passed, 0 findings |
+| `python -m mypy .` | Passed, 0 errors in 52 source files |
+| `python -m pytest -q` | 562 passed, 9 deselected |
+| Backend coverage | 94.68% (threshold 92%) |
+
+Frontend coverage: statements **92.89%**, branches **83.55%**, functions **90.94%**, lines **94.63%**.
+
+### Refactors
+
+- Backend: `query_router`, `weather_service`, `schemas`, `rag_service`, `air_quality_service`, and `ai_service` split into focused packages/modules with re-export facades. All public imports and monkeypatch targets preserved.
+- Frontend: `dataService`, `backendService`, `LocationPicker`, `SignupPage`, `DashboardPage`, `SettingsPage`, `CarbonFootprintPage`, `AIAssistantPage`, and `RoutinesPage` split into focused modules/components/hooks. Original files remain default-export/re-export facades.
+- Extracted and tested hooks: `useAssistant`, `useRoutines`, `usePredictions`, `useWeatherReport` (renderHook tests added).
+
+### Static tightening
+
+- ESLint: re-enabled all recommended `react-hooks` rules; `@typescript-eslint/no-explicit-any` set to `error`; removed 31 explicit `any` annotations. 9 narrow inline disables remain, each with a reason.
+- TypeScript: `noUncheckedIndexedAccess: true`; no strictness relaxed.
+- Ruff: extended families (E/W/F/I/UP/B/C4/PT/ASYNC/PERF/RUF/ARG/S/C90/BLE/DTZ/FLY/ISC), `max-complexity = 10`; resolved the 86 findings present after Phase 1. Narrow per-file/inline exceptions are documented in config/comments.
+- Mypy: source-only strict config (`disallow_untyped_defs`, `warn_return_any`, `strict_equality`, `check_untyped_defs`, etc.); fixed remaining source errors with precise annotations and no-op `cast`s. No test-package override; temporary `tests/__init__.py` removed.
+- Prettier: added `format` / `format:check`; source/config formatted without semantic changes.
+- Docs: ADRs `0001`–`0004` added; JSDoc added to extracted hooks and service facades.
+- CI/Makefile/requirements: `format:check`, backend `ruff`/`mypy`, and missing dev dependencies (`pytest-cov`, `hypothesis`, `ruff`, `mypy`) added.
+
+### Behavior-preservation audit
+
+- `SYSTEM_PROMPT` and all AI context/weather summary strings verified byte-identical to baseline.
+- Reverted a static-cleanup edit that changed an intentional EN DASH to a hyphen in weather prompt text (`services/ai_context.py`, `services/weather_ai.py`); narrow `RUF001` noqas added instead.
+- Reverted a new `int()` coercion on `timeOffsetHours`; original `point.get("timeOffsetHours", 24)` restored.
+- Duplicate test name `test_valid_pdf_is_accepted` renamed to `test_valid_pdf_text_is_preserved`; both assertions kept.
+- Pre-existing bugs listed in Phase 1 remain unchanged.
+
+### Frontend bundle comparison (Phase 2 vs baseline)
+
+CSS unchanged from Phase 1: 35.24 kB raw / 6.99 kB gzip. JS grew slightly due to additional module boundaries/facades/hooks; no runtime behavior changed.
+
+| Chunk | Baseline raw → current | Baseline gzip → current |
+|---|---:|---:|
+| SettingsPage | 10.47 → 12.17 kB | 3.60 → 4.09 kB |
+| CarbonFootprintPage | 10.85 → 12.51 kB | 3.36 → 3.84 kB |
+| WeatherReportPage | 13.13 → 13.25 kB | 3.34 → 3.38 kB |
+| RoutinesPage | 16.72 → 20.01 kB | 5.94 → 6.78 kB |
+| PredictionsPage | 18.18 → 18.75 kB | 5.30 → 5.53 kB |
+| AIAssistantPage | 19.98 → 27.65 kB | 6.29 → 8.33 kB |
+| DashboardPage | 28.72 → 30.15 kB | 8.40 → 8.82 kB |
+| index | 79.07 → 80.68 kB | 22.94 → 23.55 kB |
+
+Total raw JS: **1427.99 kB** (baseline 1409.94, +18.05 kB / +1.28%). Total gzip JS: **427.25 kB** (baseline 422.10, +5.15 kB / +1.22%). Shared vendor chunks (react, charts, firebase) unchanged.

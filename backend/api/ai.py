@@ -10,13 +10,14 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Annotated
+from collections.abc import Callable
+from typing import Annotated, Any, TypeVar, cast
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Query
 
 from api.deps import CurrentUid, env_cache
 from cache import coord_key
-from config import get_settings
+from config import Settings, get_settings
 from http_client import ProviderError
 from logging_config import get_logger
 from schemas import ChatRequest, ChatResponse
@@ -189,7 +190,7 @@ async def _no_weather() -> None:
     return None
 
 
-async def _load_air_quality(location: dict, settings) -> tuple[dict | None, list[dict] | None]:
+async def _load_air_quality(location: dict, settings: Settings) -> tuple[dict | None, list[dict] | None]:
     lat, lon = location["latitude"], location["longitude"]
     aqi_key = f"aqi:{coord_key(lat, lon)}"
     # Namespaced away from `/api/predictions`, which caches a response object under
@@ -210,7 +211,7 @@ async def _load_air_quality(location: dict, settings) -> tuple[dict | None, list
 
 
 async def _load_history(
-    location: dict, settings, window: tuple[str, str, str]
+    location: dict, settings: Settings, window: tuple[str, str, str]
 ) -> tuple[list[dict] | None, str | None]:
     """Fetch observed daily history for a past window, cached for a day.
 
@@ -235,7 +236,7 @@ async def _load_history(
     return (rows or None), label
 
 
-async def _load_weather(location: dict, settings) -> dict | None:
+async def _load_weather(location: dict, settings: Settings) -> dict | None:
     from services import weather_service
 
     # Namespaced away from the weather routes, which cache the same provider call
@@ -248,7 +249,7 @@ async def _load_weather(location: dict, settings) -> dict | None:
         )
 
     try:
-        return await env_cache.get_or_set(key, settings.cache_ttl_weather_s, _load)
+        return cast(dict | None, await env_cache.get_or_set(key, settings.cache_ttl_weather_s, _load))
     except ProviderError as exc:
         # A weather outage must not break the assistant; the context builder will
         # state that conditions are unavailable instead.
@@ -256,8 +257,11 @@ async def _load_weather(location: dict, settings) -> dict | None:
         return None
 
 
-async def _run_blocking(func, *args):
+_T = TypeVar("_T")
+
+
+async def _run_blocking(func: Callable[..., _T], *args: Any) -> _T:
     """Run blocking file/CPU work off the event loop."""
     import anyio
 
-    return await anyio.to_thread.run_sync(func, *args)
+    return cast(_T, await anyio.to_thread.run_sync(func, *args))

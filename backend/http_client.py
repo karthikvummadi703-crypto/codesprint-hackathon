@@ -9,7 +9,7 @@ credentials.
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Mapping
+from typing import Any
 
 import httpx
 
@@ -92,12 +92,12 @@ async def request_json(
     url: str,
     *,
     provider: str,
-    params: Mapping[str, Any] | None = None,
-    json_body: Any | None = None,
-    headers: Mapping[str, str] | None = None,
-    timeout: float | None = None,
+    headers: dict | None = None,
+    params: dict | None = None,
+    json_body: dict | None = None,
+    timeout: float | None = None,  # noqa: ASYNC109 - shared HTTP helper uses explicit timeout budget
     retries: int | None = None,
-    retry_statuses: frozenset[int] | None = None,
+    retry_statuses: set[int] | frozenset[int] | None = None,
 ) -> Any:
     """Perform an HTTP request and return decoded JSON, or raise ProviderError.
 
@@ -131,7 +131,7 @@ async def request_json(
             log.warning(
                 "%s %s transport failure attempt=%d/%d: %s",
                 provider,
-                url.split("?")[0],
+                url.split("?", maxsplit=1)[0],
                 attempt,
                 max_attempts,
                 last_error,

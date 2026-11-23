@@ -42,7 +42,9 @@ function createAuthValue(overrides: Partial<AuthValue> = {}): AuthValue {
     profile: null,
     profileLoading: false,
     initializing: false,
-    signup: vi.fn<(name: string, email: string, password: string) => Promise<void>>().mockResolvedValue(undefined),
+    signup: vi
+      .fn<(name: string, email: string, password: string) => Promise<void>>()
+      .mockResolvedValue(undefined),
     login: vi.fn<(email: string, password: string) => Promise<void>>().mockResolvedValue(undefined),
     loginWithGoogle: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     resetPassword: vi.fn<(email: string) => Promise<void>>().mockResolvedValue(undefined),
@@ -92,9 +94,12 @@ async function renderLoadedPage(profile: Record<string, unknown> | null = stored
   return result;
 }
 
-async function expectAxeViolations(container: HTMLElement, expectedIds: string[] = expectedAxeViolationIds) {
+async function expectAxeViolations(
+  container: HTMLElement,
+  expectedIds: string[] = expectedAxeViolationIds,
+) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual(expectedIds);
+  expect(results.violations.map(violation => violation.id)).toEqual(expectedIds);
 }
 
 describe('SettingsPage', () => {
@@ -143,9 +148,18 @@ describe('SettingsPage', () => {
     const { container } = await renderLoadedPage();
 
     await userEvent.setup().click(screen.getByRole('tab', { name: 'Preferences' }));
-    expect(screen.getByRole('tab', { name: 'Preferences' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('button', { name: 'Metric (µg/m³, mg/m³)' })).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByRole('button', { name: 'Imperial (ppm, ppb)' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('tab', { name: 'Preferences' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Metric (µg/m³, mg/m³)' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByRole('button', { name: 'Imperial (ppm, ppb)' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
     await userEvent.setup().click(screen.getByRole('tab', { name: 'Notifications' }));
     const alertSwitch = screen.getByRole('switch', { name: 'Alert Notifications' });
@@ -159,7 +173,9 @@ describe('SettingsPage', () => {
     expect(slider).toHaveAttribute('aria-valuetext', '150 AQI');
 
     await userEvent.setup().click(screen.getByRole('tab', { name: 'Privacy & Security' }));
-    expect(screen.getByText(/Data is stored in your private Firestore collections/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Data is stored in your private Firestore collections/),
+    ).toBeInTheDocument();
 
     await userEvent.setup().click(screen.getByRole('tab', { name: 'Profile' }));
     expect(screen.getByRole('heading', { name: 'Profile Details' })).toBeInTheDocument();
@@ -183,7 +199,9 @@ describe('SettingsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Metric (µg/m³, mg/m³)' }));
     await user.click(screen.getByRole('tab', { name: 'Notifications' }));
     await user.click(screen.getByRole('switch', { name: 'Alert Notifications' }));
-    fireEvent.change(screen.getByRole('slider', { name: 'Alert Threshold (AQI)' }), { target: { value: '200' } });
+    fireEvent.change(screen.getByRole('slider', { name: 'Alert Threshold (AQI)' }), {
+      target: { value: '200' },
+    });
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'));
@@ -264,15 +282,21 @@ describe('SettingsPage', () => {
 
   it('reports an image-processing error without updating the avatar', async () => {
     const auth = mockAuth();
-    vi.mocked(fileToAvatarDataUrl).mockRejectedValue(new Error('Could not read that image. Try a different file.'));
+    vi.mocked(fileToAvatarDataUrl).mockRejectedValue(
+      new Error('Could not read that image. Try a different file.'),
+    );
     const { container } = await renderLoadedPage();
 
-    await userEvent.setup().upload(
-      screen.getByLabelText('Upload profile photo'),
-      new File(['fake-image-bytes'], 'avatar.png', { type: 'image/png' })
-    );
+    await userEvent
+      .setup()
+      .upload(
+        screen.getByLabelText('Upload profile photo'),
+        new File(['fake-image-bytes'], 'avatar.png', { type: 'image/png' }),
+      );
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not read that image. Try a different file.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not read that image. Try a different file.',
+    );
     expect(auth.updateAvatar).not.toHaveBeenCalled();
     expect(screen.queryByText('Saved successfully')).not.toBeInTheDocument();
     await expectAxeViolations(container);
@@ -281,7 +305,9 @@ describe('SettingsPage', () => {
   it('reports an avatar-update error when removing the photo fails', async () => {
     const auth = mockAuth({
       avatarUrl: 'data:image/jpeg;base64,OLD',
-      updateAvatar: vi.fn<(photoURL: string | null) => Promise<void>>().mockRejectedValue(new Error('Permission denied')),
+      updateAvatar: vi
+        .fn<(photoURL: string | null) => Promise<void>>()
+        .mockRejectedValue(new Error('Permission denied')),
     });
     const { container } = await renderLoadedPage();
 

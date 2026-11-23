@@ -46,7 +46,9 @@ describe('PollutantCard', () => {
 
   it('caps the bar at 100% and marks any over-limit reading as High', async () => {
     const { container } = render(
-      <PollutantCard pollutant={makePollutant({ value: 180, safeLimit: 50, status: 'Unhealthy' })} />
+      <PollutantCard
+        pollutant={makePollutant({ value: 180, safeLimit: 50, status: 'Unhealthy' })}
+      />,
     );
 
     expect(screen.getByText('High')).toBeInTheDocument();
@@ -58,7 +60,7 @@ describe('PollutantCard', () => {
 
   it('uses the orange override as soon as the reading exceeds the safe limit', async () => {
     const { container } = render(
-      <PollutantCard pollutant={makePollutant({ id: 'o3', value: 51, safeLimit: 50 })} />
+      <PollutantCard pollutant={makePollutant({ id: 'o3', value: 51, safeLimit: 50 })} />,
     );
 
     expect(bar(container)).toHaveClass('bg-orange-400');
@@ -98,7 +100,9 @@ describe('PollutantCard', () => {
   });
 
   it('renders a full bar for a zero safe limit', async () => {
-    const { container } = render(<PollutantCard pollutant={makePollutant({ value: 10, safeLimit: 0 })} />);
+    const { container } = render(
+      <PollutantCard pollutant={makePollutant({ value: 10, safeLimit: 0 })} />,
+    );
 
     expect(bar(container)).toHaveStyle({ width: '100%' });
     expect(bar(container)).toHaveClass('bg-orange-400');
@@ -106,7 +110,9 @@ describe('PollutantCard', () => {
   });
 
   it('drops the invalid negative width for a negative reading', async () => {
-    const { container } = render(<PollutantCard pollutant={makePollutant({ value: -10, safeLimit: 50 })} />);
+    const { container } = render(
+      <PollutantCard pollutant={makePollutant({ value: -10, safeLimit: 50 })} />,
+    );
     const negativeBar = container.querySelector<HTMLElement>('div.h-full.rounded-full');
 
     expect(negativeBar).not.toBeNull();

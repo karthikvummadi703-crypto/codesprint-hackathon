@@ -48,7 +48,7 @@ describe('AQIGauge', () => {
     expect(svg(container)).toHaveAttribute('width', '120');
     expect(svg(container)).toHaveAttribute('height', '90');
     expect(svg(container)).toHaveAttribute('viewBox', '0 0 120 120');
-    expect(Number(paths(container)[0].getAttribute('stroke-width'))).toBeCloseTo(7.2);
+    expect(Number(paths(container)[0]!.getAttribute('stroke-width'))).toBeCloseTo(7.2);
     expect(Number(screen.getByText('150').getAttribute('font-size'))).toBeCloseTo(21.6);
     expect(needle(container)).toHaveAttribute('stroke', '#F97316');
     await expectNoViolations(container);
@@ -58,7 +58,10 @@ describe('AQIGauge', () => {
     const { container, rerender } = renderGauge(0);
 
     expect(paths(container)).toHaveLength(1);
-    expect(needle(container)).toHaveAttribute('x2', String(100 + 52.5 * Math.cos((60 * Math.PI) / 180)));
+    expect(needle(container)).toHaveAttribute(
+      'x2',
+      String(100 + 52.5 * Math.cos((60 * Math.PI) / 180)),
+    );
 
     rerender(<AQIGauge aqi={250} />);
 
@@ -118,7 +121,7 @@ describe('AQIGauge', () => {
     const { container } = renderGauge(120);
 
     const stops = Array.from(container.querySelectorAll('stop'));
-    expect(stops.map((stop) => stop.getAttribute('stop-color'))).toEqual([
+    expect(stops.map(stop => stop.getAttribute('stop-color'))).toEqual([
       '#10B981',
       '#F59E0B',
       '#F97316',
@@ -134,7 +137,7 @@ describe('AQIGauge', () => {
       <div>
         <AQIGauge aqi={30} />
         <AQIGauge aqi={170} />
-      </div>
+      </div>,
     );
 
     expect(screen.getByText('30')).toBeInTheDocument();

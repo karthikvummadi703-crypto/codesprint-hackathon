@@ -47,19 +47,25 @@ export default function AQIGauge({ aqi, size = 200 }: AQIGaugeProps) {
   const color = getAQIColor(aqi);
 
   return (
-    <svg width={size} height={size * 0.75} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
+    <svg
+      width={size}
+      height={size * 0.75}
+      viewBox={`0 0 ${size} ${size}`}
+      className="overflow-visible"
+    >
       {/* Background arc */}
-      <path
-        d={bgPath}
-        fill="none"
-        stroke="#E2E8F0"
-        strokeWidth={strokeW}
-        strokeLinecap="round"
-      />
+      <path d={bgPath} fill="none" stroke="#E2E8F0" strokeWidth={strokeW} strokeLinecap="round" />
 
       {/* Colored gradient stops */}
       <defs>
-        <linearGradient id="aqiGrad" gradientUnits="userSpaceOnUse" x1="0" y1={cy} x2={size} y2={cy}>
+        <linearGradient
+          id="aqiGrad"
+          gradientUnits="userSpaceOnUse"
+          x1="0"
+          y1={cy}
+          x2={size}
+          y2={cy}
+        >
           <stop offset="0%" stopColor="#10B981" />
           <stop offset="20%" stopColor="#F59E0B" />
           <stop offset="40%" stopColor="#F97316" />

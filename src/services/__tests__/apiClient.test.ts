@@ -46,9 +46,7 @@ describe('apiRequest caching and coalescing', () => {
 
   it('coalesces concurrent identical GETs into one request', async () => {
     let release: (v: Response) => void = () => {};
-    fetchMock.mockImplementation(
-      () => new Promise<Response>((resolve) => (release = resolve))
-    );
+    fetchMock.mockImplementation(() => new Promise<Response>(resolve => (release = resolve)));
 
     const a = apiRequest('/api/aqi?lat=1&lon=2');
     const b = apiRequest('/api/aqi?lat=1&lon=2');

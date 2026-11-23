@@ -32,7 +32,7 @@ async function renderPage() {
 
 async function expectAxeViolationIds(container: HTMLElement, expected: string[] = []) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual(expected);
+  expect(results.violations.map(violation => violation.id)).toEqual(expected);
 }
 
 beforeEach(() => {
@@ -184,7 +184,7 @@ describe('CarbonFootprintPage', () => {
         mode: 'Bike',
         co2eKg: 0.9,
         savings: 2.65,
-      })
+      }),
     );
     expect(screen.getByText('No Calculation Active')).toBeInTheDocument();
     await expectAxeViolationIds(container);
@@ -202,7 +202,9 @@ describe('CarbonFootprintPage', () => {
     await testUser.click(screen.getByRole('button', { name: 'Calculate Emissions' }));
 
     expect(await screen.findByText('Emissions Calculated')).toBeInTheDocument();
-    expect(screen.getByText('Backend unavailable — used local calculation instead.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Backend unavailable — used local calculation instead.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Backend down')).toBeInTheDocument();
     expect(screen.getByText(/1\.92/)).toBeInTheDocument();
 

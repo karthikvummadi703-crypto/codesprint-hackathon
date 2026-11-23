@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  AVATAR_SIZE,
-  MAX_AVATAR_SOURCE_BYTES,
-  fileToAvatarDataUrl,
-} from '../imageService';
+import { AVATAR_SIZE, MAX_AVATAR_SOURCE_BYTES, fileToAvatarDataUrl } from '../imageService';
 
 const mocks = vi.hoisted(() => ({
   createObjectURL: vi.fn(() => 'blob:avatar'),
@@ -56,7 +52,7 @@ function installCanvas(contextAvailable = true): CanvasHarness {
   };
 
   vi.spyOn(document, 'createElement').mockImplementation(
-    (() => canvas as unknown as HTMLCanvasElement) as typeof document.createElement
+    (() => canvas as unknown as HTMLCanvasElement) as typeof document.createElement,
   );
 
   return { canvas, drawImage, toDataURL, getContext };
@@ -93,9 +89,9 @@ describe('fileToAvatarDataUrl validation', () => {
   it('rejects non-image files before decoding or drawing', async () => {
     const createElement = vi.spyOn(document, 'createElement');
 
-    await expect(fileToAvatarDataUrl(new File(['x'], 'notes.txt', { type: 'text/plain' }))).rejects.toThrow(
-      'Please choose an image file (PNG or JPEG).'
-    );
+    await expect(
+      fileToAvatarDataUrl(new File(['x'], 'notes.txt', { type: 'text/plain' })),
+    ).rejects.toThrow('Please choose an image file (PNG or JPEG).');
 
     expect(mocks.createObjectURL).not.toHaveBeenCalled();
     expect(mocks.imageCount).toBe(0);
@@ -107,7 +103,7 @@ describe('fileToAvatarDataUrl validation', () => {
     Object.defineProperty(file, 'size', { value: MAX_AVATAR_SOURCE_BYTES + 1 });
 
     await expect(fileToAvatarDataUrl(file)).rejects.toThrow(
-      'That image is too large. Please choose one under 8 MB.'
+      'That image is too large. Please choose one under 8 MB.',
     );
     expect(mocks.createObjectURL).not.toHaveBeenCalled();
     expect(mocks.imageCount).toBe(0);
@@ -171,7 +167,7 @@ describe('fileToAvatarDataUrl processing', () => {
     const harness = installCanvas(false);
 
     await expect(fileToAvatarDataUrl(imageFile())).rejects.toThrow(
-      'This browser cannot process the selected image.'
+      'This browser cannot process the selected image.',
     );
     expect(harness.drawImage).not.toHaveBeenCalled();
     expect(mocks.revokeObjectURL).toHaveBeenCalledWith('blob:avatar');
@@ -182,7 +178,7 @@ describe('fileToAvatarDataUrl processing', () => {
     const harness = installCanvas();
 
     await expect(fileToAvatarDataUrl(imageFile())).rejects.toThrow(
-      'Could not read that image. Try a different file.'
+      'Could not read that image. Try a different file.',
     );
     expect(mocks.revokeObjectURL).toHaveBeenCalledWith('blob:avatar');
     expect(harness.drawImage).not.toHaveBeenCalled();

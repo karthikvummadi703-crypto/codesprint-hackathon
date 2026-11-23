@@ -7,13 +7,13 @@ import json
 from datetime import date
 from types import SimpleNamespace
 
-import http_client
 import httpx
-import middleware
 import pytest
-from http_client import ProviderError
 from starlette.requests import Request
 
+import http_client
+import middleware
+from http_client import ProviderError
 from services import carbon_service, firebase_service, rag_service, security
 from services import query_router as qr
 
@@ -60,7 +60,7 @@ class TestCarbonService:
         assert await carbon_service._geocode("Nowhere") == (None, None)
 
     @pytest.mark.parametrize(
-        "payload",
+        ("payload"),
         [[], {"lat": "1", "lon": "2"}, [{"lat": "1"}], [{"lat": "x", "lon": "2"}], [None]],
     )
     async def test_geocode_malformed_payload_returns_empty_coordinates(self, monkeypatch, payload):
@@ -402,7 +402,7 @@ class TestFirebaseTokenVerification:
         assert await firebase_service._verify_with_public_keys("token") is None
 
     @pytest.mark.parametrize(
-        "payload,expected",
+        ("payload", "expected"),
         [
             ({"user_id": "primary", "sub": "second", "uid": "third"}, "primary"),
             ({"sub": "second", "uid": "third"}, "second"),
@@ -900,7 +900,7 @@ class TestQueryRouterBranches:
         assert qr.wants_historical("it may rain tomorrow") is False
 
     @pytest.mark.parametrize(
-        "message,today,expected",
+        ("message", "today", "expected"),
         [
             ("air in 2099", date(2026, 6, 1), ("2026-01-01", "2026-06-01", "2026 so far")),
             ("this year", date(2026, 6, 1), ("2026-01-01", "2026-06-01", "2026 so far")),
@@ -916,7 +916,7 @@ class TestQueryRouterBranches:
         assert qr.history_window(message, today=today) == expected
 
     @pytest.mark.parametrize(
-        "message,today,expected",
+        ("message", "today", "expected"),
         [
             ("last winter", date(2026, 1, 15), ("2025-11-01", "2026-01-15", "winter")),
             ("last winter", date(2026, 9, 1), ("2025-11-01", "2026-02-28", "winter")),
@@ -1203,7 +1203,7 @@ class TestHttpRequests:
         assert exc.value.status is None
 
     @pytest.mark.parametrize(
-        "header,expected",
+        ("header", "expected"),
         [("2.5", 2.5), ("99", 15.0), ("-3", 0.0), ("bad", None), (None, None)],
     )
     def test_retry_after_seconds_parses_and_clamps(self, header, expected):
@@ -1221,7 +1221,7 @@ class TestSecurity:
         return current
 
     @pytest.mark.parametrize(
-        "header,message",
+        ("header", "message"),
         [
             ("", "Missing authentication token"),
             ("bearer ", "Missing authentication token"),
@@ -1232,7 +1232,9 @@ class TestSecurity:
     async def test_malformed_tokens_are_rejected(self, monkeypatch, settings, header, message):
         request = _request(headers=[(b"authorization", header.encode())])
 
-        with pytest.raises(Exception) as exc:
+        from errors import AuthenticationError
+
+        with pytest.raises(AuthenticationError) as exc:
             await security.get_uid(request)
 
         assert exc.value.message == message
@@ -1242,7 +1244,9 @@ class TestSecurity:
         settings.environment = "production"
         request = _request(headers=[(b"authorization", b"Bearer dev:someone")])
 
-        with pytest.raises(Exception) as exc:
+        from errors import AuthenticationError
+
+        with pytest.raises(AuthenticationError) as exc:
             await security.get_uid(request)
 
         assert exc.value.message == "Invalid or expired token"
@@ -1275,7 +1279,9 @@ class TestSecurity:
         monkeypatch.setattr(firebase_service, "verify_id_token", fake)
         request = _request(headers=[(b"authorization", b"Bearer invalid-jwt")])
 
-        with pytest.raises(Exception) as exc:
+        from errors import AuthenticationError
+
+        with pytest.raises(AuthenticationError) as exc:
             await security.get_uid(request)
 
         assert exc.value.message == "Invalid or expired token"
@@ -1364,7 +1370,7 @@ class TestRateLimitMiddleware:
         return middleware.RateLimitMiddleware(app=lambda scope, receive, send: None)
 
     @staticmethod
-    async def _call_next(request):
+    async def _call_next(_request):
         from fastapi.responses import Response
 
         return Response("ok")
@@ -1418,7 +1424,7 @@ class TestRateLimitMiddleware:
 
 class TestTimingMiddleware:
     @staticmethod
-    async def _call_next(request):
+    async def _call_next(_request):
         from fastapi.responses import Response
 
         return Response("ok")

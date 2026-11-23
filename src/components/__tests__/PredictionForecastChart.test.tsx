@@ -36,7 +36,11 @@ vi.mock('recharts', () => ({
   ),
   ComposedChart: ({ children, data }: MockProps) => {
     mocks.composedChart({ data });
-    return <div data-testid="composed-chart" data-point-count={data?.length ?? 0}>{children}</div>;
+    return (
+      <div data-testid="composed-chart" data-point-count={data?.length ?? 0}>
+        {children}
+      </div>
+    );
   },
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   XAxis: (props: MockProps) => {
@@ -72,7 +76,11 @@ vi.mock('recharts', () => ({
   },
 }));
 
-function forecast(offset: number, aqi: number, status: PredictionForecast['status'] = 'Moderate'): PredictionForecast {
+function forecast(
+  offset: number,
+  aqi: number,
+  status: PredictionForecast['status'] = 'Moderate',
+): PredictionForecast {
   return {
     timeOffsetHours: offset,
     label: offset === 0 ? 'Now' : `+${offset}h`,
@@ -115,12 +123,14 @@ describe('PredictionForecastChart', () => {
 
     expect(screen.getByText('Predicted air quality over the next 24 hours')).toBeInTheDocument();
     expect(screen.getByTestId('composed-chart')).toHaveAttribute('data-point-count', '2');
-    expect(mocks.composedChart).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.arrayContaining([
-        expect.objectContaining({ aqi: 78, fill: '#F59E0B' }),
-        expect.objectContaining({ aqi: 260, fill: '#8B5CF6' }),
-      ]),
-    }));
+    expect(mocks.composedChart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ aqi: 78, fill: '#F59E0B' }),
+          expect.objectContaining({ aqi: 260, fill: '#8B5CF6' }),
+        ]),
+      }),
+    );
     expect(mocks.xAxis).toHaveBeenCalledWith(expect.objectContaining({ dataKey: 'label' }));
     expect(mocks.yAxis).toHaveBeenCalledWith(expect.objectContaining({ domain: [50, 280] }));
     expect(mocks.bar).toHaveBeenCalledWith(expect.objectContaining({ dataKey: 'aqi' }));
@@ -149,7 +159,9 @@ describe('PredictionForecastChart', () => {
   it('renders the future tooltip with the confidence value and band colour', async () => {
     tooltipState.active = true;
     tooltipState.payload = [{ payload: forecast(3, 260, 'Very Unhealthy') }];
-    const { container } = render(<PredictionForecastChart forecasts={[forecast(3, 260, 'Very Unhealthy')]} />);
+    const { container } = render(
+      <PredictionForecastChart forecasts={[forecast(3, 260, 'Very Unhealthy')]} />,
+    );
 
     expect(screen.getByText('+3h')).toBeInTheDocument();
     expect(screen.getByText('260')).toHaveStyle({ color: 'rgb(139, 92, 246)' });
@@ -161,7 +173,9 @@ describe('PredictionForecastChart', () => {
   });
 
   it('expands the domain beyond the standard bands for very high forecasts', async () => {
-    const { container } = render(<PredictionForecastChart forecasts={[forecast(1, 500, 'Hazardous')]} />);
+    const { container } = render(
+      <PredictionForecastChart forecasts={[forecast(1, 500, 'Hazardous')]} />,
+    );
 
     expect(mocks.yAxis).toHaveBeenCalledWith(expect.objectContaining({ domain: [490, 520] }));
     expect(screen.queryAllByTestId('reference-line')).toHaveLength(0);

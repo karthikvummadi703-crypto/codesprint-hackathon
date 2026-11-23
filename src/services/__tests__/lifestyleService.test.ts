@@ -69,12 +69,12 @@ describe('buildDailyRoutines', () => {
       household: family,
       now: new Date(2026, 0, 15),
     });
-    const byId = Object.fromEntries(routines.map((r) => [r.id, r]));
+    const byId = Object.fromEntries(routines.map(r => [r.id, r]));
 
-    expect(byId['indoor-windows'].priority).toBe('high');
-    expect(byId['outdoor-timing'].title).toContain('indoors');
-    expect(byId['household-check'].priority).toBe('high');
-    expect(byId['low-emission-short-trips'].priority).toBe('low');
+    expect(byId['indoor-windows']!.priority).toBe('high');
+    expect(byId['outdoor-timing']!.title).toContain('indoors');
+    expect(byId['household-check']!.priority).toBe('high');
+    expect(byId['low-emission-short-trips']!.priority).toBe('low');
   });
 
   it('adds winter-smog-specific guidance only in smog season', () => {
@@ -91,8 +91,8 @@ describe('buildDailyRoutines', () => {
       now: new Date(2026, 5, 15),
     });
 
-    expect(winter.some((r) => r.id === 'winter-solid-fuel')).toBe(true);
-    expect(summer.some((r) => r.id === 'winter-solid-fuel')).toBe(false);
+    expect(winter.some(r => r.id === 'winter-solid-fuel')).toBe(true);
+    expect(summer.some(r => r.id === 'winter-solid-fuel')).toBe(false);
   });
 
   it('adds humidity guidance only when the air is humid', () => {
@@ -103,7 +103,7 @@ describe('buildDailyRoutines', () => {
       weather: { humidity: 78 },
       now: new Date(2026, 5, 15),
     });
-    expect(humid.some((r) => r.id === 'indoor-humidity')).toBe(true);
+    expect(humid.some(r => r.id === 'indoor-humidity')).toBe(true);
   });
 
   it('sorts high-priority routines first', () => {
@@ -114,7 +114,7 @@ describe('buildDailyRoutines', () => {
       now: new Date(2026, 0, 15),
     });
     const order = { high: 0, medium: 1, low: 2 };
-    const ranks = routines.map((r) => order[r.priority]);
+    const ranks = routines.map(r => order[r.priority]);
     expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
   });
 });
@@ -128,7 +128,7 @@ describe('routinesToPromptContext', () => {
         household: family,
         now: new Date(2026, 0, 15),
       }),
-      family
+      family,
     );
 
     expect(text.toLowerCase()).toContain('not measured');

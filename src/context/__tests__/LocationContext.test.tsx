@@ -16,7 +16,10 @@ type PositionFailure = (error: GeolocationPositionError) => void;
 const mocks = vi.hoisted(() => ({
   searchLocations: vi.fn(),
   reverseGeocode: vi.fn(),
-  getCurrentPosition: vi.fn<(success: PositionSuccess, failure: PositionFailure, options?: PositionOptions) => void>(),
+  getCurrentPosition:
+    vi.fn<
+      (success: PositionSuccess, failure: PositionFailure, options?: PositionOptions) => void
+    >(),
 }));
 
 vi.mock('../../services/backendService', () => ({
@@ -47,9 +50,11 @@ function suggestion(): PlaceSuggestion {
 
 function LocationProbe() {
   const { location, setLocation, clearLocation } = useLocation();
+  /* eslint-disable react-hooks/immutability -- Test probe must publish hook values during render to preserve render-count assertions. */
   observed.renders += 1;
   observed.setLocation = setLocation;
   observed.clearLocation = clearLocation;
+  /* eslint-enable react-hooks/immutability */
 
   return (
     <div>
@@ -65,7 +70,7 @@ function renderProvider() {
   return render(
     <LocationProvider>
       <LocationProbe />
-    </LocationProvider>
+    </LocationProvider>,
   );
 }
 
@@ -74,7 +79,7 @@ function renderPickerInProvider() {
     <LocationProvider>
       <LocationProbe />
       <LocationPicker />
-    </LocationProvider>
+    </LocationProvider>,
   );
 }
 
@@ -121,7 +126,9 @@ describe('LocationContext', () => {
     observed.setLocation = null;
     observed.clearLocation = null;
     mocks.searchLocations.mockReset().mockResolvedValue([]);
-    mocks.reverseGeocode.mockReset().mockResolvedValue({ name: 'Bengaluru', region: 'Karnataka', country: 'India' });
+    mocks.reverseGeocode
+      .mockReset()
+      .mockResolvedValue({ name: 'Bengaluru', region: 'Karnataka', country: 'India' });
     mocks.getCurrentPosition.mockReset();
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
@@ -140,7 +147,9 @@ describe('LocationContext', () => {
   it('throws a descriptive error when useLocation is called outside LocationProvider', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-    expect(() => render(<LocationProbe />)).toThrow('useLocation must be used within LocationProvider');
+    expect(() => render(<LocationProbe />)).toThrow(
+      'useLocation must be used within LocationProvider',
+    );
   });
 
   it('starts with no location and clears the storage key on mount', async () => {
@@ -247,9 +256,15 @@ describe('LocationContext', () => {
   });
 
   it.each([
-    [{ name: 'Delhi', latitude: 28.6139, longitude: 77.209 }, { lat: 28.6139, lon: 77.209 }],
+    [
+      { name: 'Delhi', latitude: 28.6139, longitude: 77.209 },
+      { lat: 28.6139, lon: 77.209 },
+    ],
     [{ name: 'Delhi' }, { city: 'Delhi' }],
-    [{ name: 'Delhi', latitude: 0, longitude: 0 }, { lat: 0, lon: 0 }],
+    [
+      { name: 'Delhi', latitude: 0, longitude: 0 },
+      { lat: 0, lon: 0 },
+    ],
     [{ name: 'Delhi', latitude: 12 }, { city: 'Delhi' }],
   ])('builds backend params for %j', (location, expected) => {
     expect(toLocationParams(location as ActiveLocation)).toEqual(expected);
@@ -271,13 +286,15 @@ describe('LocationContext', () => {
 
   it('persists the reverse-geocoded place from geolocation success', async () => {
     const user = userEvent.setup();
-    mocks.getCurrentPosition.mockImplementation((success) => success(fakePosition(12.34, 56.78)));
+    mocks.getCurrentPosition.mockImplementation(success => success(fakePosition(12.34, 56.78)));
     const { container } = renderPickerInProvider();
 
     await user.click(screen.getByRole('button', { name: 'Use my current location' }));
 
     await waitFor(() => expect(mocks.reverseGeocode).toHaveBeenCalledWith(12.34, 56.78));
-    await waitFor(() => expect(screen.getByTestId('locationName')).toHaveTextContent('Bengaluru, Karnataka, India'));
+    await waitFor(() =>
+      expect(screen.getByTestId('locationName')).toHaveTextContent('Bengaluru, Karnataka, India'),
+    );
     expect(storedLocation()).toEqual({
       name: 'Bengaluru, Karnataka, India',
       latitude: 12.34,
@@ -290,26 +307,30 @@ describe('LocationContext', () => {
 
   it('falls back to a generic label when reverse geocoding fails', async () => {
     const user = userEvent.setup();
-    mocks.getCurrentPosition.mockImplementation((success) => success(fakePosition(1.5, 2.5)));
+    mocks.getCurrentPosition.mockImplementation(success => success(fakePosition(1.5, 2.5)));
     mocks.reverseGeocode.mockRejectedValue(new Error('no place found'));
     const { container } = renderPickerInProvider();
 
     await user.click(screen.getByRole('button', { name: 'Use my current location' }));
 
-    await waitFor(() => expect(screen.getByTestId('locationName')).toHaveTextContent('My location'));
+    await waitFor(() =>
+      expect(screen.getByTestId('locationName')).toHaveTextContent('My location'),
+    );
     expect(storedLocation()).toEqual({ name: 'My location', latitude: 1.5, longitude: 2.5 });
     await expectNoViolations(container);
   });
 
   it('keeps the location empty and shows an alert when geolocation permission is denied', async () => {
     const user = userEvent.setup();
-    mocks.getCurrentPosition.mockImplementation((_success, failure) => failure(fakePositionError(1)));
+    mocks.getCurrentPosition.mockImplementation((_success, failure) =>
+      failure(fakePositionError(1)),
+    );
     const { container } = renderPickerInProvider();
 
     await user.click(screen.getByRole('button', { name: 'Use my current location' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Location permission was denied. Search for a city instead.'
+      'Location permission was denied. Search for a city instead.',
     );
     expect(screen.getByTestId('locationName')).toHaveTextContent('none');
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
@@ -323,7 +344,9 @@ describe('LocationContext', () => {
 
     await user.click(screen.getByRole('button', { name: 'Use my current location' }));
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Geolocation is not supported by this browser.');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Geolocation is not supported by this browser.',
+    );
     expect(mocks.getCurrentPosition).not.toHaveBeenCalled();
     expect(screen.getByTestId('locationName')).toHaveTextContent('none');
     expect(within(container).getByTestId('locationName')).toBeInTheDocument();

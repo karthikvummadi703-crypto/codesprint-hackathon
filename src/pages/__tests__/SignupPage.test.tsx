@@ -32,11 +32,11 @@ vi.mock('../../services/authService', () => ({
   getAppToken: vi.fn(),
   getCurrentAppUser: vi.fn(),
 }));
-vi.mock('../../context/AuthContext', async (importOriginal) => {
+vi.mock('../../context/AuthContext', async importOriginal => {
   const actual = await importOriginal<typeof import('../../context/AuthContext')>();
   return { ...actual, useAuth: vi.fn() };
 });
-vi.mock('react-router-dom', async (importOriginal) => {
+vi.mock('react-router-dom', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
   return { ...actual, useNavigate: vi.fn() };
 });
@@ -66,7 +66,9 @@ function createAuthValue(overrides: Partial<AuthValue> = {}): AuthValue {
     profile: null,
     profileLoading: false,
     initializing: false,
-    signup: vi.fn<(name: string, email: string, password: string) => Promise<void>>().mockResolvedValue(undefined),
+    signup: vi
+      .fn<(name: string, email: string, password: string) => Promise<void>>()
+      .mockResolvedValue(undefined),
     login: vi.fn<(email: string, password: string) => Promise<void>>().mockResolvedValue(undefined),
     loginWithGoogle: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     resetPassword: vi.fn<(email: string) => Promise<void>>().mockResolvedValue(undefined),
@@ -84,7 +86,10 @@ function mockAuth(overrides: Partial<AuthValue> = {}): AuthValue {
   return value;
 }
 
-async function fillSignupForm(user: ReturnType<typeof userEvent.setup>, overrides: Partial<Record<'name' | 'email' | 'password' | 'confirm', string>> = {}) {
+async function fillSignupForm(
+  user: ReturnType<typeof userEvent.setup>,
+  overrides: Partial<Record<'name' | 'email' | 'password' | 'confirm', string>> = {},
+) {
   const values = {
     name: 'Karthik Reddy',
     email: 'karthik@example.com',
@@ -102,13 +107,13 @@ function renderPage() {
   return render(
     <MemoryRouter>
       <SignupPage />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
 async function expectAxeViolations(container: HTMLElement, expectedIds: string[] = []) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual(expectedIds);
+  expect(results.violations.map(violation => violation.id)).toEqual(expectedIds);
 }
 
 describe('SignupPage', () => {
@@ -151,7 +156,7 @@ describe('SignupPage', () => {
     const form = container.querySelector('form') as HTMLFormElement;
     fireEvent.submit(form);
 
-    const alerts = screen.getAllByRole('alert').map((node) => node.textContent);
+    const alerts = screen.getAllByRole('alert').map(node => node.textContent);
     expect(alerts).toEqual([
       'Name is required',
       'Enter a valid email',
@@ -170,18 +175,26 @@ describe('SignupPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Show password' }));
     expect(password).toHaveAttribute('type', 'text');
-    expect(screen.getByRole('button', { name: 'Hide password' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Hide password' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByLabelText('Confirm Password')).toHaveAttribute('type', 'password');
 
     await user.click(screen.getByRole('button', { name: 'Hide password' }));
     expect(password).toHaveAttribute('type', 'password');
-    expect(screen.getByRole('button', { name: 'Show password' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Show password' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     await expectAxeViolations(container);
   });
 
   it('submits valid credentials and navigates to the dashboard', async () => {
     const pending = deferred<void>();
-    const signup = vi.fn<(name: string, email: string, password: string) => Promise<void>>().mockReturnValue(pending.promise);
+    const signup = vi
+      .fn<(name: string, email: string, password: string) => Promise<void>>()
+      .mockReturnValue(pending.promise);
     const auth = mockAuth({ signup });
     const navigate = createNavigateMock();
     vi.mocked(useNavigate).mockReturnValue(navigate);
@@ -205,11 +218,13 @@ describe('SignupPage', () => {
   });
 
   it('shows a mapped email-in-use error and re-enables the form after failed signup', async () => {
-    const signup = vi.fn<(name: string, email: string, password: string) => Promise<void>>().mockRejectedValue(
-      Object.assign(new Error('Firebase: Error (auth/email-already-in-use).'), {
-        code: 'auth/email-already-in-use',
-      })
-    );
+    const signup = vi
+      .fn<(name: string, email: string, password: string) => Promise<void>>()
+      .mockRejectedValue(
+        Object.assign(new Error('Firebase: Error (auth/email-already-in-use).'), {
+          code: 'auth/email-already-in-use',
+        }),
+      );
     mockAuth({ signup });
     const navigate = createNavigateMock();
     vi.mocked(useNavigate).mockReturnValue(navigate);
@@ -219,7 +234,9 @@ describe('SignupPage', () => {
     await fillSignupForm(user);
     await user.click(screen.getByRole('button', { name: 'Create Account' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('An account with this email already exists.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'An account with this email already exists.',
+    );
     expect(screen.getByRole('button', { name: 'Create Account' })).toBeEnabled();
     expect(navigate).not.toHaveBeenCalled();
     await expectAxeViolations(container);
@@ -250,7 +267,7 @@ describe('SignupPage', () => {
       loginWithGoogle: vi.fn<() => Promise<void>>().mockRejectedValue(
         Object.assign(new Error('Firebase: Error (auth/popup-blocked).'), {
           code: 'auth/popup-blocked',
-        })
+        }),
       ),
     });
     const navigate = createNavigateMock();
@@ -260,7 +277,9 @@ describe('SignupPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Continue with Google' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Your browser blocked the Google sign-in popup. Allow popups for this site and try again.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.',
+    );
     expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeEnabled();
     expect(navigate).not.toHaveBeenCalled();
     await expectAxeViolations(container);

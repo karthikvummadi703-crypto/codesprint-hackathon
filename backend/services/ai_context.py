@@ -12,7 +12,8 @@ Design rules:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import cast
 
 from services import query_router as qr
 from services.air_quality_service import aqi_category
@@ -22,7 +23,7 @@ _FORECAST = "forecast"
 _MODELLED = "modelled"
 
 
-def _num(value) -> str:
+def _num(value: object) -> str:
     if value is None:
         return "unavailable"
     if isinstance(value, float):
@@ -66,7 +67,7 @@ class ContextBuilder:
 
     # -- public ------------------------------------------------------------------
 
-    def build(self, message: str) -> tuple[str, list[str], dict[str, bool]]:
+    def build(self, message: str) -> tuple[str, list[str], dict[str, bool]]:  # noqa: C901 - intent dispatch preserves existing behavior
         """Return (context_text, section_names, data_coverage)."""
         intent = qr.classify(message)
         blocks = set(qr.blocks_for(intent))
@@ -210,8 +211,10 @@ class ContextBuilder:
         source = aq.get("source", "unknown")
         provenance = _MEASURED if source != "estimated" else _MODELLED
         lines = [
-            f"AIR QUALITY (now) [{provenance}, provider: {source}]: "
-            f"AQI {aq.get('aqi')} — {aq.get('status')}, dominant pollutant {aq.get('dominantPollutant')}"
+            (
+                f"AIR QUALITY (now) [{provenance}, provider: {source}]: "
+                f"AQI {aq.get('aqi')} — {aq.get('status')}, dominant pollutant {aq.get('dominantPollutant')}"
+            )
         ]
         pollutants = aq.get("pollutants") or []
         if pollutants:
@@ -316,8 +319,8 @@ class ContextBuilder:
                 )
         else:
             for month, group in _by_month(rows).items():
-                means = [g.get("aqiMean") for g in group if isinstance(g.get("aqiMean"), (int, float))]
-                peaks = [g.get("aqiMax") for g in group if isinstance(g.get("aqiMax"), (int, float))]
+                means = [cast(int | float, g.get("aqiMean")) for g in group if isinstance(g.get("aqiMean"), (int, float))]
+                peaks = [cast(int | float, g.get("aqiMax")) for g in group if isinstance(g.get("aqiMax"), (int, float))]
                 if not means:
                     continue
                 avg = round(sum(means) / len(means))
@@ -375,7 +378,7 @@ class ContextBuilder:
                 "Do not invent weather values."
             )
         rows = [
-            f"{d.get('date')}: {d.get('condition')}, {d.get('temperatureMin')}–{d.get('temperatureMax')}°C, "
+            f"{d.get('date')}: {d.get('condition')}, {d.get('temperatureMin')}–{d.get('temperatureMax')}°C, "  # noqa: RUF001 - prompt text must remain byte-identical
             f"rain probability {d.get('precipitationProbabilityMax')}%, "
             f"precipitation {d.get('precipitationSum')} mm, wind up to {d.get('windSpeedMax')} km/h"
             for d in daily[:7]
@@ -387,7 +390,7 @@ class ContextBuilder:
             ]
         )
 
-    def _vulnerability_section(self) -> str:
+    def _vulnerability_section(self) -> str:  # noqa: C901 - rule ordering preserves advisory behavior
         """Meteorological + health-risk reasoning derived only from real values."""
         findings: list[str] = []
         aq = self.air_quality or {}
@@ -570,14 +573,15 @@ class ContextBuilder:
             return rows
         rows = []
         for point in self.predictions[:6]:
-            aqi = point.get("aqi")
-            if aqi is None:
+            aqi_raw = point.get("aqi")
+            if aqi_raw is None:
                 continue
+            aqi_val = int(aqi_raw)
             rows.append(
                 {
                     "label": point.get("label", ""),
-                    "aqi": int(aqi),
-                    "status": point.get("status") or aqi_category(int(aqi)),
+                    "aqi": aqi_val,
+                    "status": point.get("status") or aqi_category(aqi_val),
                     "dominantPollutant": point.get("dominantPollutant", "n/a"),
                     "timeOffsetHours": point.get("timeOffsetHours", 24),
                 }
@@ -598,8 +602,8 @@ def _relative_label(timestamp: str | None) -> str:
     except (TypeError, ValueError):
         return str(timestamp)
     if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=timezone.utc)
-    hours = round((moment - datetime.now(timezone.utc)).total_seconds() / 3600.0)
+        moment = moment.replace(tzinfo=UTC)
+    hours = round((moment - datetime.now(UTC)).total_seconds() / 3600.0)
     if hours <= 0:
         return "now"
     if hours < 24:
@@ -622,4 +626,4 @@ def _compass(degrees: float) -> str:
 
 
 def context_timestamp() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")

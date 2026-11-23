@@ -1,0 +1,7 @@
+dist
+coverage
+node_modules
+backend/.venv
+backend/data
+package-lock.json
+*.md

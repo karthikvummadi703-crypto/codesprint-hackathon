@@ -16,7 +16,12 @@ export default defineConfig({
       reporter: ['text', 'json-summary', 'lcov'],
       all: true,
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/__tests__/**', 'src/**/*.test.{ts,tsx}', 'src/test/**', 'src/vite-env.d.ts'],
+      exclude: [
+        'src/**/__tests__/**',
+        'src/**/*.test.{ts,tsx}',
+        'src/test/**',
+        'src/vite-env.d.ts',
+      ],
       thresholds: {
         statements: 85,
         lines: 85,
@@ -30,11 +35,19 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
-          if (id.includes('@firebase/firestore') || id.includes('firebase/firestore')) return 'firebase-firestore';
+          if (id.includes('@firebase/firestore') || id.includes('firebase/firestore'))
+            return 'firebase-firestore';
           if (id.includes('@firebase/auth') || id.includes('firebase/auth')) return 'firebase-auth';
           if (id.includes('@firebase') || id.includes('firebase')) return 'firebase-core';
-          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) return 'charts';
-          if (id.includes('react-dom') || id.includes('react-router') || id.includes('scheduler') || id.includes('react/')) return 'react';
+          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor'))
+            return 'charts';
+          if (
+            id.includes('react-dom') ||
+            id.includes('react-router') ||
+            id.includes('scheduler') ||
+            id.includes('react/')
+          )
+            return 'react';
           if (id.includes('lucide-react')) return 'icons';
         },
       },

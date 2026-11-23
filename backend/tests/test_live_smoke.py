@@ -12,6 +12,7 @@ this code expects, which mocked unit tests cannot prove.
 from __future__ import annotations
 
 import os
+from datetime import UTC
 
 import pytest
 
@@ -30,9 +31,8 @@ def live_client(monkeypatch):
     os.environ["RATE_LIMIT_ENABLED"] = "false"
     from fastapi.testclient import TestClient
 
-    from config import get_settings
-
     import main as backend_main
+    from config import get_settings
 
     get_settings.cache_clear()
     monkeypatch.setenv("ALLOW_DEV_AUTH", "true")
@@ -62,7 +62,7 @@ def test_aqi_is_measured_not_estimated(live_client):
 
 def test_weather_timestamps_are_real_utc_instants(live_client):
     """Catches the timezone bug where wall-clock was published as UTC."""
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime
 
     response = live_client.get(f"/api/weather?lat={LAT}&lon={LON}", headers=AUTH)
     assert response.status_code == 200, response.text
@@ -73,7 +73,7 @@ def test_weather_timestamps_are_real_utc_instants(live_client):
     assert parsed.tzinfo is not None
 
     # The observation must be within a few hours of now, in any timezone.
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     assert abs((now - parsed).total_seconds()) < 6 * 3600
 
     assert body["units"]["temperature"] == "°C"
@@ -100,18 +100,18 @@ def test_aqi_forecast_has_usable_points(live_client):
     would leave every offset unmatched and produce an empty forecast. Asserting
     the offsets resolve is what actually proves the join works for IST.
     """
+    from datetime import datetime
+
     import anyio
 
     from api import air as air_router
     from services import air_quality_service as aq
 
-    from datetime import datetime, timezone
-
     points = anyio.run(aq.fetch_aqi_forecast, LAT, LON, 5)
     if not points:
         pytest.skip("no AQI forecast series returned by the provider")
 
-    forecast = air_router._from_provider(points, datetime.now(timezone.utc))
+    forecast = air_router._from_provider(points, datetime.now(UTC))
     assert forecast, "provider forecast points did not join to any offset"
     assert all(p["aqi"] is not None for p in forecast)
     assert {p["timeOffsetHours"] for p in forecast} <= set(air_router.FORECAST_OFFSETS)

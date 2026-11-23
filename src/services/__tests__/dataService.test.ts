@@ -85,8 +85,11 @@ function seed(kind: string, value: unknown, uid = 'u1'): void {
   localStorage.setItem(`${PREFIX}${uid}_${kind}`, JSON.stringify(value));
 }
 
-function snapshot(docs: { id: string; data: Record<string, unknown> }[], empty = docs.length === 0): unknown {
-  return { docs: docs.map((entry) => ({ id: entry.id, data: () => entry.data })), empty };
+function snapshot(
+  docs: { id: string; data: Record<string, unknown> }[],
+  empty = docs.length === 0,
+): unknown {
+  return { docs: docs.map(entry => ({ id: entry.id, data: () => entry.data })), empty };
 }
 
 beforeEach(() => {
@@ -160,7 +163,7 @@ describe('local fallback storage', () => {
 
     localStorage.setItem(`${PREFIX}u1_messages_old`, '[]');
     await deleteConversation('u1', 'old');
-    expect((stored('conversations') as { id: string }[]).some((c) => c.id === 'old')).toBe(false);
+    expect((stored('conversations') as { id: string }[]).some(c => c.id === 'old')).toBe(false);
     expect(localStorage.getItem(`${PREFIX}u1_messages_old`)).toBeNull();
   });
 
@@ -170,7 +173,12 @@ describe('local fallback storage', () => {
 
     expect(stored('messages_c1')).toEqual([
       { id: `msg-${Date.parse(NOW.toISOString())}`, role: 'user', content: 'Hello', timestamp: TS },
-      { id: `msg-${Date.parse(NOW.toISOString())}`, role: 'assistant', content: 'Hi', timestamp: TS },
+      {
+        id: `msg-${Date.parse(NOW.toISOString())}`,
+        role: 'assistant',
+        content: 'Hi',
+        timestamp: TS,
+      },
     ]);
     await expect(listMessages('u1', 'c1')).resolves.toEqual(stored('messages_c1'));
   });
@@ -217,14 +225,15 @@ describe('local fallback storage', () => {
     await expect(isUploadReady('u1', 'file-1')).resolves.toBe(false);
 
     await addUpload('u1', { fileId: 'file-1', name: 'report.pdf', uploadedAt: TS });
-    await addUpload('u1', { fileId: 'file-2', name: 'older.pdf', uploadedAt: '2026-01-01T00:00:00.000Z' });
+    await addUpload('u1', {
+      fileId: 'file-2',
+      name: 'older.pdf',
+      uploadedAt: '2026-01-01T00:00:00.000Z',
+    });
 
     await expect(isUploadReady('u1', 'file-1')).resolves.toBe(true);
     await expect(isUploadReady('u1', 'missing')).resolves.toBe(false);
-    expect((await listUploads('u1')).map((item: { id: string }) => item.id)).toEqual([
-      'file-1',
-      'file-2',
-    ]);
+    expect((await listUploads('u1')).map(item => item.id!)).toEqual(['file-1', 'file-2']);
 
     await deleteUpload('u1', 'file-1');
     await expect(isUploadReady('u1', 'file-1')).resolves.toBe(false);
@@ -248,7 +257,10 @@ describe('local fallback storage', () => {
 
     localStorage.setItem(`${PREFIX}u1_lifestyle`, '{bad');
     await expect(getLifestyleSettings('u1')).resolves.toBeNull();
-    expect(console.warn).toHaveBeenCalledWith('Corrupt local lifestyle settings ignored:', expect.anything());
+    expect(console.warn).toHaveBeenCalledWith(
+      'Corrupt local lifestyle settings ignored:',
+      expect.anything(),
+    );
   });
 
   it('re-exports the firestore primitives used by callers', () => {
@@ -273,7 +285,7 @@ describe('Firestore success paths', () => {
     expect(mocks.setDoc).toHaveBeenCalledWith(
       { type: 'doc', args: [mocks.db, 'users', 'u1'] },
       { city: 'Delhi', updatedAt: TS },
-      { merge: true }
+      { merge: true },
     );
   });
 
@@ -282,7 +294,7 @@ describe('Firestore success paths', () => {
       snapshot([
         { id: 'c1', data: { title: 'One', updatedAt: TS } },
         { id: 'c2', data: { title: 'Two', updatedAt: TS } },
-      ])
+      ]),
     );
 
     await expect(listConversations('u1')).resolves.toEqual([
@@ -293,7 +305,7 @@ describe('Firestore success paths', () => {
     expect(mocks.orderBy).toHaveBeenCalledWith('updatedAt', 'desc');
     expect(mocks.query).toHaveBeenCalledWith(
       { type: 'collection', args: [mocks.db, 'users', 'u1', 'conversations'] },
-      { type: 'orderBy', field: 'updatedAt', direction: 'desc' }
+      { type: 'orderBy', field: 'updatedAt', direction: 'desc' },
     );
   });
 
@@ -303,13 +315,13 @@ describe('Firestore success paths', () => {
     expect(id).toBe('fb-generated-id');
     expect(mocks.addDoc).toHaveBeenCalledWith(
       { type: 'collection', args: [mocks.db, 'users', 'u1', 'conversations'] },
-      { title: 'Title', updatedAt: TS, createdAt: TS }
+      { title: 'Title', updatedAt: TS, createdAt: TS },
     );
 
     await updateConversation('u1', 'c1', 'Renamed');
     expect(mocks.updateDoc).toHaveBeenCalledWith(
       { type: 'doc', args: [mocks.db, 'users', 'u1', 'conversations', 'c1'] },
-      { title: 'Renamed', updatedAt: TS }
+      { title: 'Renamed', updatedAt: TS },
     );
 
     await deleteConversation('u1', 'c1');
@@ -321,7 +333,9 @@ describe('Firestore success paths', () => {
   });
 
   it('maps messages and appends them to the nested messages collection', async () => {
-    mocks.getDocs.mockResolvedValue(snapshot([{ id: 'm1', data: { role: 'user', content: 'Hi' } }]));
+    mocks.getDocs.mockResolvedValue(
+      snapshot([{ id: 'm1', data: { role: 'user', content: 'Hi' } }]),
+    );
 
     await expect(listMessages('u1', 'c1')).resolves.toEqual([
       { id: 'm1', role: 'user', content: 'Hi' },
@@ -331,7 +345,7 @@ describe('Firestore success paths', () => {
     await addMessage('u1', 'c1', { role: 'user', content: 'Hello' });
     expect(mocks.addDoc).toHaveBeenCalledWith(
       { type: 'collection', args: [mocks.db, 'users', 'u1', 'conversations', 'c1', 'messages'] },
-      { role: 'user', content: 'Hello', timestamp: TS }
+      { role: 'user', content: 'Hello', timestamp: TS },
     );
   });
 
@@ -345,13 +359,13 @@ describe('Firestore success paths', () => {
     await addAirQualityRecord('u1', { aqi: 61 });
     expect(mocks.addDoc).toHaveBeenCalledWith(
       { type: 'collection', args: [mocks.db, 'users', 'u1', 'airQuality'] },
-      { aqi: 61, timestamp: TS }
+      { aqi: 61, timestamp: TS },
     );
   });
 
   it('reads a Firestore prediction batch and falls back only when it is empty', async () => {
     mocks.getDocs.mockResolvedValueOnce(
-      snapshot([{ id: 'p1', data: { predictions: ['cloud'], createdAt: TS } }])
+      snapshot([{ id: 'p1', data: { predictions: ['cloud'], createdAt: TS } }]),
     );
 
     await expect(getLatestPredictions('u1')).resolves.toEqual(['cloud']);
@@ -370,13 +384,13 @@ describe('Firestore success paths', () => {
 
     await deleteCarbonTrip('u1', 'trip-1');
     expect(mocks.deleteDoc).toHaveBeenCalledWith(
-      expect.objectContaining({ args: [mocks.db, 'users', 'u1', 'carbonTrips', 'trip-1'] })
+      expect.objectContaining({ args: [mocks.db, 'users', 'u1', 'carbonTrips', 'trip-1'] }),
     );
 
     await addUpload('u1', { fileId: 'file-1' });
     expect(mocks.setDoc).toHaveBeenCalledWith(
       { type: 'doc', args: [mocks.db, 'users', 'u1', 'uploads', 'file-1'] },
-      { fileId: 'file-1', uploadedAt: TS }
+      { fileId: 'file-1', uploadedAt: TS },
     );
 
     await listUploads('u1');
@@ -384,7 +398,7 @@ describe('Firestore success paths', () => {
 
     await deleteUpload('u1', 'file-1');
     expect(mocks.deleteDoc).toHaveBeenCalledWith(
-      expect.objectContaining({ args: [mocks.db, 'users', 'u1', 'uploads', 'file-1'] })
+      expect.objectContaining({ args: [mocks.db, 'users', 'u1', 'uploads', 'file-1'] }),
     );
 
     mocks.getDocs.mockResolvedValue(snapshot([], false));
@@ -407,7 +421,7 @@ describe('Firestore success paths', () => {
     expect(mocks.setDoc).toHaveBeenCalledWith(
       { type: 'doc', args: [mocks.db, 'users', 'u1'] },
       { household: { members: ['member-1'] }, updatedAt: TS },
-      { merge: true }
+      { merge: true },
     );
   });
 });
@@ -424,7 +438,7 @@ describe('Firestore failure fallbacks', () => {
     await expect(getUser('u1')).resolves.toBeNull();
     expect(console.warn).toHaveBeenCalledWith(
       'Firestore getUser failed, falling back to local storage:',
-      expect.anything()
+      expect.anything(),
     );
 
     await saveUser('u1', { name: 'Local' });

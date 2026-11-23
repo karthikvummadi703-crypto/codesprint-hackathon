@@ -103,7 +103,7 @@ describe('appSignUp', () => {
     expect(mocks.createUserWithEmailAndPassword).toHaveBeenCalledWith(
       mocks.auth,
       'asha@example.com',
-      'password123'
+      'password123',
     );
     expect(mocks.updateProfile).toHaveBeenCalledWith(user, { displayName: 'Asha Rao' });
     expect(result).toEqual({
@@ -129,7 +129,7 @@ describe('appSignUp', () => {
     mocks.createUserWithEmailAndPassword.mockRejectedValue(new Error('Email already in use.'));
 
     await expect(appSignUp('Asha', 'asha@example.com', 'password123')).rejects.toThrow(
-      'Email already in use.'
+      'Email already in use.',
     );
     expect(mocks.updateProfile).not.toHaveBeenCalled();
   });
@@ -157,7 +157,7 @@ describe('appSignUp', () => {
       name: 'New.User',
     });
     expect(
-      JSON.parse(localStorage.getItem(DEV_ACCOUNTS_KEY) ?? '{}') as Record<string, LocalDevAccount>
+      JSON.parse(localStorage.getItem(DEV_ACCOUNTS_KEY) ?? '{}') as Record<string, LocalDevAccount>,
     ).toHaveProperty(result.uid, {
       uid: result.uid,
       email: 'New.User@Example.com',
@@ -190,7 +190,7 @@ describe('appLogin', () => {
     expect(mocks.signInWithEmailAndPassword).toHaveBeenCalledWith(
       mocks.auth,
       'fb@example.com',
-      'password123'
+      'password123',
     );
     expect(result).toMatchObject({ uid: 'fb-uid-1', isDev: false });
   });
@@ -222,7 +222,7 @@ describe('appLogin', () => {
     mocks.configured.value = false;
     const missing = appLogin('nobody@example.com', 'password123');
     const missingAssertion = expect(missing).rejects.toThrow(
-      'No account found with this email. Please sign up first.'
+      'No account found with this email. Please sign up first.',
     );
     await vi.advanceTimersByTimeAsync(600);
     await missingAssertion;
@@ -245,7 +245,7 @@ describe('Google sign-in', () => {
     expect(mocks.GoogleAuthProvider).toHaveBeenCalledTimes(1);
     expect(mocks.signInWithPopup).toHaveBeenCalledWith(
       mocks.auth,
-      mocks.GoogleAuthProvider.mock.instances[0]
+      mocks.GoogleAuthProvider.mock.instances[0],
     );
     expect(result).toMatchObject({ name: 'Google User', isDev: false });
     expect(isGoogleSignInAvailable()).toBe(true);
@@ -255,7 +255,7 @@ describe('Google sign-in', () => {
     mocks.configured.value = false;
 
     await expect(appLoginWithGoogle()).rejects.toThrow(
-      'Google sign-in needs a Firebase configuration.'
+      'Google sign-in needs a Firebase configuration.',
     );
     expect(isGoogleSignInAvailable()).toBe(false);
     expect(mocks.signInWithPopup).not.toHaveBeenCalled();
@@ -340,7 +340,7 @@ describe('session helpers', () => {
       (_auth: unknown, callback: (value: FirebaseUser | null) => void) => {
         callback(user);
         return unsubscribe;
-      }
+      },
     );
     const callback = vi.fn();
 
@@ -363,7 +363,7 @@ describe('session helpers', () => {
       (_auth: unknown, callback: (value: FirebaseUser | null) => void) => {
         callback(null);
         return vi.fn();
-      }
+      },
     );
     const callback = vi.fn();
 

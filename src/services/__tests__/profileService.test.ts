@@ -20,13 +20,19 @@ const user = (over: Partial<AppUser> = {}): AppUser => ({
 describe('resolveDisplayName', () => {
   it('prefers the name stored in the user profile', () => {
     expect(
-      resolveDisplayName(user({ name: 'Auth Token Name', email: 'a@b.com' }), { name: 'Priya Sharma' }),
+      resolveDisplayName(user({ name: 'Auth Token Name', email: 'a@b.com' }), {
+        name: 'Priya Sharma',
+      }),
     ).toBe('Priya Sharma');
   });
 
   it('uses the auth provider name when the profile has none', () => {
-    expect(resolveDisplayName(user({ name: 'Google Name', email: 'a@b.com' }), {})).toBe('Google Name');
-    expect(resolveDisplayName(user({ name: 'Google Name', email: 'a@b.com' }), null)).toBe('Google Name');
+    expect(resolveDisplayName(user({ name: 'Google Name', email: 'a@b.com' }), {})).toBe(
+      'Google Name',
+    );
+    expect(resolveDisplayName(user({ name: 'Google Name', email: 'a@b.com' }), null)).toBe(
+      'Google Name',
+    );
   });
 
   it('falls back to the email local-part only when no name exists', () => {
@@ -53,7 +59,9 @@ describe('resolveDisplayName', () => {
   });
 
   it('does not treat an email as a name when a real name exists', () => {
-    const resolved = resolveDisplayName(user({ email: 'someone@example.com' }), { name: 'Ana Lima' });
+    const resolved = resolveDisplayName(user({ email: 'someone@example.com' }), {
+      name: 'Ana Lima',
+    });
     expect(resolved).not.toContain('@');
     expect(resolved).toBe('Ana Lima');
   });

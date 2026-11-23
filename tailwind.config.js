@@ -1,11 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "!./src/**/__tests__/**",
-    "!./src/**/*.test.{js,ts,jsx,tsx}",
-    "!./src/test/**",
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}',
+    '!./src/**/__tests__/**',
+    '!./src/**/*.test.{js,ts,jsx,tsx}',
+    '!./src/test/**',
   ],
   theme: {
     extend: {
@@ -28,11 +28,11 @@ export default {
         sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        'soft': '0 4px 20px -2px rgba(22, 101, 52, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03)',
-        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 4px 16px 0 rgba(22, 101, 52, 0.06)',
-        'glow': '0 0 25px -5px rgba(34, 197, 94, 0.25)',
-      }
+        soft: '0 4px 20px -2px rgba(22, 101, 52, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03)',
+        card: '0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 4px 16px 0 rgba(22, 101, 52, 0.06)',
+        glow: '0 0 25px -5px rgba(34, 197, 94, 0.25)',
+      },
     },
   },
   plugins: [],
-}
+};

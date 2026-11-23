@@ -10,7 +10,9 @@
     "test:watch": "vitest",
     "test:backend": "cd backend && python -m pytest -q",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"*.{js,cjs,json,ts}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"*.{js,cjs,json,ts}\""
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -42,6 +44,7 @@
     "jest-axe": "^11.0.0",
     "jsdom": "^31.0.1",
     "postcss": "^8.5.26",
+    "prettier": "^3.10.1",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.73.0",

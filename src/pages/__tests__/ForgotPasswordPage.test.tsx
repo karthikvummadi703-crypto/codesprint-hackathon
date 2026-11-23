@@ -31,7 +31,7 @@ vi.mock('../../services/authService', () => ({
   getAppToken: vi.fn(),
   getCurrentAppUser: vi.fn(),
 }));
-vi.mock('../../context/AuthContext', async (importOriginal) => {
+vi.mock('../../context/AuthContext', async importOriginal => {
   const actual = await importOriginal<typeof import('../../context/AuthContext')>();
   return { ...actual, useAuth: vi.fn() };
 });
@@ -56,7 +56,9 @@ function createAuthValue(overrides: Partial<AuthValue> = {}): AuthValue {
     profile: null,
     profileLoading: false,
     initializing: false,
-    signup: vi.fn<(name: string, email: string, password: string) => Promise<void>>().mockResolvedValue(undefined),
+    signup: vi
+      .fn<(name: string, email: string, password: string) => Promise<void>>()
+      .mockResolvedValue(undefined),
     login: vi.fn<(email: string, password: string) => Promise<void>>().mockResolvedValue(undefined),
     loginWithGoogle: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     resetPassword: vi.fn<(email: string) => Promise<void>>().mockResolvedValue(undefined),
@@ -78,13 +80,13 @@ function renderPage() {
   return render(
     <MemoryRouter>
       <ForgotPasswordPage />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
 async function expectAxeViolations(container: HTMLElement, expectedIds: string[] = []) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual(expectedIds);
+  expect(results.violations.map(violation => violation.id)).toEqual(expectedIds);
 }
 
 describe('ForgotPasswordPage', () => {
@@ -97,7 +99,10 @@ describe('ForgotPasswordPage', () => {
     const { container } = renderPage();
 
     expect(screen.getByRole('heading', { name: 'Reset your password' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Email Address' })).toHaveAttribute('placeholder', 'you@example.com');
+    expect(screen.getByRole('textbox', { name: 'Email Address' })).toHaveAttribute(
+      'placeholder',
+      'you@example.com',
+    );
     expect(screen.getByRole('textbox', { name: 'Email Address' })).toBeRequired();
     expect(screen.getByRole('button', { name: 'Reset Password' })).toBeEnabled();
     expect(screen.getByRole('link', { name: 'Back to Sign In' })).toHaveAttribute('href', '/login');
@@ -140,7 +145,9 @@ describe('ForgotPasswordPage', () => {
       await pending.promise;
     });
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Check your email' })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Check your email' })).toBeInTheDocument(),
+    );
     expect(screen.getByText(/user@example\.com/)).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: 'Email Address' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to Sign In' })).toHaveAttribute('href', '/login');
@@ -153,7 +160,7 @@ describe('ForgotPasswordPage', () => {
         .mockRejectedValueOnce(
           Object.assign(new Error('Firebase: Error (auth/network-request-failed).'), {
             code: 'auth/network-request-failed',
-          })
+          }),
         )
         .mockResolvedValueOnce(undefined),
     });
@@ -163,7 +170,9 @@ describe('ForgotPasswordPage', () => {
     await user.type(screen.getByRole('textbox', { name: 'Email Address' }), 'user@example.com');
     await user.click(screen.getByRole('button', { name: 'Reset Password' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Network error. Check your connection.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Network error. Check your connection.',
+    );
     expect(screen.getByRole('button', { name: 'Reset Password' })).toBeEnabled();
     await expectAxeViolations(container);
 

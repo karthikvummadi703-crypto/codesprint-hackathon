@@ -25,9 +25,7 @@ export default function PollutantTrendChart({ data }: PollutantTrendChartProps) 
   const [active, setActive] = useState<string[]>(['pm25', 'pm10']);
 
   const toggle = (key: string) => {
-    setActive((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
+    setActive(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]));
   };
 
   return (
@@ -41,14 +39,12 @@ export default function PollutantTrendChart({ data }: PollutantTrendChartProps) 
 
       {/* Toggle pills */}
       <div className="flex flex-wrap gap-2 mb-5">
-        {POLLUTANT_CONFIG.map((p) => (
+        {POLLUTANT_CONFIG.map(p => (
           <button
             key={p.key}
             onClick={() => toggle(p.key)}
             className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
-              active.includes(p.key)
-                ? 'text-white shadow-sm'
-                : 'bg-slate-100 text-slate-500'
+              active.includes(p.key) ? 'text-white shadow-sm' : 'bg-slate-100 text-slate-500'
             }`}
             style={active.includes(p.key) ? { backgroundColor: p.color } : {}}
           >
@@ -60,12 +56,22 @@ export default function PollutantTrendChart({ data }: PollutantTrendChartProps) 
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-          <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} />
+          <XAxis
+            dataKey="time"
+            tick={{ fontSize: 11, fill: '#94A3B8' }}
+            tickLine={false}
+            axisLine={false}
+          />
           <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} />
           <Tooltip
-            contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #E2E8F0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+            contentStyle={{
+              fontSize: 12,
+              borderRadius: 12,
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            }}
           />
-          {POLLUTANT_CONFIG.filter((p) => active.includes(p.key)).map((p) => (
+          {POLLUTANT_CONFIG.filter(p => active.includes(p.key)).map(p => (
             <Line
               key={p.key}
               type="monotone"

@@ -7,11 +7,12 @@ written to fail against the old behaviour and pass against the new one.
 from __future__ import annotations
 
 import io
+from typing import ClassVar
 
 import pytest
 
-from services import ai_context, ai_service, query_router as qr, rag_service, weather_service
-
+from services import ai_context, ai_service, rag_service, weather_service
+from services import query_router as qr
 
 # ── ISSUE 3: the current-hour lookup ─────────────────────────────────────
 
@@ -72,7 +73,7 @@ class TestDocumentContextSurvivesParsing:
     the offline responder in `ai_service` re-parses `context_text` on that same
     delimiter. Every excerpt was therefore dropped before anything read it."""
 
-    CHUNK = {"fileName": "report.pdf", "chunk": "The city target is 60 ug/m3 by 2030.", "score": 0.4}
+    CHUNK: ClassVar[dict[str, str | float]] = {"fileName": "report.pdf", "chunk": "The city target is 60 ug/m3 by 2030.", "score": 0.4}
 
     def build(self, chunks=None):
         return ai_context.ContextBuilder(
@@ -100,7 +101,7 @@ class TestDocumentContextSurvivesParsing:
         )._documents_section()
 
     def test_sections_are_only_included_when_documents_are_retrieved(self):
-        text, sections, coverage = self.build().build("what does my report say?")
+        text, _sections, coverage = self.build().build("what does my report say?")
         assert coverage["documents"] is True
         assert "60 ug/m3" in text
 
@@ -138,8 +139,10 @@ def _pdf(text: str) -> bytes:
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
         b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R "
-        b"/Resources << /Font << /F1 5 0 R >> >> >>",
+        (
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R "
+            b"/Resources << /Font << /F1 5 0 R >> >> >>"
+        ),
         b"<< /Length " + str(len(content)).encode() + b" >>\nstream\n" + content + b"\nendstream",
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     ]
@@ -153,7 +156,7 @@ def _pdf(text: str) -> bytes:
     xref = out.tell()
     out.write(b"xref\n0 " + str(len(objects) + 1).encode() + b"\n0000000000 65535 f \n")
     for offset in offsets:
-        out.write(("%010d 00000 n \n" % offset).encode())
+        out.write(f"{offset:010d} 00000 n \n".encode())
     out.write(
         b"trailer\n<< /Size " + str(len(objects) + 1).encode() + b" /Root 1 0 R >>\nstartxref\n"
         + str(xref).encode() + b"\n%%EOF\n"
@@ -212,7 +215,8 @@ class TestScopedRetrieval:
     def test_renamed_file_is_still_reachable(self):
         record = rag_service.process_document("u1", "alpha.pdf", _pdf("Masonry bricks."))
         hits = rag_service.retrieve("u1", "bricks", 4, [record["fileId"]])
-        assert hits and hits[0]["fileName"] == "alpha.pdf"
+        assert hits
+        assert hits[0]["fileName"] == "alpha.pdf"
 
 
 class TestDocumentValidation:
@@ -228,6 +232,6 @@ class TestDocumentValidation:
         text = rag_service._extract_text("ok.pdf", _pdf("Readable content here."))
         assert "Readable" in text
 
-    def test_valid_pdf_is_accepted(self):
+    def test_valid_pdf_text_is_preserved(self):
         text = rag_service._extract_text("ok.pdf", _pdf("Readable content here."))
         assert "Readable content" in text

@@ -14,7 +14,10 @@ const mocks = vi.hoisted(() => ({
   searchLocations: vi.fn(),
   reverseGeocode: vi.fn(),
   setLocation: vi.fn(),
-  getCurrentPosition: vi.fn<(success: PositionSuccess, failure: PositionFailure, options?: PositionOptions) => void>(),
+  getCurrentPosition:
+    vi.fn<
+      (success: PositionSuccess, failure: PositionFailure, options?: PositionOptions) => void
+    >(),
 }));
 
 vi.mock('../../services/backendService', () => ({
@@ -97,7 +100,9 @@ describe('LocationPicker', () => {
   it('renders the first-run screen with no preselected location and no axe violations', async () => {
     const { container } = render(<LocationPicker onPicked={vi.fn()} />);
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Where should we measure?' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Where should we measure?' }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/we do not pick one for you/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Set' })).toBeDisabled();
     expect(mocks.searchLocations).not.toHaveBeenCalled();
@@ -109,7 +114,9 @@ describe('LocationPicker', () => {
   it('renders the compact variant with a heading instead of the full-screen heading', async () => {
     const { container } = render(<LocationPicker compact onPicked={vi.fn()} />);
 
-    expect(screen.getByRole('heading', { level: 2, name: 'Choose a location' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Choose a location' }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
     expect(screen.getByText(/nothing is guessed on your behalf/i)).toBeInTheDocument();
 
@@ -127,7 +134,9 @@ describe('LocationPicker', () => {
     await user.type(input, 'Del');
 
     expect(mocks.searchLocations).not.toHaveBeenCalled();
-    await waitFor(() => expect(mocks.searchLocations).toHaveBeenCalledWith('Del', 5), { timeout: 1000 });
+    await waitFor(() => expect(mocks.searchLocations).toHaveBeenCalledWith('Del', 5), {
+      timeout: 1000,
+    });
     expect(await screen.findByText('Searching…')).toBeInTheDocument();
     expect(input).toHaveAttribute('aria-expanded', 'true');
 
@@ -229,7 +238,7 @@ describe('LocationPicker', () => {
     await user.click(within(listbox).getByRole('option', { name: /Delhi/ }));
 
     expect(onPicked).toHaveBeenCalledTimes(1);
-    expect(onPicked.mock.calls[0][0]).toMatchObject({ name: 'Delhi', latitude: 28.6139 });
+    expect(onPicked.mock.calls[0]![0]).toMatchObject({ name: 'Delhi', latitude: 28.6139 });
     expect(mocks.setLocation).toHaveBeenCalledTimes(1);
   });
 
@@ -243,25 +252,33 @@ describe('LocationPicker', () => {
     await user.click(screen.getByRole('button', { name: 'Set' }));
 
     expect(mocks.setLocation).toHaveBeenCalledTimes(1);
-    expect(mocks.setLocation.mock.calls[0][0]).toMatchObject({ name: 'Delhi' });
+    expect(mocks.setLocation.mock.calls[0]![0]).toMatchObject({ name: 'Delhi' });
   });
 
   it('uses the browser position and the reverse-geocoded place when available', async () => {
     const user = userEvent.setup();
     const onPicked = vi.fn<(location: ActiveLocation) => void>();
-    mocks.getCurrentPosition.mockImplementation((success) => {
+    mocks.getCurrentPosition.mockImplementation(success => {
       success(fakePosition(12.34, 56.78));
     });
-    mocks.reverseGeocode.mockResolvedValue({ name: 'Bengaluru', region: 'Karnataka', country: 'India' });
+    mocks.reverseGeocode.mockResolvedValue({
+      name: 'Bengaluru',
+      region: 'Karnataka',
+      country: 'India',
+    });
     const { container } = render(<LocationPicker onPicked={onPicked} />);
 
     await user.click(screen.getByRole('button', { name: 'Use my current location' }));
 
-    expect(mocks.getCurrentPosition).toHaveBeenCalledWith(expect.any(Function), expect.any(Function), {
-      timeout: 10000,
-    });
+    expect(mocks.getCurrentPosition).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.any(Function),
+      {
+        timeout: 10000,
+      },
+    );
     await waitFor(() => expect(onPicked).toHaveBeenCalledTimes(1));
-    expect(onPicked.mock.calls[0][0]).toEqual({
+    expect(onPicked.mock.calls[0]![0]).toEqual({
       name: 'Bengaluru, Karnataka, India',
       latitude: 12.34,
       longitude: 56.78,
@@ -277,17 +294,19 @@ describe('LocationPicker', () => {
 
   it('falls back to the honest "My location" label when reverse geocoding fails', async () => {
     const user = userEvent.setup();
-    mocks.getCurrentPosition.mockImplementation((success) => success(fakePosition(1.5, 2.5)));
+    mocks.getCurrentPosition.mockImplementation(success => success(fakePosition(1.5, 2.5)));
     mocks.reverseGeocode.mockRejectedValue(new Error('no place found'));
     render(<LocationPicker compact />);
 
     await user.click(screen.getByRole('button', { name: 'Use my current location' }));
 
-    await waitFor(() => expect(mocks.setLocation).toHaveBeenCalledWith({
-      name: 'My location',
-      latitude: 1.5,
-      longitude: 2.5,
-    }));
+    await waitFor(() =>
+      expect(mocks.setLocation).toHaveBeenCalledWith({
+        name: 'My location',
+        latitude: 1.5,
+        longitude: 2.5,
+      }),
+    );
     expect(mocks.reverseGeocode).toHaveBeenCalledWith(1.5, 2.5);
     expect(screen.getByRole('combobox')).toHaveValue('');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
@@ -303,7 +322,7 @@ describe('LocationPicker', () => {
     await user.click(screen.getByRole('button', { name: 'Use my current location' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Location permission was denied. Search for a city instead.'
+      'Location permission was denied. Search for a city instead.',
     );
     expect(mocks.setLocation).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Use my current location' })).toBeEnabled();
@@ -321,13 +340,15 @@ describe('LocationPicker', () => {
 
     await user.click(screen.getByRole('button', { name: 'Use my current location' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Could not determine your location. Search for a city instead.'
+      'Could not determine your location. Search for a city instead.',
     );
 
     Object.defineProperty(navigator, 'geolocation', { configurable: true, value: undefined });
     rerender(<LocationPicker />);
     await user.click(screen.getByRole('button', { name: 'Use my current location' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Geolocation is not supported by this browser.');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Geolocation is not supported by this browser.',
+    );
     expect(mocks.getCurrentPosition).toHaveBeenCalledTimes(1);
 
     const results = await axe(container);

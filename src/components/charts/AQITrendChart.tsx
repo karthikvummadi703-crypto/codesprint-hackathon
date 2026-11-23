@@ -15,9 +15,19 @@ interface AQITrendChartProps {
   data: HistoricalDataPoint[];
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipItem {
+  value?: number | string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipItem[];
+  label?: React.ReactNode;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
-    const aqi = payload[0].value;
+    const aqi = payload[0]!.value;
     return (
       <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-4 py-3">
         <div className="text-xs text-slate-500 mb-1">{label}</div>
@@ -63,8 +73,25 @@ export default function AQITrendChart({ data }: AQITrendChartProps) {
             domain={[80, 180]}
           />
           <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine y={150} stroke="#EF4444" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: 'Unhealthy', fill: '#EF4444', fontSize: 10, position: 'insideTopRight' }} />
-          <ReferenceLine y={100} stroke="#F59E0B" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: 'Moderate', fill: '#F59E0B', fontSize: 10, position: 'insideTopRight' }} />
+          <ReferenceLine
+            y={150}
+            stroke="#EF4444"
+            strokeDasharray="4 4"
+            strokeWidth={1.5}
+            label={{
+              value: 'Unhealthy',
+              fill: '#EF4444',
+              fontSize: 10,
+              position: 'insideTopRight',
+            }}
+          />
+          <ReferenceLine
+            y={100}
+            stroke="#F59E0B"
+            strokeDasharray="4 4"
+            strokeWidth={1.5}
+            label={{ value: 'Moderate', fill: '#F59E0B', fontSize: 10, position: 'insideTopRight' }}
+          />
           <Area
             type="monotone"
             dataKey="aqi"

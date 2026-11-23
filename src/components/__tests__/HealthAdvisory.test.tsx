@@ -15,26 +15,31 @@ const statusTitles: ReadonlyArray<readonly [AQIStatus, string]> = [
 ];
 
 function renderedTips() {
-  return within(screen.getByRole('list')).getAllByRole('listitem').map((item) => item.textContent);
+  return within(screen.getByRole('list'))
+    .getAllByRole('listitem')
+    .map(item => item.textContent);
 }
 
 describe('HealthAdvisory', () => {
-  it.each(statusTitles)('renders the %s title, AQI line, advisory text and no axe violations', async (status, title) => {
-    const { container } = render(
-      <HealthAdvisory status={status} advisory="Limit prolonged outdoor exertion." aqi={75} />
-    );
+  it.each(statusTitles)(
+    'renders the %s title, AQI line, advisory text and no axe violations',
+    async (status, title) => {
+      const { container } = render(
+        <HealthAdvisory status={status} advisory="Limit prolonged outdoor exertion." aqi={75} />,
+      );
 
-    expect(screen.getByText(title)).toBeInTheDocument();
-    expect(screen.getByText(`AQI 75 • ${status}`)).toBeInTheDocument();
-    expect(screen.getByText('Limit prolonged outdoor exertion.')).toBeInTheDocument();
+      expect(screen.getByText(title)).toBeInTheDocument();
+      expect(screen.getByText(`AQI 75 • ${status}`)).toBeInTheDocument();
+      expect(screen.getByText('Limit prolonged outdoor exertion.')).toBeInTheDocument();
 
-    const results = await axe(container);
-    expect(results.violations).toEqual([]);
-  });
+      const results = await axe(container);
+      expect(results.violations).toEqual([]);
+    },
+  );
 
   it('shows two safe-activity tips when AQI is at or below 100', async () => {
     const { container } = render(
-      <HealthAdvisory status="Moderate" advisory="Sensitive people should take care." aqi={100} />
+      <HealthAdvisory status="Moderate" advisory="Sensitive people should take care." aqi={100} />,
     );
 
     expect(renderedTips()).toEqual([
@@ -48,7 +53,9 @@ describe('HealthAdvisory', () => {
   });
 
   it('shows three mask/purifier tips when AQI is just above 100', async () => {
-    render(<HealthAdvisory status="Unhealthy for Sensitive Groups" advisory="Take care." aqi={101} />);
+    render(
+      <HealthAdvisory status="Unhealthy for Sensitive Groups" advisory="Take care." aqi={101} />,
+    );
 
     expect(renderedTips()).toEqual([
       'Wear an N95 mask outdoors',
@@ -60,7 +67,7 @@ describe('HealthAdvisory', () => {
 
   it('adds the keep-windows tip when AQI exceeds 150', async () => {
     const { container } = render(
-      <HealthAdvisory status="Unhealthy" advisory="Avoid outdoor exertion." aqi={151} />
+      <HealthAdvisory status="Unhealthy" advisory="Avoid outdoor exertion." aqi={151} />,
     );
 
     expect(renderedTips()).toEqual([

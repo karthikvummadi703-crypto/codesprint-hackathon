@@ -23,7 +23,7 @@ const BANDS: { max: number; label: string; color: string; bg: string }[] = [
 ];
 
 function bandFor(aqi: number) {
-  return BANDS.find((b) => aqi <= b.max) ?? BANDS[BANDS.length - 1];
+  return BANDS.find(b => aqi <= b.max) ?? BANDS[BANDS.length - 1]!;
 }
 
 /**
@@ -35,7 +35,12 @@ function bandFor(aqi: number) {
  * value for one coordinate, so the honest visualisation of that is the time
  * axis, not a fake map.
  */
-export default function PollutionOutlook({ location, aqi, status, activeLocation }: PollutionOutlookProps) {
+export default function PollutionOutlook({
+  location,
+  aqi,
+  status,
+  activeLocation,
+}: PollutionOutlookProps) {
   const [forecast, setForecast] = useState<PredictionForecast[]>([]);
   const [method, setMethod] = useState('');
   const [note, setNote] = useState('');
@@ -47,17 +52,23 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
 
   useEffect(() => {
     let cancelled = false;
+    /* eslint-disable react-hooks/set-state-in-effect -- Existing fetch reset must run in the effect to preserve timing and render output. */
     setLoading(true);
     setError('');
-    const params = toLocationParams({ name: activeName, latitude: activeLat, longitude: activeLon });
+    /* eslint-enable react-hooks/set-state-in-effect */
+    const params = toLocationParams({
+      name: activeName,
+      latitude: activeLat,
+      longitude: activeLon,
+    });
     fetchPredictions({ ...params, days: 1 })
-      .then((data) => {
+      .then(data => {
         if (cancelled) return;
         setForecast(Array.isArray(data.predictions) ? data.predictions : []);
         setMethod(typeof data.method === 'string' ? data.method : '');
         setNote(typeof data.note === 'string' ? data.note : '');
       })
-      .catch((e) => {
+      .catch(e => {
         if (cancelled) return;
         setForecast([]);
         setError(e instanceof Error ? e.message : String(e));
@@ -71,8 +82,8 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
   }, [activeName, activeLat, activeLon]);
 
   const points = useMemo(
-    () => forecast.filter((f) => Number.isFinite(f.aqi)).slice(0, 8),
-    [forecast]
+    () => forecast.filter(f => Number.isFinite(f.aqi)).slice(0, 8),
+    [forecast],
   );
 
   const band = bandFor(aqi);
@@ -99,7 +110,9 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
       <div className={`px-5 py-4 ${band.bg}`}>
         <div className="flex items-end justify-between gap-3">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Now</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Now
+            </div>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold" style={{ color: band.color }}>
                 {Math.round(aqi)}
@@ -108,7 +121,11 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
             </div>
           </div>
           {points.length > 0 && (
-            <Badge variant={isModelForecast ? 'success' : 'warning'} title={note} className="text-[10px]">
+            <Badge
+              variant={isModelForecast ? 'success' : 'warning'}
+              title={note}
+              className="text-[10px]"
+            >
               {isModelForecast ? 'Model forecast' : 'Estimated'}
             </Badge>
           )}
@@ -141,7 +158,7 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
               Next {points.length > 1 ? 'hours' : 'hour'}
             </div>
             <div className="flex items-end gap-1 h-16">
-              {points.map((p) => {
+              {points.map(p => {
                 const b = bandFor(p.aqi);
                 const height = Math.max(12, Math.min(100, (p.aqi / 300) * 100));
                 return (
@@ -162,7 +179,7 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
               })}
             </div>
             <div className="flex gap-1 mt-1">
-              {points.map((p) => (
+              {points.map(p => (
                 <span
                   key={`${p.label}-x`}
                   className="flex-1 text-center text-[9px] text-slate-400 truncate"
@@ -183,7 +200,7 @@ export default function PollutionOutlook({ location, aqi, status, activeLocation
       {/* Legend */}
       <div className="px-5 py-3 border-t border-slate-100">
         <div className="flex items-center gap-3 flex-wrap">
-          {BANDS.map((b) => (
+          {BANDS.map(b => (
             <div key={b.label} className="flex items-center gap-1.5 text-[10px] text-slate-600">
               <span className="h-2 w-2 rounded-full" style={{ background: b.color }} />
               {b.label}

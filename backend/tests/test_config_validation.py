@@ -66,7 +66,7 @@ def _clean_config_environment(monkeypatch):
 
 class TestEnvironmentDetection:
     @pytest.mark.parametrize(
-        "raw,expected",
+        ("raw", "expected"),
         [("Production", "production"), ("prod", "prod"), ("Staging", "staging")],
     )
     def test_explicit_environment_is_lowercased(self, monkeypatch, raw, expected):
@@ -168,7 +168,7 @@ class TestDevAuthGuard:
 
 class TestProductionGuards:
     @pytest.mark.parametrize(
-        "environment,expected",
+        ("environment", "expected"),
         [
             ("production", True),
             ("prod", True),
@@ -251,7 +251,7 @@ class TestEdgeConfigValues:
         monkeypatch.setenv("LLM_MODEL", "primary")
         monkeypatch.setenv("LLM_FALLBACK_MODELS", " a , , b , a ")
         settings = get_settings()
-        assert settings.llm_fallback_models == ["a", "b", "a"]
+        assert settings.llm_fallback_models == ("a", "b", "a")
         assert settings.llm_model_chain == ("primary", "a", "b")
 
     def test_model_chain_drops_duplicates_and_blanks_from_settings(self):

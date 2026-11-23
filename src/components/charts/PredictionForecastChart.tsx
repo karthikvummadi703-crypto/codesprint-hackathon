@@ -17,7 +17,16 @@ interface PredictionForecastChartProps {
   forecasts: PredictionForecast[];
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+interface TooltipItem {
+  payload?: PredictionForecast;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipItem[];
+}
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0]?.payload as PredictionForecast;
     return (
@@ -45,7 +54,7 @@ const BANDS = [
 ];
 
 export default function PredictionForecastChart({ forecasts }: PredictionForecastChartProps) {
-  const chartData = forecasts.map((f) => ({
+  const chartData = forecasts.map(f => ({
     ...f,
     fill: getAQIColor(f.aqi),
   }));
@@ -53,7 +62,7 @@ export default function PredictionForecastChart({ forecasts }: PredictionForecas
   // The previous fixed [100, 200] domain silently clipped any forecast outside
   // that band, so a genuinely bad-air day rendered as a flat line at the top of
   // the chart. The axis now follows the data, padded so the bands stay visible.
-  const values = forecasts.map((f) => f.aqi).filter((v) => Number.isFinite(v));
+  const values = forecasts.map(f => f.aqi).filter(v => Number.isFinite(v));
   const dataMax = values.length ? Math.max(...values) : 100;
   const yDomain: [number, number] = [
     Math.max(0, Math.floor(Math.min(...(values.length ? values : [0])) / 20) * 20 - 10),
@@ -65,7 +74,9 @@ export default function PredictionForecastChart({ forecasts }: PredictionForecas
       <div className="flex items-start justify-between mb-5 flex-wrap gap-2">
         <div>
           <h3 className="text-sm font-semibold text-slate-800">AQI Forecast</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Predicted air quality over the next 24 hours</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Predicted air quality over the next 24 hours
+          </p>
         </div>
         <div className="flex items-center gap-3 text-xs text-slate-500">
           <span className="flex items-center gap-1">
@@ -84,7 +95,12 @@ export default function PredictionForecastChart({ forecasts }: PredictionForecas
         <ResponsiveContainer width="100%" height={240}>
           <ComposedChart data={chartData} margin={{ top: 10, right: 5, left: -20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: '#94A3B8' }}
+              tickLine={false}
+              axisLine={false}
+            />
             <YAxis
               tick={{ fontSize: 11, fill: '#94A3B8' }}
               tickLine={false}
@@ -92,14 +108,19 @@ export default function PredictionForecastChart({ forecasts }: PredictionForecas
               domain={yDomain}
             />
             <Tooltip content={<CustomTooltip />} />
-            {BANDS.filter((b) => b.y >= yDomain[0] && b.y <= yDomain[1]).map((band) => (
+            {BANDS.filter(b => b.y >= yDomain[0] && b.y <= yDomain[1]).map(band => (
               <ReferenceLine
                 key={band.y}
                 y={band.y}
                 stroke={band.color}
                 strokeDasharray="4 4"
                 strokeWidth={1.5}
-                label={{ value: band.label, position: 'insideTopRight', fontSize: 9, fill: band.color }}
+                label={{
+                  value: band.label,
+                  position: 'insideTopRight',
+                  fontSize: 9,
+                  fill: band.color,
+                }}
               />
             ))}
             <Bar dataKey="aqi" radius={[8, 8, 0, 0]} fill="#FED7AA" maxBarSize={60} />

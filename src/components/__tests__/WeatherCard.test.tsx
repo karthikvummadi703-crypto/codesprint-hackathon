@@ -68,7 +68,7 @@ const weather = {
 
 function deferred<T>() {
   let resolveValue: (value: T) => void = () => undefined;
-  const promise = new Promise<T>((resolve) => {
+  const promise = new Promise<T>(resolve => {
     resolveValue = resolve;
   });
   return { promise, resolve: resolveValue };

@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-  useRef,
-} from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import {
   AppUser,
   onAppAuthStateChange,
@@ -63,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const latestUid = useRef<string | null>(null);
 
   useEffect(() => {
-    const unsub = onAppAuthStateChange(async (u) => {
+    const unsub = onAppAuthStateChange(async u => {
       latestUid.current = u?.uid ?? null;
       setUser(u);
       setInitializing(false);
@@ -84,11 +77,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     const handleAuthError = () => {
-      appLogout().then(() => {
-        clearResponseCache();
-        setUser(null);
-        setProfile(null);
-      }).catch(console.error);
+      appLogout()
+        .then(() => {
+          clearResponseCache();
+          setUser(null);
+          setProfile(null);
+        })
+        .catch(console.error);
     };
     window.addEventListener('auth-error', handleAuthError);
 
@@ -109,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const clean = name.trim();
       if (!clean) throw new Error('Name cannot be empty.');
       await saveProfileName(user.uid, clean);
-      setProfile((prev) => ({ ...(prev ?? {}), name: clean }));
+      setProfile(prev => ({ ...(prev ?? {}), name: clean }));
     },
     [user],
   );
@@ -118,13 +113,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (photoURL: string | null) => {
       if (!user) throw new Error('Not signed in.');
       await saveUser(user.uid, { photoURL });
-      setProfile((prev) => ({ ...(prev ?? {}), photoURL }));
+      setProfile(prev => ({ ...(prev ?? {}), photoURL }));
     },
     [user],
   );
 
   const syncProfileLocally = useCallback((patch: Partial<UserProfile>) => {
-    setProfile((prev) => ({ ...(prev ?? {}), ...patch }));
+    setProfile(prev => ({ ...(prev ?? {}), ...patch }));
   }, []);
 
   const value: AuthContextValue = {
@@ -149,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = await appLoginWithGoogle();
       await ensureProfile(user);
     },
-    resetPassword: async (email) => {
+    resetPassword: async email => {
       await appResetPassword(email);
     },
     logout: async () => {

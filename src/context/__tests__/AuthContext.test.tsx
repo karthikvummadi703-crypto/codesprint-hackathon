@@ -40,14 +40,14 @@ vi.mock('../../services/authService', () => ({
 
 vi.mock('../../services/apiClient', () => ({ clearResponseCache: mocks.clearResponseCache }));
 vi.mock('../../services/dataService', () => ({ getUser: mocks.getUser, saveUser: mocks.saveUser }));
-vi.mock('../../services/profileService', async (importOriginal) => {
+vi.mock('../../services/profileService', async importOriginal => {
   const actual = await importOriginal<typeof import('../../services/profileService')>();
   return { ...actual, ensureProfile: mocks.ensureProfile, saveProfileName: mocks.saveProfileName };
 });
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((res) => {
+  const promise = new Promise<T>(res => {
     resolve = res;
   });
   return { promise, resolve };
@@ -79,7 +79,9 @@ function AuthProbe() {
   const [error, setError] = useState('');
 
   const run = (action: () => Promise<void>) => {
-    void action().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)));
+    void action().catch((cause: unknown) =>
+      setError(cause instanceof Error ? cause.message : String(cause)),
+    );
   };
 
   return (
@@ -91,7 +93,10 @@ function AuthProbe() {
       <output data-testid="profileName">{auth.profile?.name ?? 'none'}</output>
       <output data-testid="profileLoading">{String(auth.profileLoading)}</output>
       <output data-testid="actionError">{error}</output>
-      <button type="button" onClick={() => run(() => auth.signup('New Name', 'new@example.com', 'password1'))}>
+      <button
+        type="button"
+        onClick={() => run(() => auth.signup('New Name', 'new@example.com', 'password1'))}
+      >
         signup
       </button>
       <button type="button" onClick={() => run(() => auth.login('user@example.com', 'password1'))}>
@@ -115,7 +120,10 @@ function AuthProbe() {
       <button type="button" onClick={() => run(() => auth.updateAvatar(null))}>
         clearAvatar
       </button>
-      <button type="button" onClick={() => run(() => auth.updateAvatar('data:image/png;base64,NEW'))}>
+      <button
+        type="button"
+        onClick={() => run(() => auth.updateAvatar('data:image/png;base64,NEW'))}
+      >
         setAvatar
       </button>
       <button type="button" onClick={() => auth.syncProfileLocally({ name: 'Local Name' })}>
@@ -129,7 +137,7 @@ function renderProvider() {
   return render(
     <AuthProvider>
       <AuthProbe />
-    </AuthProvider>
+    </AuthProvider>,
   );
 }
 
@@ -372,7 +380,9 @@ describe('AuthContext', () => {
     expect(value('avatarUrl')).toBe('https://example.test/provider.png');
 
     await user.click(screen.getByRole('button', { name: 'setAvatar' }));
-    await waitFor(() => expect(mocks.saveUser).toHaveBeenCalledWith('u1', { photoURL: 'data:image/png;base64,NEW' }));
+    await waitFor(() =>
+      expect(mocks.saveUser).toHaveBeenCalledWith('u1', { photoURL: 'data:image/png;base64,NEW' }),
+    );
     expect(value('avatarUrl')).toBe('data:image/png;base64,NEW');
     await expectNoViolations(container);
   });
@@ -408,7 +418,10 @@ describe('AuthContext', () => {
     ['auth/network-request-failed', 'Network error. Check your connection.'],
     ['auth/popup-closed-by-user', 'Google sign-in was cancelled.'],
     ['auth/cancelled-popup-request', 'Google sign-in was cancelled.'],
-    ['auth/popup-blocked', 'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.'],
+    [
+      'auth/popup-blocked',
+      'Your browser blocked the Google sign-in popup. Allow popups for this site and try again.',
+    ],
     [
       'auth/unauthorized-domain',
       'This domain is not authorized for Google sign-in. Add localhost (or 127.0.0.1) under Firebase Authentication > Settings > Authorized domains.',
@@ -426,9 +439,9 @@ describe('AuthContext', () => {
   });
 
   it('strips Firebase prefix and auth suffix from unknown errors', () => {
-    expect(firebaseErrorMessage({ message: 'Firebase: Something failed (auth/internal-error).' })).toBe(
-      'Something failed'
-    );
+    expect(
+      firebaseErrorMessage({ message: 'Firebase: Something failed (auth/internal-error).' }),
+    ).toBe('Something failed');
     expect(firebaseErrorMessage(null)).toBe('Something went wrong. Please try again.');
     expect(firebaseErrorMessage('plain failure')).toBe('plain failure');
   });

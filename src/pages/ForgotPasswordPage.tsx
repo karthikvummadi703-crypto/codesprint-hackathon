@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
                     required
                     placeholder="you@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     className="h-11"
                   />
                 </div>
@@ -68,7 +68,10 @@ export default function ForgotPasswordPage() {
                   Reset Password
                 </Button>
                 {error && (
-                  <div role="alert" className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700">
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2 rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700"
+                  >
                     <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                     <span>{error}</span>
                   </div>
@@ -84,13 +87,18 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="text-xl font-bold text-slate-900 mb-2">Check your email</h2>
               <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-                We have sent reset instructions to <span className="font-semibold text-slate-800">{email}</span>. Please check your inbox.
+                We have sent reset instructions to{' '}
+                <span className="font-semibold text-slate-800">{email}</span>. Please check your
+                inbox.
               </p>
             </div>
           )}
 
           <div className="mt-6 text-center border-t border-slate-100 pt-5">
-            <Link to="/login" className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700">
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-brand-600 hover:text-brand-700"
+            >
               <ArrowLeft className="h-4 w-4" /> Back to Sign In
             </Link>
           </div>

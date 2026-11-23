@@ -20,26 +20,29 @@ const state = vi.hoisted(() => ({
 }));
 
 const mocks = vi.hoisted(() => ({
-  fetchPredictions: vi.fn<
-    (params: {
-      lat?: number;
-      lon?: number;
-      city?: string;
-      days?: number;
-      force?: boolean;
-    }) => Promise<PredictionResponse>
-  >(),
-  fetchWeather: vi.fn<
-    (params: {
-      lat?: number;
-      lon?: number;
-      city?: string;
-      hours?: number;
-      days?: number;
-      force?: boolean;
-    }) => Promise<WeatherResponse>
-  >(),
-  listAirQualityRecords: vi.fn<(uid: string, max?: number) => Promise<{ lat?: number; lon?: number }[]>>(),
+  fetchPredictions:
+    vi.fn<
+      (params: {
+        lat?: number;
+        lon?: number;
+        city?: string;
+        days?: number;
+        force?: boolean;
+      }) => Promise<PredictionResponse>
+    >(),
+  fetchWeather:
+    vi.fn<
+      (params: {
+        lat?: number;
+        lon?: number;
+        city?: string;
+        hours?: number;
+        days?: number;
+        force?: boolean;
+      }) => Promise<WeatherResponse>
+    >(),
+  listAirQualityRecords:
+    vi.fn<(uid: string, max?: number) => Promise<{ lat?: number; lon?: number }[]>>(),
   savePredictions: vi.fn<(uid: string, predictions: PredictionForecast[]) => Promise<void>>(),
   setLocation: vi.fn<(loc: ActiveLocation) => void>(),
 }));
@@ -165,7 +168,7 @@ const weatherResponse: WeatherResponse = {
 
 async function expectAxeClean(container: HTMLElement, expectedViolationIds: string[] = []) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual(expectedViolationIds);
+  expect(results.violations.map(violation => violation.id)).toEqual(expectedViolationIds);
 }
 
 function renderPage() {
@@ -193,14 +196,18 @@ describe('PredictionsPage', () => {
     expect(await screen.findByText('80 → 130')).toBeInTheDocument();
     expect(screen.getByText('+50 (worsening)')).toBeInTheDocument();
     expect(screen.getByText('130', { selector: 'strong' })).toBeInTheDocument();
-    expect(screen.getByText(/This is a dispersion-model forecast, not an observation/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/This is a dispersion-model forecast, not an observation/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/90%/)).toBeInTheDocument();
     expect(screen.getByText('Avg Score')).toBeInTheDocument();
     expect(screen.getByText('Model forecast')).toBeInTheDocument();
     expect(screen.getByText('Sensitive groups should limit exertion')).toBeInTheDocument();
     expect(screen.getByText(/Worst point 13:00 at AQI 130/)).toBeInTheDocument();
     expect(screen.getByText(/Atmospheric dispersion model via Open-Meteo/)).toBeInTheDocument();
-    expect(screen.getByText(/Live observations and forecast from Open-Meteo, timezone UTC/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Live observations and forecast from Open-Meteo, timezone UTC/),
+    ).toBeInTheDocument();
     expect(screen.getByText('Meteorological conditions')).toBeInTheDocument();
     expect(screen.getByText(/From N/)).toBeInTheDocument();
     expect(screen.getByText(/weak winds trap pollution/)).toBeInTheDocument();
@@ -211,18 +218,16 @@ describe('PredictionsPage', () => {
     expect(screen.getByTestId('prediction-chart')).toHaveTextContent('2 points');
     expect(mocks.savePredictions).toHaveBeenCalledWith('user-1', [forecastNow, forecastLater]);
     expect(mocks.fetchPredictions).toHaveBeenCalledWith(
-      expect.objectContaining({ lat: 12.34, lon: 56.78, days: 5, force: false })
+      expect.objectContaining({ lat: 12.34, lon: 56.78, days: 5, force: false }),
     );
     expect(mocks.fetchWeather).toHaveBeenCalledWith(
-      expect.objectContaining({ lat: 12.34, lon: 56.78, hours: 24, days: 3, force: false })
+      expect.objectContaining({ lat: 12.34, lon: 56.78, hours: 24, days: 3, force: false }),
     );
     await expectAxeClean(container, ['heading-order']);
   });
 
   it('keeps the refresh control disabled while forecasts are loading', async () => {
-    mocks.fetchPredictions.mockReturnValue(
-      new Promise<PredictionResponse>(() => {})
-    );
+    mocks.fetchPredictions.mockReturnValue(new Promise<PredictionResponse>(() => {}));
     const { container } = renderPage();
 
     expect(screen.getByRole('button', { name: /Processing/ })).toBeDisabled();
@@ -246,7 +251,7 @@ describe('PredictionsPage', () => {
 
     expect(await screen.findByText('80 → 130')).toBeInTheDocument();
     expect(mocks.fetchPredictions).toHaveBeenLastCalledWith(
-      expect.objectContaining({ force: true })
+      expect.objectContaining({ force: true }),
     );
     await expectAxeClean(container, ['heading-order']);
   });
@@ -284,8 +289,12 @@ describe('PredictionsPage', () => {
     const { container } = renderPage();
 
     expect((await screen.findAllByText('Estimated')).length).toBeGreaterThan(0);
-    expect(screen.getByText(/This is an offline estimate, not a validated forecast/)).toBeInTheDocument();
-    expect(screen.getByText(/Offline estimate derived from the current reading/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/This is an offline estimate, not a validated forecast/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Offline estimate derived from the current reading/),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Model forecast')).not.toBeInTheDocument();
     await expectAxeClean(container, ['heading-order']);
   });
@@ -299,7 +308,7 @@ describe('PredictionsPage', () => {
     expect(await screen.findByText('80 → 130')).toBeInTheDocument();
     expect(mocks.listAirQualityRecords).toHaveBeenCalledWith('user-1', 1);
     expect(mocks.fetchPredictions).toHaveBeenCalledWith(
-      expect.objectContaining({ city: 'Nowhere', lat: 5, lon: 6 })
+      expect.objectContaining({ city: 'Nowhere', lat: 5, lon: 6 }),
     );
     await expectAxeClean(container, ['heading-order']);
   });

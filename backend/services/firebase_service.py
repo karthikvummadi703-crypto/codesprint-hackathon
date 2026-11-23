@@ -13,6 +13,7 @@ a key or a token arrives with an unknown `kid`.
 from __future__ import annotations
 
 import time
+from typing import Any
 
 import firebase_admin
 import jwt
@@ -45,7 +46,7 @@ async def _load_certs(force: bool = False) -> dict[str, str]:
         if isinstance(data, dict) and data:
             _certs = {str(k): str(v) for k, v in data.items()}
             _certs_fetched_at = now
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - keep cached certs on refresh failure
         log.warning("could not refresh Firebase signing certificates: %s", type(exc).__name__)
     return _certs
 
@@ -72,7 +73,7 @@ def _init_admin() -> bool:
             firebase_admin.initialize_app(cert, {"projectId": settings.firebase_project_id})
         _admin_initialized = True
         return True
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - admin init failure should disable admin path only
         log.error("Firebase Admin initialization failed: %s", type(exc).__name__)
         return False
 
@@ -81,7 +82,7 @@ def admin_initialized() -> bool:
     return _init_admin()
 
 
-def get_firestore():
+def get_firestore() -> Any:
     """Firestore client, or None when the Admin SDK is not configured."""
     global _firestore_client
     if not _init_admin():
@@ -89,7 +90,7 @@ def get_firestore():
     if _firestore_client is None:
         try:
             _firestore_client = firestore.client()
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - Firestore unavailable should degrade to None
             log.error("Firestore client unavailable: %s", type(exc).__name__)
             return None
     return _firestore_client
@@ -103,8 +104,9 @@ async def verify_id_token(token: str) -> str | None:
         def _verify() -> str | None:
             try:
                 decoded = auth.verify_id_token(token)
-                return decoded.get("uid")
-            except Exception:
+                uid = decoded.get("uid")
+                return uid if isinstance(uid, str) else None
+            except Exception:  # noqa: BLE001 - invalid token must be treated as unauthenticated
                 return None
 
         return await anyio.to_thread.run_sync(_verify)
@@ -118,7 +120,7 @@ async def _verify_with_public_keys(token: str) -> str | None:
         return None
     try:
         header = jwt.get_unverified_header(token)
-    except Exception:
+    except Exception:  # noqa: BLE001 - malformed token is invalid auth input
         return None
     kid = header.get("kid")
     if not kid:
@@ -142,7 +144,7 @@ async def _verify_with_public_keys(token: str) -> str | None:
             audience=project_id,
             issuer=f"https://securetoken.google.com/{project_id}",
         )
-    except Exception:
+    except Exception:  # noqa: BLE001 - invalid/expired token must not authenticate
         return None
 
     return payload.get("user_id") or payload.get("sub") or payload.get("uid")

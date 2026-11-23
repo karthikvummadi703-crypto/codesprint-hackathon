@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict, deque
+from collections.abc import Awaitable, Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -69,16 +70,16 @@ async def _identity(request: Request) -> str:
             from services.security import get_uid
 
             return f"uid:{await get_uid(request)}"
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - auth errors must not break rate-limit key resolution
             # The route will produce the precise auth error; for limiting, the
             # peer address is a sufficient fallback for an unverified caller.
-            pass
+            log.debug("rate limit uid resolution failed: %s", type(exc).__name__)
     client = request.client
     return f"ip:{client.host if client else 'unknown'}"
 
 
 class TimingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         started = time.perf_counter()
         response: Response = await call_next(request)
         elapsed_ms = int((time.perf_counter() - started) * 1000)
@@ -95,7 +96,7 @@ class TimingMiddleware(BaseHTTPMiddleware):
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         settings = get_settings()
         path = request.url.path
         if not settings.rate_limit_enabled or not path.startswith("/api/") or request.method == "OPTIONS":

@@ -6,7 +6,7 @@ and the AI assistant share a single upstream call and a single set of numbers.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -57,7 +57,7 @@ async def get_weather(
     # place would permanently shorten the series every later caller sees, and
     # a smaller `hours` request would poison a larger one for the whole TTL.
     payload = {**cached, "hourly": list(cached.get("hourly", []))[:hours]}
-    payload["timestamp"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    payload["timestamp"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     return WeatherResponse(**payload)
 
 
@@ -96,5 +96,5 @@ async def get_weather_summary(
         "current": current,
         "daily": (payload.get("daily") or [])[:days],
         "source": payload.get("source", weather_service.SOURCE),
-        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "timestamp": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
     }

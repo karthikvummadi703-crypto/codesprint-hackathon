@@ -1,11 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { clearResponseCache } from '../apiClient';
-import {
-  deleteRagFile,
-  sendChatMessage,
-  uploadDocumentForRag,
-} from '../backendService';
+import { deleteRagFile, sendChatMessage, uploadDocumentForRag } from '../backendService';
 
 const mocks = vi.hoisted(() => ({
   getAppToken: vi.fn(),
@@ -86,7 +82,7 @@ describe('sendChatMessage transport', () => {
   it('carries exactly the document id chosen for the message', async () => {
     await sendChatMessage('Read this', { documentIds: ['rag-9'] });
 
-    expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toMatchObject({
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]?.body as string)).toMatchObject({
       message: 'Read this',
       documentIds: ['rag-9'],
     });
@@ -98,7 +94,12 @@ describe('uploadDocumentForRag transport', () => {
 
   it('uploads multipart data and returns the indexing result', async () => {
     fetchMock.mockResolvedValue(
-      jsonResponse({ fileId: 'rag-1', fileName: 'report.txt', chunkCount: 2, textPreview: 'report' })
+      jsonResponse({
+        fileId: 'rag-1',
+        fileName: 'report.txt',
+        chunkCount: 2,
+        textPreview: 'report',
+      }),
     );
 
     await expect(uploadDocumentForRag(file())).resolves.toEqual({
@@ -108,7 +109,7 @@ describe('uploadDocumentForRag transport', () => {
       textPreview: 'report',
     });
 
-    const [url, init] = fetchMock.mock.calls[0];
+    const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe('https://transport.example.test/api/rag/upload');
     expect(init?.method).toBe('POST');
     expect(init?.headers).toEqual({ Authorization: 'Bearer token-42' });
@@ -120,7 +121,7 @@ describe('uploadDocumentForRag transport', () => {
 
     await uploadDocumentForRag(file());
 
-    expect(fetchMock.mock.calls[0][1]?.headers).toEqual({});
+    expect(fetchMock.mock.calls[0]![1]?.headers).toEqual({});
   });
 
   it('can retry an upload after a validation failure', async () => {
@@ -148,7 +149,7 @@ describe('deleteRagFile transport', () => {
     await expect(deleteRagFile('my folder/report.pdf')).resolves.toBeUndefined();
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0];
+    const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe('https://transport.example.test/api/rag/files/my%20folder%2Freport.pdf');
     expect(init?.method).toBe('DELETE');
     expect(init?.headers).toEqual({ Authorization: 'Bearer token-42' });

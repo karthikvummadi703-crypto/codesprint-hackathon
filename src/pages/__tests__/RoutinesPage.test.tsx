@@ -8,10 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLocation } from '../../context/LocationContext';
 import { fetchAQI, searchLocations } from '../../services/backendService';
 import { getLifestyleSettings, saveLifestyleSettings } from '../../services/dataService';
-import {
-  buildDailyRoutines,
-  isWinterSmogSeason,
-} from '../../services/lifestyleService';
+import { buildDailyRoutines, isWinterSmogSeason } from '../../services/lifestyleService';
 import type { DailyRoutine } from '../../types';
 
 vi.mock('../../context/AuthContext', () => ({ useAuth: vi.fn() }));
@@ -20,7 +17,7 @@ vi.mock('../../context/LocationContext', () => ({
   toLocationParams: vi.fn((place: { name: string; latitude?: number; longitude?: number }) =>
     typeof place.latitude === 'number' && typeof place.longitude === 'number'
       ? { lat: place.latitude, lon: place.longitude }
-      : { city: place.name }
+      : { city: place.name },
   ),
 }));
 vi.mock('../../services/backendService', () => ({
@@ -31,7 +28,7 @@ vi.mock('../../services/dataService', () => ({
   getLifestyleSettings: vi.fn(),
   saveLifestyleSettings: vi.fn(),
 }));
-vi.mock('../../services/lifestyleService', async (importOriginal) => {
+vi.mock('../../services/lifestyleService', async importOriginal => {
   const actual = await importOriginal<typeof import('../../services/lifestyleService')>();
   return {
     ...actual,
@@ -63,7 +60,7 @@ const routines: DailyRoutine[] = [
 
 async function expectAxeViolationIds(container: HTMLElement, expected: string[] = []) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual(expected);
+  expect(results.violations.map(violation => violation.id)).toEqual(expected);
 }
 
 beforeEach(() => {
@@ -97,10 +94,10 @@ describe('RoutinesPage', () => {
         { id: 'p1', name: 'School', latitude: 11.1, longitude: 22.2, label: 'School gate' },
       ],
     });
-    vi.mocked(fetchAQI).mockImplementation(async (params) =>
+    vi.mocked(fetchAQI).mockImplementation(async params =>
       'lat' in params
         ? { aqi: 130, status: 'Unhealthy for Sensitive Groups' }
-        : { aqi: 88, status: 'Moderate' }
+        : { aqi: 88, status: 'Moderate' },
     );
 
     const { container } = render(<RoutinesPage />);
@@ -120,7 +117,7 @@ describe('RoutinesPage', () => {
         aqi: 88,
         status: 'Moderate',
         household: { members: [{ id: 'm1', name: 'Riya', kind: 'child' }] },
-      })
+      }),
     );
     await expectAxeViolationIds(container);
   });
@@ -132,7 +129,7 @@ describe('RoutinesPage', () => {
     const { container } = render(<RoutinesPage />);
 
     expect(
-      await screen.findByText(/No live reading is available for Test City/)
+      await screen.findByText(/No live reading is available for Test City/),
     ).toBeInTheDocument();
     expect(screen.getByText('No members yet. Add the people you plan for.')).toBeInTheDocument();
     expect(screen.getByText('No places saved yet.')).toBeInTheDocument();
@@ -155,7 +152,7 @@ describe('RoutinesPage', () => {
     expect(buildDailyRoutines).toHaveBeenCalledWith(
       expect.objectContaining({
         household: { members: [expect.objectContaining({ name: 'Arjun', kind: 'respiratory' })] },
-      })
+      }),
     );
 
     await testUser.click(screen.getByRole('button', { name: 'Remove Arjun from household' }));
@@ -197,9 +194,9 @@ describe('RoutinesPage', () => {
     let resolveSave: (value: void) => void = () => {};
     vi.mocked(saveLifestyleSettings).mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
+        new Promise<void>(resolve => {
           resolveSave = resolve;
-        })
+        }),
     );
     const testUser = userEvent.setup();
     const { container } = render(<RoutinesPage />);
@@ -221,7 +218,7 @@ describe('RoutinesPage', () => {
         communityWatch: [],
         routines,
         routinePromptContext: expect.stringContaining('Filter the main room'),
-      })
+      }),
     );
   });
 

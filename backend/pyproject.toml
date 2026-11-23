@@ -1,0 +1,74 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["."]
+
+[tool.ruff.lint]
+select = [
+  "E",     # pycodestyle errors
+  "W",     # pycodestyle warnings
+  "F",     # pyflakes
+  "I",     # isort
+  "UP",    # pyupgrade
+  "B",     # flake8-bugbear
+  "C4",    # flake8-comprehensions
+  "PT",    # flake8-pytest-style
+  "ASYNC", # flake8-async
+  "PERF",  # perflint
+  "RUF",   # ruff-specific
+  "ARG",   # flake8-unused-arguments
+  "S",     # flake8-bandit (security)
+  "C90",   # mccabe complexity
+  "BLE",   # blind-except
+  "DTZ",   # datetimez
+  "FLY",   # flynt
+  "ISC",   # implicit string concat
+]
+ignore = [
+  "E501", # existing long-line debt; behavior-preserving refactor avoids churn
+  "S101", # pytest uses assert statements
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+  "ARG001", # pytest fixtures/monkeypatch signatures may be unused
+  "ARG002", # pytest hook/fixture signatures may be unused
+  "ARG005", # lambda placeholders in tests
+  "S105",   # test fixtures may contain non-secret tokens
+  "S106",   # test fixtures may contain non-secret tokens
+  "S311",   # deterministic RNG in tests is acceptable
+]
+"services/**/__init__.py" = [
+  "F401",   # facade re-exports are intentional
+  "RUF022", # __all__ kept in grouped order for readability
+]
+"services/firebase_service.py" = [
+  "S310", # fixed Google cert URL, not user input
+]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["api", "services", "cache.py", "config.py", "errors.py", "http_client.py", "logging_config.py", "main.py", "middleware.py", "schemas.py", "schemas_air.py", "schemas_carbon.py", "schemas_chat.py", "schemas_common.py", "schemas_weather.py"]
+exclude = '(?x)(^\.venv/|^\.mypy_cache/|^\.ruff_cache/|^__pycache__/|^\.pytest_cache/|^\.hypothesis/|^data/|^tests/)'
+disallow_untyped_defs = true
+warn_return_any = true
+strict_equality = true
+check_untyped_defs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+  "firebase_admin",
+  "firebase_admin.*",
+  "google.cloud",
+  "google.cloud.*",
+  "PyPDF2",
+  "PyPDF2.*",
+]
+ignore_missing_imports = true

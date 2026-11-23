@@ -73,7 +73,7 @@ class TestDevTokenGate:
         assert client.get("/api/health").status_code == 200
 
     def test_public_environment_routes_need_no_token(self, monkeypatch):
-        import services.geocoding_service as geocoding_service
+        from services import geocoding_service
 
         async def _no_places(*_args, **_kwargs):
             return []
@@ -237,9 +237,8 @@ class TestErrorHandling:
 
     def test_server_error_detail_is_not_leaked(self, monkeypatch):
         """An unexpected crash must not return its message to the client."""
-        import main as backend_main
-
         import api.weather as weather_router
+        import main as backend_main
 
         async def boom(*args, **kwargs):
             raise RuntimeError("internal detail /secret/path")
@@ -255,11 +254,9 @@ class TestErrorHandling:
         assert response.json()["detail"] == "Internal server error."
 
     def test_provider_failure_returns_service_unavailable(self, monkeypatch):
-        import main as backend_main
-
-        from http_client import ProviderError
-
         import api.weather as weather_router
+        import main as backend_main
+        from http_client import ProviderError
 
         async def down(*args, **kwargs):
             raise ProviderError("open-meteo", "connection refused")

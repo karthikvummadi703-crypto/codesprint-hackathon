@@ -8,6 +8,7 @@ install:
 	python -m pip install -r backend/requirements.txt
 
 frontend-checks:
+	npm run format:check
 	npm run lint
 	npm run typecheck
 	npm test
@@ -29,5 +30,6 @@ coverage: coverage-frontend coverage-backend
 all: frontend-checks backend-checks coverage
 
 fix:
+	npm run format
 	npm run lint:fix
 	cd backend && python -m ruff check --fix .

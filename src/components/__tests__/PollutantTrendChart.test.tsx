@@ -28,7 +28,11 @@ vi.mock('recharts', () => ({
   ),
   LineChart: ({ children, data }: MockProps) => {
     mocks.lineChart({ data });
-    return <div data-testid="line-chart" data-point-count={data?.length ?? 0}>{children}</div>;
+    return (
+      <div data-testid="line-chart" data-point-count={data?.length ?? 0}>
+        {children}
+      </div>
+    );
   },
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   XAxis: (props: MockProps) => {
@@ -55,7 +59,7 @@ const data: HistoricalDataPoint[] = [
 ];
 
 function lineKeys() {
-  return screen.getAllByTestId('line').map((node) => node.getAttribute('data-key'));
+  return screen.getAllByTestId('line').map(node => node.getAttribute('data-key'));
 }
 
 describe('PollutantTrendChart', () => {
@@ -75,7 +79,9 @@ describe('PollutantTrendChart', () => {
     expect(screen.getByTestId('line-chart')).toHaveAttribute('data-point-count', '2');
     expect(mocks.lineChart).toHaveBeenCalledWith({ data });
     expect(mocks.xAxis).toHaveBeenCalledWith(expect.objectContaining({ dataKey: 'time' }));
-    expect(mocks.tooltip).toHaveBeenCalledWith(expect.objectContaining({ contentStyle: expect.any(Object) }));
+    expect(mocks.tooltip).toHaveBeenCalledWith(
+      expect.objectContaining({ contentStyle: expect.any(Object) }),
+    );
 
     const results = await axe(container);
     expect(results.violations).toEqual([]);

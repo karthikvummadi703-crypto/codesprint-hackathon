@@ -115,7 +115,10 @@ See `.env.example` and `backend/.env.example` for the full annotated lists.
 | `npm run typecheck` | Run TypeScript checks without emitting files |
 | `npm run lint` | Run ESLint |
 | `npm run lint:fix` | Fix ESLint issues where possible |
+| `npm run format` | Format frontend source and config files with Prettier |
+| `npm run format:check` | Check Prettier formatting without writing |
 | `npm test` | Run frontend unit and accessibility tests once |
+| `npm run test:coverage` | Run frontend tests with enforced V8 coverage thresholds |
 | `npm run test:watch` | Run frontend tests in watch mode |
 | `npm run test:backend` | Run backend pytest suite |
 
@@ -123,11 +126,15 @@ See `.env.example` and `backend/.env.example` for the full annotated lists.
 
 Current verified results:
 
+- `npm run format:check`: clean
 - `npm run lint`: clean
 - `npm run typecheck`: clean
-- `npm test`: 5 files, 49 tests passed
+- `npm test`: 41 files, 436 tests passed
+- `npm run test:coverage`: thresholds passed (statements 92.89%, branches 83.55%, functions 90.94%, lines 94.63%)
 - `npm run build`: successful, no chunk-size warning
-- Backend pytest: 241 passed, 9 deselected
+- Backend `ruff check .`: clean
+- Backend `mypy .`: clean (52 source files)
+- Backend pytest: 562 passed, 9 deselected; coverage 94.68% (threshold 92%)
 - `npm audit --omit=dev`: 0 vulnerabilities
 - `npm audit`: 0 vulnerabilities
 

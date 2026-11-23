@@ -15,7 +15,7 @@ describe('core UI accessibility', () => {
         <Button type="button" aria-label="Use my current location">
           <span aria-hidden="true">◎</span>
         </Button>
-      </form>
+      </form>,
     );
 
     expect(screen.getByRole('textbox', { name: 'City' })).toBeInTheDocument();
@@ -29,10 +29,10 @@ describe('core UI accessibility', () => {
     const { container } = render(
       <button type="button">
         <span aria-hidden="true">×</span>
-      </button>
+      </button>,
     );
 
     const results = await axe(container);
-    expect(results.violations.map((v) => v.id)).toContain('button-name');
+    expect(results.violations.map(v => v.id)).toContain('button-name');
   });
 });

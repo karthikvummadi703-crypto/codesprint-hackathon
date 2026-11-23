@@ -32,8 +32,8 @@ export function isWinterSmogSeason(now: Date = new Date()): boolean {
 export function hasSensitiveMembers(household: HouseholdProfile | null): boolean {
   return Boolean(
     household?.members.some(
-      (m) => m.kind === 'child' || m.kind === 'senior' || m.kind === 'respiratory'
-    )
+      m => m.kind === 'child' || m.kind === 'senior' || m.kind === 'respiratory',
+    ),
   );
 }
 
@@ -47,7 +47,7 @@ const MEMBER_LABELS: Record<HouseholdMember['kind'], string> = {
 export function describeHousehold(household: HouseholdProfile | null): string {
   const members = household?.members ?? [];
   if (members.length === 0) return 'No household members recorded yet.';
-  return members.map((m) => `${m.name} (${MEMBER_LABELS[m.kind]})`).join(', ');
+  return members.map(m => `${m.name} (${MEMBER_LABELS[m.kind]})`).join(', ');
 }
 
 /**
@@ -74,7 +74,8 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
     detail: severe
       ? 'Keep windows closed during rush hours and open them briefly only when outdoor air is cleaner.'
       : 'Air the home for 5–10 minutes in the early morning, away from traffic peaks.',
-    impact: 'Reduces the amount of outdoor PM2.5 that settles indoors, without eliminating useful ventilation.',
+    impact:
+      'Reduces the amount of outdoor PM2.5 that settles indoors, without eliminating useful ventilation.',
     priority: severe ? 'high' : 'medium',
   });
 
@@ -84,7 +85,8 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
     category: 'indoor-air',
     detail:
       'Use a HEPA purifier sized for the room, or a DIY box-fan filter, and replace filters on schedule.',
-    impact: 'A correctly sized HEPA filter removes most fine particles from the room air you breathe for hours.',
+    impact:
+      'A correctly sized HEPA filter removes most fine particles from the room air you breathe for hours.',
     priority: severe || sensitive ? 'high' : 'medium',
   });
 
@@ -92,8 +94,10 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
     id: 'indoor-cooking',
     title: 'Ventilate cooking without pulling in smog',
     category: 'indoor-air',
-    detail: 'Use a range hood vented outdoors, cook on lower heat, and avoid frying during pollution peaks.',
-    impact: 'Cooking is a major indoor particle source; capturing it at the source avoids adding to outdoor pollution.',
+    detail:
+      'Use a range hood vented outdoors, cook on lower heat, and avoid frying during pollution peaks.',
+    impact:
+      'Cooking is a major indoor particle source; capturing it at the source avoids adding to outdoor pollution.',
     priority: 'medium',
   });
 
@@ -124,7 +128,8 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
     title: 'Shift errands away from traffic peaks',
     category: 'low-emission',
     detail: 'Combine errands into one trip and travel after rush hour where possible.',
-    impact: 'Fewer cold starts and less time idling means lower tailpipe emissions in your own neighbourhood.',
+    impact:
+      'Fewer cold starts and less time idling means lower tailpipe emissions in your own neighbourhood.',
     priority: 'medium',
   });
 
@@ -142,8 +147,10 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
       id: 'outdoor-timing',
       title: 'Move strenuous activity indoors',
       category: 'outdoor-timing',
-      detail: 'Reschedule outdoor exercise to a cleaner part of the day or choose an indoor session.',
-      impact: 'Lower exertion means a smaller inhaled dose of fine particles during the worst hours.',
+      detail:
+        'Reschedule outdoor exercise to a cleaner part of the day or choose an indoor session.',
+      impact:
+        'Lower exertion means a smaller inhaled dose of fine particles during the worst hours.',
       priority: 'high',
     });
   } else {
@@ -151,7 +158,8 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
       id: 'outdoor-timing',
       title: 'Choose a cleaner exercise window',
       category: 'outdoor-timing',
-      detail: 'Check the hourly outlook before heading out; windier or post-rain hours are usually cleaner.',
+      detail:
+        'Check the hourly outlook before heading out; windier or post-rain hours are usually cleaner.',
       impact: 'Keeps the health benefits of outdoor activity while reducing particle exposure.',
       priority: 'low',
     });
@@ -172,8 +180,10 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
       id: 'winter-mask',
       title: 'Carry a well-fitting mask for unavoidable outdoor time',
       category: 'winter-smog',
-      detail: 'Use a properly fitted FFP2/N95 mask on severe smog days, especially for commute and queues.',
-      impact: 'A good seal reduces inhaled particles; a loose cloth mask provides far less protection.',
+      detail:
+        'Use a properly fitted FFP2/N95 mask on severe smog days, especially for commute and queues.',
+      impact:
+        'A good seal reduces inhaled particles; a loose cloth mask provides far less protection.',
       priority: verySevere ? 'high' : 'medium',
     });
   }
@@ -183,8 +193,10 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
       id: 'winter-warm-air',
       title: 'Keep warm without dry indoor air',
       category: 'winter-smog',
-      detail: 'Heat the room you use most and keep humidity in range rather than overheating the whole home.',
-      impact: 'Warm, conditioned air reduces cold-air triggers for breathing conditions while limiting energy use.',
+      detail:
+        'Heat the room you use most and keep humidity in range rather than overheating the whole home.',
+      impact:
+        'Warm, conditioned air reduces cold-air triggers for breathing conditions while limiting energy use.',
       priority: 'medium',
     });
   }
@@ -194,8 +206,10 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
       id: 'household-check',
       title: 'Check in with sensitive household members',
       category: 'household',
-      detail: 'Ask about symptoms, keep medication and a mask ready, and shorten exertion for those affected.',
-      impact: 'Children, older adults and people with breathing conditions feel particle exposure first; early action prevents escalation.',
+      detail:
+        'Ask about symptoms, keep medication and a mask ready, and shorten exertion for those affected.',
+      impact:
+        'Children, older adults and people with breathing conditions feel particle exposure first; early action prevents escalation.',
       priority: 'high',
     });
   }
@@ -204,7 +218,8 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
     id: 'household-plan',
     title: 'Agree a shared household plan',
     category: 'household',
-    detail: 'Tell everyone where the purifier, masks and medication are and what to do on a severe-smog day.',
+    detail:
+      'Tell everyone where the purifier, masks and medication are and what to do on a severe-smog day.',
     impact: 'A known plan removes delays when outdoor air suddenly deteriorates.',
     priority: 'medium',
   });
@@ -213,12 +228,17 @@ export function buildDailyRoutines(context: RoutineContext): DailyRoutine[] {
   return routines.sort((a, b) => order[a.priority] - order[b.priority]);
 }
 
-export function routinesToPromptContext(routines: DailyRoutine[], household: HouseholdProfile | null): string {
+export function routinesToPromptContext(
+  routines: DailyRoutine[],
+  household: HouseholdProfile | null,
+): string {
   if (routines.length === 0 && !household) return '';
   const lines = [
     'Household and daily routine context (user-provided; not measured):',
     `Household: ${describeHousehold(household)}`,
-    ...routines.map((r) => `- ${r.title} [${r.category}, ${r.priority}]: ${r.detail} Impact: ${r.impact}`),
+    ...routines.map(
+      r => `- ${r.title} [${r.category}, ${r.priority}]: ${r.detail} Impact: ${r.impact}`,
+    ),
   ];
   return lines.join('\n');
 }

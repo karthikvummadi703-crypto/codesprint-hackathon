@@ -5,6 +5,7 @@ Run locally with:  uvicorn main:app --reload --port 8001
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -14,7 +15,7 @@ load_dotenv()
 from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
-from api import air, ai, carbon, geocode, health, rag, weather  # noqa: E402
+from api import ai, air, carbon, geocode, health, rag, weather  # noqa: E402
 from config import describe_configuration, get_settings  # noqa: E402
 from errors import register_exception_handlers  # noqa: E402
 from http_client import close_client  # noqa: E402
@@ -25,7 +26,7 @@ log = get_logger("airguard.main")
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     setup_logging(settings.log_level)
     log.info("AirGuard AI backend starting in %s", settings.environment)

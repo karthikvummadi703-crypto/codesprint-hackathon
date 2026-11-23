@@ -13,9 +13,7 @@ const config = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-export const isFirebaseConfigured = Boolean(
-  config.apiKey && config.projectId && config.appId
-);
+export const isFirebaseConfigured = Boolean(config.apiKey && config.projectId && config.appId);
 
 /**
  * Backend origin.
@@ -32,7 +30,8 @@ const DEV_API_BASE_URL = 'http://127.0.0.1:8001';
 const PROD_API_BASE_URL = '';
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? PROD_API_BASE_URL : DEV_API_BASE_URL);
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? PROD_API_BASE_URL : DEV_API_BASE_URL);
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;

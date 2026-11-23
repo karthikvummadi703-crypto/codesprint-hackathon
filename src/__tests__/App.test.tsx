@@ -57,7 +57,7 @@ vi.mock('../services/authService', () => ({
 
 vi.mock('../services/apiClient', () => ({ clearResponseCache: mocks.clearResponseCache }));
 vi.mock('../services/dataService', () => ({ getUser: mocks.getUser, saveUser: mocks.saveUser }));
-vi.mock('../services/profileService', async (importOriginal) => {
+vi.mock('../services/profileService', async importOriginal => {
   const actual = await importOriginal<typeof import('../services/profileService')>();
   return { ...actual, ensureProfile: mocks.ensureProfile, saveProfileName: mocks.saveProfileName };
 });
@@ -68,7 +68,9 @@ vi.mock('../services/backendService', () => ({
 
 vi.mock('../pages/DashboardPage', async () => {
   const { createElement } = await import('react');
-  return { default: () => createElement('section', { 'data-testid': 'page-dashboard' }, 'Dashboard page') };
+  return {
+    default: () => createElement('section', { 'data-testid': 'page-dashboard' }, 'Dashboard page'),
+  };
 });
 vi.mock('../pages/AIAssistantPage', async () => {
   const { createElement } = await import('react');
@@ -76,23 +78,34 @@ vi.mock('../pages/AIAssistantPage', async () => {
 });
 vi.mock('../pages/PredictionsPage', async () => {
   const { createElement } = await import('react');
-  return { default: () => createElement('section', { 'data-testid': 'page-predictions' }, 'Predictions page') };
+  return {
+    default: () =>
+      createElement('section', { 'data-testid': 'page-predictions' }, 'Predictions page'),
+  };
 });
 vi.mock('../pages/CarbonFootprintPage', async () => {
   const { createElement } = await import('react');
-  return { default: () => createElement('section', { 'data-testid': 'page-carbon' }, 'Carbon page') };
+  return {
+    default: () => createElement('section', { 'data-testid': 'page-carbon' }, 'Carbon page'),
+  };
 });
 vi.mock('../pages/SettingsPage', async () => {
   const { createElement } = await import('react');
-  return { default: () => createElement('section', { 'data-testid': 'page-settings' }, 'Settings page') };
+  return {
+    default: () => createElement('section', { 'data-testid': 'page-settings' }, 'Settings page'),
+  };
 });
 vi.mock('../pages/WeatherReportPage', async () => {
   const { createElement } = await import('react');
-  return { default: () => createElement('section', { 'data-testid': 'page-weather' }, 'Weather page') };
+  return {
+    default: () => createElement('section', { 'data-testid': 'page-weather' }, 'Weather page'),
+  };
 });
 vi.mock('../pages/RoutinesPage', async () => {
   const { createElement } = await import('react');
-  return { default: () => createElement('section', { 'data-testid': 'page-routines' }, 'Routines page') };
+  return {
+    default: () => createElement('section', { 'data-testid': 'page-routines' }, 'Routines page'),
+  };
 });
 
 const signedInUser: AppUser = {
@@ -124,7 +137,7 @@ async function signIn(user: AppUser | null = signedInUser) {
 
 async function expectAxeViolations(container: HTMLElement, expectedIds: string[] = []) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual(expectedIds);
+  expect(results.violations.map(violation => violation.id)).toEqual(expectedIds);
 }
 
 describe('App routing and guards', () => {
@@ -149,7 +162,9 @@ describe('App routing and guards', () => {
     mocks.ensureProfile.mockReset().mockResolvedValue({ name: 'Display Name' });
     mocks.saveProfileName.mockReset().mockResolvedValue(undefined);
     mocks.searchLocations.mockReset().mockResolvedValue([]);
-    mocks.reverseGeocode.mockReset().mockResolvedValue({ name: 'Delhi', region: 'Delhi', country: 'India' });
+    mocks.reverseGeocode
+      .mockReset()
+      .mockResolvedValue({ name: 'Delhi', region: 'Delhi', country: 'India' });
     localStorage.clear();
   });
 
@@ -205,7 +220,9 @@ describe('App routing and guards', () => {
     await signIn();
 
     await waitFor(() => expect(window.location.pathname).toBe('/dashboard'));
-    expect(screen.getByRole('heading', { level: 1, name: 'Where should we measure?' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Where should we measure?' }),
+    ).toBeInTheDocument();
     await expectAxeViolations(container);
   });
 
@@ -214,7 +231,9 @@ describe('App routing and guards', () => {
 
     await signIn();
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Where should we measure?' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Where should we measure?' }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Skip to main content' })).not.toBeInTheDocument();
     expect(mocks.searchLocations).not.toHaveBeenCalled();
     expect(mocks.fetch).not.toHaveBeenCalled();
@@ -241,7 +260,9 @@ describe('App routing and guards', () => {
 
     expect(screen.getByRole('link', { name: 'Skip to main content' })).toBeInTheDocument();
     expect(await screen.findByTestId('page-dashboard')).toBeInTheDocument();
-    expect(JSON.parse(localStorage.getItem('airguard_active_location') ?? '{}')).toMatchObject({ name: 'Delhi' });
+    expect(JSON.parse(localStorage.getItem('airguard_active_location') ?? '{}')).toMatchObject({
+      name: 'Delhi',
+    });
     await expectAxeViolations(container);
   });
 
@@ -253,8 +274,13 @@ describe('App routing and guards', () => {
 
     expect(await screen.findByTestId('page-dashboard')).toBeInTheDocument();
     await waitFor(() => expect(window.location.pathname).toBe('/dashboard'));
-    expect(screen.getByRole('link', { name: 'Skip to main content' })).toHaveAttribute('href', '#main-content');
-    expect(within(screen.getByRole('navigation')).getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Skip to main content' })).toHaveAttribute(
+      'href',
+      '#main-content',
+    );
+    expect(
+      within(screen.getByRole('navigation')).getByRole('link', { name: 'Dashboard' }),
+    ).toBeInTheDocument();
     await expectAxeViolations(container);
   });
 

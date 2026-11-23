@@ -13,16 +13,17 @@ const state = vi.hoisted(() => ({
 }));
 
 const mocks = vi.hoisted(() => ({
-  fetchWeather: vi.fn<
-    (params: {
-      lat?: number;
-      lon?: number;
-      city?: string;
-      hours?: number;
-      days?: number;
-      force?: boolean;
-    }) => Promise<WeatherResponse>
-  >(),
+  fetchWeather:
+    vi.fn<
+      (params: {
+        lat?: number;
+        lon?: number;
+        city?: string;
+        hours?: number;
+        days?: number;
+        force?: boolean;
+      }) => Promise<WeatherResponse>
+    >(),
 }));
 
 vi.mock('../../services/backendService', () => ({
@@ -119,7 +120,7 @@ const weatherResponse: WeatherResponse = {
 
 async function expectAxeClean(container: HTMLElement) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual([]);
+  expect(results.violations.map(violation => violation.id)).toEqual([]);
 }
 
 function renderPage() {
@@ -160,7 +161,7 @@ describe('WeatherReportPage', () => {
     expect(screen.getByText('Sunrise')).toBeInTheDocument();
     expect(screen.getByText('Sunset')).toBeInTheDocument();
     expect(mocks.fetchWeather).toHaveBeenCalledWith(
-      expect.objectContaining({ lat: 12.34, lon: 56.78, hours: 24, days: 7, force: false })
+      expect.objectContaining({ lat: 12.34, lon: 56.78, hours: 24, days: 7, force: false }),
     );
     await expectAxeClean(container);
   });
@@ -188,9 +189,7 @@ describe('WeatherReportPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Refresh' }));
 
     expect(await screen.findByText('Current Conditions')).toBeInTheDocument();
-    expect(mocks.fetchWeather).toHaveBeenLastCalledWith(
-      expect.objectContaining({ force: true })
-    );
+    expect(mocks.fetchWeather).toHaveBeenLastCalledWith(expect.objectContaining({ force: true }));
     await expectAxeClean(container);
   });
 

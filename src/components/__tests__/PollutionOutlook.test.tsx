@@ -44,7 +44,7 @@ function forecast(offset: number, aqi: number, status: AQIStatus = 'Moderate'): 
 
 function deferred<T>() {
   let resolveValue: (value: T) => void = () => undefined;
-  const promise = new Promise<T>((resolve) => {
+  const promise = new Promise<T>(resolve => {
     resolveValue = resolve;
   });
   return { promise, resolve: resolveValue };
@@ -57,7 +57,7 @@ function renderOutlook(overrides: Partial<ActiveLocation> = {}) {
       aqi={112}
       status="Unhealthy for Sensitive Groups"
       activeLocation={{ ...activeLocation, ...overrides }}
-    />
+    />,
   );
 }
 
@@ -94,7 +94,10 @@ describe('PollutionOutlook', () => {
     const { container } = renderOutlook();
 
     expect(await screen.findByText('Model forecast')).toBeInTheDocument();
-    expect(screen.getByText('Model forecast')).toHaveAttribute('title', 'Dispersion model from provider');
+    expect(screen.getByText('Model forecast')).toHaveAttribute(
+      'title',
+      'Dispersion model from provider',
+    );
     expect(screen.getByText('Next hours')).toBeInTheDocument();
     expect(screen.queryByText('Next 8 hours')).not.toBeInTheDocument();
     expect(screen.getByText(/Dispersion-model values, not measurements/)).toBeInTheDocument();
@@ -104,7 +107,14 @@ describe('PollutionOutlook', () => {
     expect(screen.queryByText('+9h')).not.toBeInTheDocument();
     expect(screen.getByText('28.614, 77.209')).toBeInTheDocument();
     expect(screen.getByText('Single-point reading')).toBeInTheDocument();
-    for (const label of ['Good', 'Moderate', 'Unhealthy (SG)', 'Unhealthy', 'Very Unhealthy', 'Hazardous']) {
+    for (const label of [
+      'Good',
+      'Moderate',
+      'Unhealthy (SG)',
+      'Unhealthy',
+      'Very Unhealthy',
+      'Hazardous',
+    ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
 
@@ -168,12 +178,14 @@ describe('PollutionOutlook', () => {
       note: '',
     });
     const { rerender } = renderOutlook();
-    await waitFor(() => expect(mocks.fetchPredictions).toHaveBeenCalledWith({
-      lat: 28.6139,
-      lon: 77.209,
-      city: undefined,
-      days: 1,
-    }));
+    await waitFor(() =>
+      expect(mocks.fetchPredictions).toHaveBeenCalledWith({
+        lat: 28.6139,
+        lon: 77.209,
+        city: undefined,
+        days: 1,
+      }),
+    );
 
     rerender(
       <PollutionOutlook
@@ -181,15 +193,17 @@ describe('PollutionOutlook', () => {
         aqi={40}
         status="Good"
         activeLocation={{ name: 'Pune' }}
-      />
+      />,
     );
 
-    await waitFor(() => expect(mocks.fetchPredictions).toHaveBeenLastCalledWith({
-      lat: undefined,
-      lon: undefined,
-      city: 'Pune',
-      days: 1,
-    }));
+    await waitFor(() =>
+      expect(mocks.fetchPredictions).toHaveBeenLastCalledWith({
+        lat: undefined,
+        lon: undefined,
+        city: 'Pune',
+        days: 1,
+      }),
+    );
     expect(mocks.fetchPredictions).toHaveBeenCalledTimes(2);
     expect(screen.getByText('18.520, 73.860')).toBeInTheDocument();
     expect(screen.getByText('Pune')).toBeInTheDocument();
@@ -211,7 +225,7 @@ describe('PollutionOutlook', () => {
         aqi={aqi}
         status={status}
         activeLocation={activeLocation}
-      />
+      />,
     );
 
     expect(await screen.findByText('No outlook available')).toBeInTheDocument();

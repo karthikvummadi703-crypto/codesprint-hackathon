@@ -20,12 +20,12 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from types import SimpleNamespace
 
-import cache
-import middleware
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+import cache
+import middleware
 from services import air_quality_service as aq
 from services import carbon_service as carbon
 

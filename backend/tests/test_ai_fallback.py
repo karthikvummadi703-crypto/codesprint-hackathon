@@ -8,13 +8,13 @@ the real context, name the real place, and never emit a bare timestamp or an
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
 from services import ai_context, ai_service
 
-NOW = datetime.now(timezone.utc)
+NOW = datetime.now(UTC)
 
 
 def build_context(question: str = "", **overrides):
@@ -116,7 +116,8 @@ class TestGroundedAnswers:
     def test_forecast_labels_are_relative_not_iso(self):
         """A raw ISO timestamp reads as machine output in a chat reply."""
         reply = answer("what is the outlook tomorrow?")
-        assert "T09:45" not in reply and "in 3h" in reply
+        assert "T09:45" not in reply
+        assert "in 3h" in reply
 
     def test_weather_answer_names_the_place(self):
         reply = answer("what is the weather like?")
@@ -153,7 +154,7 @@ class TestGroundedAnswers:
 
 class TestSafetyBand:
     @pytest.mark.parametrize(
-        "aqi,expected",
+        ("aqi", "expected"),
         [(25, "good"), (80, "moderate"), (130, "sensitive groups"), (180, "unhealthy for everyone")],
     )
     def test_guidance_matches_the_band(self, aqi, expected):

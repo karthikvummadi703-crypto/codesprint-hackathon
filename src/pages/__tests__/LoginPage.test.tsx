@@ -32,11 +32,11 @@ vi.mock('../../services/authService', () => ({
   getAppToken: vi.fn(),
   getCurrentAppUser: vi.fn(),
 }));
-vi.mock('../../context/AuthContext', async (importOriginal) => {
+vi.mock('../../context/AuthContext', async importOriginal => {
   const actual = await importOriginal<typeof import('../../context/AuthContext')>();
   return { ...actual, useAuth: vi.fn() };
 });
-vi.mock('react-router-dom', async (importOriginal) => {
+vi.mock('react-router-dom', async importOriginal => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
   return { ...actual, useNavigate: vi.fn() };
 });
@@ -66,7 +66,9 @@ function createAuthValue(overrides: Partial<AuthValue> = {}): AuthValue {
     profile: null,
     profileLoading: false,
     initializing: false,
-    signup: vi.fn<(name: string, email: string, password: string) => Promise<void>>().mockResolvedValue(undefined),
+    signup: vi
+      .fn<(name: string, email: string, password: string) => Promise<void>>()
+      .mockResolvedValue(undefined),
     login: vi.fn<(email: string, password: string) => Promise<void>>().mockResolvedValue(undefined),
     loginWithGoogle: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     resetPassword: vi.fn<(email: string) => Promise<void>>().mockResolvedValue(undefined),
@@ -88,13 +90,13 @@ function renderPage() {
   return render(
     <MemoryRouter>
       <LoginPage />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
 async function expectAxeViolations(container: HTMLElement, expectedIds: string[] = []) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual(expectedIds);
+  expect(results.violations.map(violation => violation.id)).toEqual(expectedIds);
 }
 
 describe('LoginPage', () => {
@@ -109,9 +111,15 @@ describe('LoginPage', () => {
     const { container } = renderPage();
 
     expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Email address' })).toHaveAttribute('placeholder', 'you@example.com');
+    expect(screen.getByRole('textbox', { name: 'Email address' })).toHaveAttribute(
+      'placeholder',
+      'you@example.com',
+    );
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
-    expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute('href', '/forgot-password');
+    expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
     expect(screen.getByRole('link', { name: 'Sign up free' })).toHaveAttribute('href', '/signup');
 
     const googleButton = screen.getByRole('button', { name: 'Continue with Google' });
@@ -142,18 +150,26 @@ describe('LoginPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Show password' }));
     expect(password).toHaveAttribute('type', 'text');
-    expect(screen.getByRole('button', { name: 'Hide password' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Hide password' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
 
     await user.click(screen.getByRole('button', { name: 'Hide password' }));
     expect(password).toHaveAttribute('type', 'password');
-    expect(screen.getByRole('button', { name: 'Show password' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Show password' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
 
     await expectAxeViolations(container);
   });
 
   it('shows a disabled loading state while email sign-in is pending and keeps it after navigation when mounted', async () => {
     const pending = deferred<void>();
-    const login = vi.fn<(email: string, password: string) => Promise<void>>().mockReturnValue(pending.promise);
+    const login = vi
+      .fn<(email: string, password: string) => Promise<void>>()
+      .mockReturnValue(pending.promise);
     const auth = mockAuth({ login });
     const navigate = createNavigateMock();
     vi.mocked(useNavigate).mockReturnValue(navigate);
@@ -182,7 +198,7 @@ describe('LoginPage', () => {
     const login = vi.fn<(email: string, password: string) => Promise<void>>().mockRejectedValue(
       Object.assign(new Error('Firebase: Error (auth/invalid-credential).'), {
         code: 'auth/invalid-credential',
-      })
+      }),
     );
     mockAuth({ login });
     const navigate = createNavigateMock();
@@ -225,7 +241,7 @@ describe('LoginPage', () => {
       loginWithGoogle: vi.fn<() => Promise<void>>().mockRejectedValue(
         Object.assign(new Error('Firebase: Error (auth/popup-closed-by-user).'), {
           code: 'auth/popup-closed-by-user',
-        })
+        }),
       ),
     });
     const navigate = createNavigateMock();

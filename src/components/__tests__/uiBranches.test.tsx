@@ -28,7 +28,7 @@ describe('Card primitives', () => {
         <CardContent ref={contentRef} data-testid="content">
           Body
         </CardContent>
-      </Card>
+      </Card>,
     );
 
     expect(cardRef.current).toBe(screen.getByRole('region', { name: 'Air quality summary' }));
@@ -49,7 +49,7 @@ describe('Card primitives', () => {
         <CardHeader className="px-2">Header</CardHeader>
         <CardContent className="py-2">Content</CardContent>
         <CardTitle className="text-lg">Title</CardTitle>
-      </Card>
+      </Card>,
     );
 
     expect(screen.getByText('Header')).toHaveClass('px-2');
@@ -105,7 +105,7 @@ describe('Button branches', () => {
     const { container } = render(
       <Button loading type="submit">
         Save
-      </Button>
+      </Button>,
     );
     const button = screen.getByRole('button', { name: 'Processing...' });
 
@@ -123,7 +123,7 @@ describe('Button branches', () => {
     const { container, rerender } = render(
       <Button ref={ref} onClick={() => (clicks += 1)}>
         Click me
-      </Button>
+      </Button>,
     );
 
     expect(ref.current).toBe(screen.getByRole('button', { name: 'Click me' }));
@@ -134,7 +134,7 @@ describe('Button branches', () => {
     rerender(
       <Button disabled onClick={() => (clicks += 1)}>
         Click me
-      </Button>
+      </Button>,
     );
     await user.click(screen.getByRole('button', { name: 'Click me' }));
     expect(clicks).toBe(1);
@@ -154,7 +154,7 @@ describe('Input and Label branches', () => {
           City
         </Label>
         <Input ref={inputRef} id="city" placeholder="Search" />
-      </div>
+      </div>,
     );
 
     expect(inputRef.current).toBe(screen.getByRole('textbox', { name: 'City' }));
@@ -171,7 +171,7 @@ describe('Input and Label branches', () => {
       <form aria-label="Credentials">
         <Input aria-label="Email" type="email" className="h-11" placeholder="you@example.com" />
         <Input aria-label="Token" disabled value="locked" readOnly />
-      </form>
+      </form>,
     );
 
     expect(screen.getByRole('textbox', { name: 'Email' })).toHaveAttribute('type', 'email');
@@ -188,7 +188,7 @@ describe('Input and Label branches', () => {
           Threshold
         </Label>
         <Input id="threshold" type="number" defaultValue={100} />
-      </div>
+      </div>,
     );
 
     expect(screen.getByText('Threshold')).toHaveClass('text-xs');

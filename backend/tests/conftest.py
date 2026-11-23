@@ -19,11 +19,11 @@ os.environ.setdefault("ALLOW_DEV_AUTH", "true")
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 os.environ.setdefault("LOG_LEVEL", "WARNING")
 
-from fastapi.testclient import TestClient  # noqa: E402
+from fastapi.testclient import TestClient
 
-import main as backend_main  # noqa: E402
-from api.deps import env_cache  # noqa: E402
-from config import get_settings  # noqa: E402
+import main as backend_main
+from api.deps import env_cache
+from config import get_settings
 
 DEV_HEADERS = {"Authorization": "Bearer dev:test-user"}
 

@@ -24,7 +24,7 @@ from services import firebase_service
 
 log = get_logger("airguard.auth")
 
-DEV_TOKEN_PREFIX = "dev:"
+DEV_TOKEN_PREFIX = "dev:"  # noqa: S105 - auth scheme prefix, not a password
 BEARER_PREFIX = "bearer "
 
 
@@ -41,6 +41,7 @@ async def get_uid(request: Request) -> str:
     if not token:
         raise AuthenticationError("Missing authentication token")
 
+    uid: str | None
     if token.startswith(DEV_TOKEN_PREFIX):
         uid = token[len(DEV_TOKEN_PREFIX):].strip()
         if not uid:
@@ -57,7 +58,8 @@ async def get_uid(request: Request) -> str:
     # so a missing `await` here would silently hand the caller a coroutine as if
     # it were a verified uid.
     uid = await firebase_service.verify_id_token(token)
-    if not uid:
+    if not isinstance(uid, str) or not uid:
         raise AuthenticationError("Invalid or expired token")
-    request.state.uid = uid
-    return uid
+    resolved_uid: str = uid
+    request.state.uid = resolved_uid
+    return resolved_uid

@@ -22,9 +22,15 @@ const state = vi.hoisted(() => ({
 }));
 
 const mocks = vi.hoisted(() => ({
-  fetchAQI: vi.fn<
-    (params: { lat?: number; lon?: number; city?: string; force?: boolean }) => Promise<Record<string, unknown>>
-  >(),
+  fetchAQI:
+    vi.fn<
+      (params: {
+        lat?: number;
+        lon?: number;
+        city?: string;
+        force?: boolean;
+      }) => Promise<Record<string, unknown>>
+    >(),
   searchLocations: vi.fn<(query: string, limit?: number) => Promise<Suggestion[]>>(),
   reverseGeocode: vi.fn<(lat: number, lon: number) => Promise<Suggestion>>(),
   addAirQualityRecord: vi.fn<(uid: string, record: Record<string, unknown>) => Promise<void>>(),
@@ -70,7 +76,9 @@ vi.mock('../../components/aqi/AQIGauge', () => ({
 }));
 
 vi.mock('../../components/aqi/PollutantCard', () => ({
-  default: ({ pollutant }: { pollutant: { name: string } }) => <div>Pollutant {pollutant.name}</div>,
+  default: ({ pollutant }: { pollutant: { name: string } }) => (
+    <div>Pollutant {pollutant.name}</div>
+  ),
 }));
 
 vi.mock('../../components/aqi/HealthAdvisory', () => ({
@@ -138,7 +146,9 @@ const riverCity: Suggestion = {
 
 const originalGeolocation = Object.getOwnPropertyDescriptor(navigator, 'geolocation');
 
-function setGeolocation(getCurrentPosition: (success: PositionCallback, error: PositionErrorCallback) => void) {
+function setGeolocation(
+  getCurrentPosition: (success: PositionCallback, error: PositionErrorCallback) => void,
+) {
   Object.defineProperty(navigator, 'geolocation', {
     configurable: true,
     value: { getCurrentPosition },
@@ -147,7 +157,7 @@ function setGeolocation(getCurrentPosition: (success: PositionCallback, error: P
 
 async function expectAxeClean(container: HTMLElement, expectedViolationIds: string[] = []) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual(expectedViolationIds);
+  expect(results.violations.map(violation => violation.id)).toEqual(expectedViolationIds);
 }
 
 function renderPage() {
@@ -195,7 +205,7 @@ describe('DashboardPage', () => {
     expect(screen.getByTestId('aqi-trend-chart')).toHaveTextContent('2 points');
     expect(mocks.addAirQualityRecord).toHaveBeenCalledWith(
       'user-1',
-      expect.objectContaining({ aqi: 118, location: 'Springfield', lat: 12.34, lon: 56.78 })
+      expect.objectContaining({ aqi: 118, location: 'Springfield', lat: 12.34, lon: 56.78 }),
     );
     await expectAxeClean(container);
   });
@@ -225,7 +235,7 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByText('AQI gauge 118')).toBeInTheDocument();
     expect(mocks.fetchAQI).toHaveBeenLastCalledWith(
-      expect.objectContaining({ lat: 12.34, lon: 56.78, force: true })
+      expect.objectContaining({ lat: 12.34, lon: 56.78, force: true }),
     );
     await expectAxeClean(container);
   });
@@ -257,11 +267,11 @@ describe('DashboardPage', () => {
 
     await waitFor(() => {
       expect(mocks.setLocation).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'River City', latitude: 1.5, longitude: 2.5 })
+        expect.objectContaining({ name: 'River City', latitude: 1.5, longitude: 2.5 }),
       );
     });
     expect(mocks.fetchAQI).toHaveBeenCalledWith(
-      expect.objectContaining({ lat: 1.5, lon: 2.5, force: false })
+      expect.objectContaining({ lat: 1.5, lon: 2.5, force: false }),
     );
     expect(input).toHaveAttribute('aria-activedescendant', 'dashboard-location-option-0');
     await expectAxeClean(container, ['aria-valid-attr-value']);
@@ -279,13 +289,13 @@ describe('DashboardPage', () => {
 
     expect(mocks.setLocation).toHaveBeenCalledWith({ name: 'Shimla' });
     expect(mocks.fetchAQI).toHaveBeenCalledWith(
-      expect.objectContaining({ city: 'Shimla', force: false })
+      expect.objectContaining({ city: 'Shimla', force: false }),
     );
     await expectAxeClean(container);
   });
 
   it('reverse geocodes a geolocation result before loading the reading', async () => {
-    setGeolocation((success) => {
+    setGeolocation(success => {
       success({
         coords: { latitude: 9.9, longitude: 10.1 },
       } as unknown as GeolocationPosition);
@@ -297,12 +307,16 @@ describe('DashboardPage', () => {
 
     await waitFor(() => {
       expect(mocks.setLocation).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Harbor, Coast, Testland', latitude: 9.9, longitude: 10.1 })
+        expect.objectContaining({
+          name: 'Harbor, Coast, Testland',
+          latitude: 9.9,
+          longitude: 10.1,
+        }),
       );
     });
     expect(mocks.reverseGeocode).toHaveBeenCalledWith(9.9, 10.1);
     expect(mocks.fetchAQI).toHaveBeenCalledWith(
-      expect.objectContaining({ lat: 9.9, lon: 10.1, force: false })
+      expect.objectContaining({ lat: 9.9, lon: 10.1, force: false }),
     );
     await expectAxeClean(container);
   });
@@ -322,7 +336,9 @@ describe('DashboardPage', () => {
     await user.click(screen.getByRole('button', { name: 'Use my location' }));
 
     expect(
-      await screen.findByText('Location permission denied. Enable location access or search manually.')
+      await screen.findByText(
+        'Location permission denied. Enable location access or search manually.',
+      ),
     ).toBeInTheDocument();
     expect(mocks.fetchAQI).not.toHaveBeenCalledWith(expect.objectContaining({ lat: 9.9 }));
     await expectAxeClean(container);

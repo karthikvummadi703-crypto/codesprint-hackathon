@@ -112,7 +112,9 @@ async def safe_reverse_geocode(lat: float, lon: float) -> dict:
 
 
 def _to_float(value: object) -> float:
-    try:
-        return float(value)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
-        return 0.0
+    if isinstance(value, (int, float, str)):
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0
+    return 0.0

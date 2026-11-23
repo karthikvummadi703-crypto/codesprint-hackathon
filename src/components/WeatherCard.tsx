@@ -25,16 +25,18 @@ export default function WeatherCard({
 
   useEffect(() => {
     let cancelled = false;
+    /* eslint-disable react-hooks/set-state-in-effect -- Existing fetch reset must run in the effect to preserve timing and render output. */
     setLoading(true);
     setError('');
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     fetchWeather({ lat, lon, city, hours: 8, days: 5 })
-      .then((data) => {
+      .then(data => {
         if (cancelled) return;
         setWeather(data);
         setError('');
       })
-      .catch((e) => {
+      .catch(e => {
         if (cancelled) return;
         setWeather(null);
         setError(e instanceof Error ? e.message : String(e));
@@ -99,7 +101,10 @@ export default function WeatherCard({
             </div>
             <p className="text-sm text-slate-600 mt-0.5">{current.condition}</p>
             {current.feelsLike !== null && (
-              <p className="text-xs text-slate-400 mt-0.5">Feels like {Math.round(current.feelsLike)}{tempUnit}</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Feels like {Math.round(current.feelsLike)}
+                {tempUnit}
+              </p>
             )}
           </div>
           <Cloud className="h-10 w-10 text-slate-300 shrink-0" />
@@ -114,7 +119,9 @@ export default function WeatherCard({
           <Metric
             icon={<Wind className="h-3.5 w-3.5" />}
             label="Wind"
-            value={current.windSpeed !== null ? `${Math.round(current.windSpeed)} ${windUnit}` : '--'}
+            value={
+              current.windSpeed !== null ? `${Math.round(current.windSpeed)} ${windUnit}` : '--'
+            }
           />
           <Metric
             icon={<Sun className="h-3.5 w-3.5" />}
@@ -125,7 +132,8 @@ export default function WeatherCard({
 
         {current.precipitationProbability !== null && current.precipitationProbability > 0 && (
           <p className="text-xs text-slate-500 mt-3">
-            {Math.round(current.precipitationProbability)}% chance of precipitation in the next hour.
+            {Math.round(current.precipitationProbability)}% chance of precipitation in the next
+            hour.
           </p>
         )}
 

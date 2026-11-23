@@ -6,17 +6,17 @@ by an innocent-looking edit, so they are pinned against published reference valu
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
 from services import air_quality_service as aq
-from test_providers_and_cache import patch_json
+from tests.test_providers_and_cache import patch_json
 
 
 class TestSubIndex:
     @pytest.mark.parametrize(
-        "value,breaks,expected",
+        ("value", "breaks", "expected"),
         [
             # PM2.5 breakpoints, EPA Table 2.
             (0.0, aq.PM25_BREAKS, 0),
@@ -93,7 +93,7 @@ class TestComputeAqi:
 
 class TestAqiCategory:
     @pytest.mark.parametrize(
-        "aqi,expected",
+        ("aqi", "expected"),
         [
             (0, "Good"),
             (50, "Good"),
@@ -234,5 +234,5 @@ class TestFetchAqiHistory:
         patch_json(monkeypatch, fake)
         await aq.fetch_aqi_history(1.0, 2.0, "2019-01-01", "2999-01-01")
         end = date.fromisoformat(captured["end_date"])
-        assert end <= date.today()
+        assert end <= datetime.now(UTC).date()
         assert captured["start_date"] == (end - timedelta(days=366)).isoformat()

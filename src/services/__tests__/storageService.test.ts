@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  deleteFromStorage,
-  isStorageConfigured,
-  uploadToStorage,
-} from '../storageService';
+import { deleteFromStorage, isStorageConfigured, uploadToStorage } from '../storageService';
 
 const mocks = vi.hoisted(() => ({
   configured: { value: true },
@@ -43,7 +39,7 @@ function registeredHandlers(): {
   error: ErrorHandler;
   complete: () => void;
 } {
-  const call = mocks.uploadTask.on.mock.calls[0];
+  const call = mocks.uploadTask.on.mock.calls[0]!;
   return {
     progress: call[1] as ProgressHandler,
     error: call[2] as ErrorHandler,
@@ -74,7 +70,7 @@ describe('uploadToStorage', () => {
     const file = new File(['x'], 'avatar.png', { type: 'image/png' });
 
     expect(() => uploadToStorage('u1', 'avatar.png', file)).toThrow(
-      'Firebase Storage is not configured.'
+      'Firebase Storage is not configured.',
     );
     expect(mocks.ref).not.toHaveBeenCalled();
     expect(mocks.uploadBytesResumable).not.toHaveBeenCalled();
@@ -88,15 +84,15 @@ describe('uploadToStorage', () => {
     expect(mocks.ref).toHaveBeenCalledWith(mocks.storage, 'users/u1/uploads/avatar.png');
     expect(mocks.uploadBytesResumable).toHaveBeenCalledWith(
       { path: 'users/u1/uploads/avatar.png' },
-      file
+      file,
     );
-    expect(mocks.uploadTask.on.mock.calls[0][0]).toBe('state_changed');
+    expect(mocks.uploadTask.on.mock.calls[0]![0]).toBe('state_changed');
 
     const { progress, complete } = registeredHandlers();
     progress({ bytesTransferred: 1, totalBytes: 3 });
     progress({ bytesTransferred: 2, totalBytes: 3 });
     progress({ bytesTransferred: 3, totalBytes: 3 });
-    expect(onProgress.mock.calls.map((call) => call[0])).toEqual([33, 67, 100]);
+    expect(onProgress.mock.calls.map(call => call[0])).toEqual([33, 67, 100]);
 
     complete();
     await expect(upload).resolves.toBe('https://storage.example.test/file.png');

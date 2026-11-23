@@ -73,7 +73,7 @@ def limited_client(monkeypatch):
 
 class TestValidationErrors:
     @pytest.mark.parametrize(
-        "query,field",
+        ("query", "field"),
         [
             ("lat=91&lon=0", "lat"),
             ("lat=0&lon=181", "lon"),
@@ -88,7 +88,7 @@ class TestValidationErrors:
         assert any(problem["field"] == field for problem in body["problems"])
 
     @pytest.mark.parametrize(
-        "query,detail",
+        ("query", "detail"),
         [
             ("lat=17.38", "lat and lon must be provided together"),
             ("", "Provide either lat/lon or a city name"),
@@ -113,7 +113,7 @@ class TestValidationErrors:
         assert response.json() == {"detail": "start must be on or before end"}
 
     @pytest.mark.parametrize(
-        "query,field",
+        ("query", "field"),
         [
             ("lat=91&lon=0", "lat"),
             ("lat=17.38&lon=78.49&days=0", "days"),
@@ -130,7 +130,7 @@ class TestValidationErrors:
         assert any(p["field"] == "days" for p in response.json()["problems"])
 
     @pytest.mark.parametrize(
-        "query,field",
+        ("query", "field"),
         [
             ("q=x", "q"),
             ("q=Chennai&limit=0", "limit"),
@@ -177,7 +177,7 @@ class TestValidationErrors:
         assert any(p["field"] == "file" for p in response.json()["problems"])
 
     @pytest.mark.parametrize(
-        "payload,field",
+        ("payload", "field"),
         [
             ({"origin": "", "destination": "X"}, "origin"),
             ({"origin": "A", "destination": "B", "distanceKm": 0}, "distanceKm"),
@@ -197,7 +197,7 @@ class TestValidationErrors:
 
 class TestAuthenticationErrors:
     @pytest.mark.parametrize(
-        "method,path,payload",
+        ("method", "path", "payload"),
         [
             ("get", "/api/aqi?lat=17.38&lon=78.49", None),
             ("get", "/api/weather?lat=17.38&lon=78.49", None),
@@ -212,7 +212,7 @@ class TestAuthenticationErrors:
         assert response.json() == {"detail": "Invalid or expired token"}
 
     @pytest.mark.parametrize(
-        "method,path,payload",
+        ("method", "path", "payload"),
         [
             ("post", "/api/ai/chat", {"message": "hello"}),
             ("get", "/api/rag/files", None),
@@ -238,7 +238,7 @@ class TestAuthenticationErrors:
 
 class TestRateLimiting:
     @pytest.mark.parametrize(
-        "method,path,payload,allowed_status,retry_after",
+        ("method", "path", "payload", "allowed_status", "retry_after"),
         [
             ("get", "/api/health", None, 200, "61"),
             ("get", "/api/aqi", None, 422, "61"),

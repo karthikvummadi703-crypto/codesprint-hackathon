@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import {
   Cloud,
   Droplets,
@@ -17,15 +17,15 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { fetchWeather, WeatherResponse, DailyWeather, HourlyWeather } from '../services/backendService';
-import { useLocation, toLocationParams } from '../context/LocationContext';
+import type { DailyWeather, HourlyWeather } from '../services/backendService';
 import LocationPicker from '../components/LocationPicker';
+import { useWeatherReport } from './dashboard/hooks/useWeatherReport';
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
 
 function windDeg(deg: number): string {
   const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-  return dirs[Math.round(deg / 45) % 8];
+  return dirs[Math.round(deg / 45) % 8]!;
 }
 
 function uvLabel(uv: number): string {
@@ -105,30 +105,7 @@ function StatTile({
 
 /* ── page ────────────────────────────────────────────────────────────── */
 export default function WeatherReportPage() {
-  const { location } = useLocation();
-  const [weather, setWeather] = useState<WeatherResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const load = useCallback(async (force = false) => {
-    if (!location) return;
-    setLoading(true);
-    setError('');
-    try {
-      const params = toLocationParams(location);
-      const data = await fetchWeather({ ...params, hours: 24, days: 7, force });
-      setWeather(data);
-    } catch (e) {
-      setWeather(null);
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [location]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { weather, loading, error, location, load } = useWeatherReport();
 
   if (!location) return <LocationPicker compact />;
 
@@ -166,7 +143,13 @@ export default function WeatherReportPage() {
                 {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
-            <Button variant="outline" size="sm" onClick={() => load(true)} loading={loading} className="h-9">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => load(true)}
+              loading={loading}
+              className="h-9"
+            >
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
           </div>
@@ -176,7 +159,10 @@ export default function WeatherReportPage() {
       <div className="max-w-7xl mx-auto px-6 mt-8 space-y-8">
         {/* error */}
         {error && (
-          <div role="alert" className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700"
+          >
             <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold">Weather data unavailable</p>
@@ -216,7 +202,8 @@ export default function WeatherReportPage() {
                       <p className="text-brand-100 mt-1 text-lg font-medium">{current.condition}</p>
                       {current.feelsLike !== null && (
                         <p className="text-brand-300 text-sm mt-1">
-                          Feels like {Math.round(current.feelsLike)}{tempUnit}
+                          Feels like {Math.round(current.feelsLike)}
+                          {tempUnit}
                         </p>
                       )}
                     </div>
@@ -240,7 +227,9 @@ export default function WeatherReportPage() {
                     <div>
                       <p className="text-brand-300 text-xs uppercase tracking-wide">Wind</p>
                       <p className="font-bold mt-0.5">
-                        {current.windSpeed !== null ? `${Math.round(current.windSpeed)} ${windUnit}` : '--'}
+                        {current.windSpeed !== null
+                          ? `${Math.round(current.windSpeed)} ${windUnit}`
+                          : '--'}
                         {current.windDirection !== null ? ` ${windDeg(current.windDirection)}` : ''}
                       </p>
                     </div>
@@ -267,7 +256,9 @@ export default function WeatherReportPage() {
                       icon={<Thermometer className="h-3.5 w-3.5" />}
                       label="Feels Like"
                       value={
-                        current.feelsLike !== null ? `${Math.round(current.feelsLike)}${tempUnit}` : '--'
+                        current.feelsLike !== null
+                          ? `${Math.round(current.feelsLike)}${tempUnit}`
+                          : '--'
                       }
                     />
                     <StatTile
@@ -279,10 +270,14 @@ export default function WeatherReportPage() {
                       icon={<Wind className="h-3.5 w-3.5" />}
                       label="Wind Speed"
                       value={
-                        current.windSpeed !== null ? `${Math.round(current.windSpeed)} ${windUnit}` : '--'
+                        current.windSpeed !== null
+                          ? `${Math.round(current.windSpeed)} ${windUnit}`
+                          : '--'
                       }
                       sub={
-                        current.windDirection !== null ? `Direction: ${windDeg(current.windDirection)}` : undefined
+                        current.windDirection !== null
+                          ? `Direction: ${windDeg(current.windDirection)}`
+                          : undefined
                       }
                     />
                     <StatTile
@@ -307,7 +302,7 @@ export default function WeatherReportPage() {
                         current.uvIndex !== null ? (
                           <span
                             className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${uvColor(
-                              Math.round(current.uvIndex)
+                              Math.round(current.uvIndex),
                             )}`}
                           >
                             {uvLabel(Math.round(current.uvIndex))}
@@ -318,23 +313,35 @@ export default function WeatherReportPage() {
                     <StatTile
                       icon={<Gauge className="h-3.5 w-3.5" />}
                       label="Pressure"
-                      value={current.pressure !== null ? `${Math.round(current.pressure)} hPa` : '--'}
+                      value={
+                        current.pressure !== null ? `${Math.round(current.pressure)} hPa` : '--'
+                      }
                     />
                     <StatTile
                       icon={<Eye className="h-3.5 w-3.5" />}
                       label="Visibility"
-                      value={current.visibility !== null ? `${Math.round(current.visibility)} km` : '--'}
+                      value={
+                        current.visibility !== null ? `${Math.round(current.visibility)} km` : '--'
+                      }
                     />
                     <StatTile
                       icon={<Cloud className="h-3.5 w-3.5" />}
                       label="Cloud Cover"
-                      value={current.cloudCover !== null ? `${Math.round(current.cloudCover)}%` : '--'}
+                      value={
+                        current.cloudCover !== null ? `${Math.round(current.cloudCover)}%` : '--'
+                      }
                     />
                     <StatTile
                       icon={<Navigation className="h-3.5 w-3.5" />}
                       label="Wind Direction"
-                      value={current.windDirection !== null ? `${Math.round(current.windDirection)}\u00b0` : '--'}
-                      sub={current.windDirection !== null ? windDeg(current.windDirection) : undefined}
+                      value={
+                        current.windDirection !== null
+                          ? `${Math.round(current.windDirection)}\u00b0`
+                          : '--'
+                      }
+                      sub={
+                        current.windDirection !== null ? windDeg(current.windDirection) : undefined
+                      }
                     />
                   </div>
                 </CardContent>
@@ -355,10 +362,14 @@ export default function WeatherReportPage() {
                           key={h.timestamp}
                           className="flex flex-col items-center gap-2 min-w-[72px] px-3 py-3 rounded-xl bg-slate-50 border border-slate-100 hover:border-brand-300 transition-colors"
                         >
-                          <p className="text-[11px] font-semibold text-slate-500">{hourLabel(h.timestamp)}</p>
+                          <p className="text-[11px] font-semibold text-slate-500">
+                            {hourLabel(h.timestamp)}
+                          </p>
                           <ConditionIcon code={h.conditionCode} size="h-5 w-5" />
                           <p className="text-base font-bold text-slate-900">
-                            {h.temperature !== null ? `${Math.round(h.temperature)}${tempUnit}` : '--'}
+                            {h.temperature !== null
+                              ? `${Math.round(h.temperature)}${tempUnit}`
+                              : '--'}
                           </p>
                           {h.precipitationProbability > 0 && (
                             <div className="flex items-center gap-0.5 text-[10px] text-blue-600">
@@ -393,7 +404,9 @@ export default function WeatherReportPage() {
                         className="flex flex-wrap items-center gap-4 px-6 py-4 hover:bg-slate-50/50 transition-colors"
                       >
                         <div className="w-28 shrink-0">
-                          <p className="text-sm font-semibold text-slate-800">{dayName(d.date, i)}</p>
+                          <p className="text-sm font-semibold text-slate-800">
+                            {dayName(d.date, i)}
+                          </p>
                           <p className="text-[11px] text-slate-400 mt-0.5">{d.date}</p>
                         </div>
                         <div className="flex items-center gap-2.5 flex-1 min-w-[120px]">
@@ -415,7 +428,9 @@ export default function WeatherReportPage() {
                         <div className="flex items-center gap-1 min-w-[80px]">
                           <Wind className="h-3.5 w-3.5 text-slate-400" />
                           <span className="text-sm text-slate-500">
-                            {d.windSpeedMax !== null ? `${Math.round(d.windSpeedMax)} ${windUnit}` : '--'}
+                            {d.windSpeedMax !== null
+                              ? `${Math.round(d.windSpeedMax)} ${windUnit}`
+                              : '--'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 min-w-[100px] justify-end">
@@ -438,7 +453,7 @@ export default function WeatherReportPage() {
                           <div className="hidden sm:block">
                             <span
                               className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${uvColor(
-                                Math.round(d.uvIndexMax)
+                                Math.round(d.uvIndexMax),
                               )}`}
                             >
                               UV {Math.round(d.uvIndexMax)}
@@ -462,7 +477,9 @@ export default function WeatherReportPage() {
                         <Sun className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-xs text-slate-400 uppercase tracking-wide font-semibold">Sunrise</p>
+                        <p className="text-xs text-slate-400 uppercase tracking-wide font-semibold">
+                          Sunrise
+                        </p>
                         <p className="text-xl font-bold text-slate-900 mt-0.5">
                           {new Date(daily[0].sunrise).toLocaleTimeString([], {
                             hour: '2-digit',
@@ -480,7 +497,9 @@ export default function WeatherReportPage() {
                         <Sun className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-xs text-slate-400 uppercase tracking-wide font-semibold">Sunset</p>
+                        <p className="text-xs text-slate-400 uppercase tracking-wide font-semibold">
+                          Sunset
+                        </p>
                         <p className="text-xl font-bold text-slate-900 mt-0.5">
                           {new Date(daily[0].sunset).toLocaleTimeString([], {
                             hour: '2-digit',

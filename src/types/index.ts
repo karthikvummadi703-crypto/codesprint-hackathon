@@ -133,7 +133,8 @@ export interface CommunityPlace {
   label?: string;
 }
 
-export type RoutineCategory = 'indoor-air' | 'low-emission' | 'outdoor-timing' | 'winter-smog' | 'household';
+export type RoutineCategory =
+  'indoor-air' | 'low-emission' | 'outdoor-timing' | 'winter-smog' | 'household';
 
 export interface DailyRoutine {
   id: string;

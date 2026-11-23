@@ -75,7 +75,7 @@ type ConversationList = Awaited<ReturnType<typeof listConversations>>;
 
 async function expectAxeViolationIds(container: HTMLElement, expected: string[] = []) {
   const results = await axe(container);
-  expect(results.violations.map((violation) => violation.id)).toEqual(expected);
+  expect(results.violations.map(violation => violation.id)).toEqual(expected);
 }
 
 beforeEach(() => {
@@ -161,9 +161,9 @@ describe('AIAssistantPage', () => {
     let resolveConversations: (value: ConversationList) => void = () => {};
     vi.mocked(listConversations).mockImplementation(
       () =>
-        new Promise((resolve) => {
+        new Promise(resolve => {
           resolveConversations = resolve;
-        })
+        }),
     );
 
     const { container } = render(<AIAssistantPage />);
@@ -194,7 +194,7 @@ describe('AIAssistantPage', () => {
     expect(await screen.findByText('Prior answer')).toBeInTheDocument();
     await testUser.type(
       screen.getByRole('textbox', { name: 'Message AirGuard AI' }),
-      'Tell me more{Enter}'
+      'Tell me more{Enter}',
     );
 
     expect(await screen.findByText('Tell me more')).toBeInTheDocument();
@@ -207,7 +207,7 @@ describe('AIAssistantPage', () => {
           { role: 'assistant', content: 'Prior answer' },
           { role: 'user', content: 'Tell me more' },
         ],
-      })
+      }),
     );
     expect(addMessage).toHaveBeenCalledWith('user-1', 'conv-1', {
       role: 'user',
@@ -225,10 +225,14 @@ describe('AIAssistantPage', () => {
     await testUser.type(screen.getByRole('textbox', { name: 'Message AirGuard AI' }), 'Hello');
     await testUser.click(screen.getByRole('button', { name: 'Send message' }));
 
-    expect(await screen.findByText(/⚠️ I couldn't answer that\. 401 Unauthorized/)).toBeInTheDocument();
-    expect(screen.getByText(/Your session is no longer valid\. Sign in again and retry\./)).toBeInTheDocument();
     expect(
-      within(screen.getByRole('log', { name: 'Chat messages' })).getByText('Hello')
+      await screen.findByText(/⚠️ I couldn't answer that\. 401 Unauthorized/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Your session is no longer valid\. Sign in again and retry\./),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('log', { name: 'Chat messages' })).getByText('Hello'),
     ).toBeInTheDocument();
     await expectAxeViolationIds(container);
   });
@@ -243,28 +247,31 @@ describe('AIAssistantPage', () => {
     expect(fileInputs).toHaveLength(2);
     const report = new File(['report bytes'], 'report.pdf', { type: 'application/pdf' });
 
-    await testUser.upload(fileInputs[1], report);
+    await testUser.upload(fileInputs[1]!, report);
 
     expect(await screen.findByRole('button', { name: 'report.pdf' })).toBeInTheDocument();
     expect(uploadDocumentForRag).toHaveBeenCalledWith(report);
     expect(addUpload).toHaveBeenCalledWith(
       'user-1',
-      expect.objectContaining({ name: 'report.pdf', status: 'ready', ragFileId: 'rag-1' })
+      expect.objectContaining({ name: 'report.pdf', status: 'ready', ragFileId: 'rag-1' }),
     );
     expect(isStorageConfigured).toHaveBeenCalled();
 
     await testUser.click(screen.getByRole('button', { name: 'report.pdf' }));
     expect(screen.getByRole('textbox', { name: 'Message AirGuard AI' })).toHaveAttribute(
       'placeholder',
-      'Ask about report.pdf…'
+      'Ask about report.pdf…',
     );
-    await testUser.type(screen.getByRole('textbox', { name: 'Message AirGuard AI' }), 'Summarize it');
+    await testUser.type(
+      screen.getByRole('textbox', { name: 'Message AirGuard AI' }),
+      'Summarize it',
+    );
     await testUser.click(screen.getByRole('button', { name: 'Send message' }));
 
     expect(await screen.findByText('Mock assistant answer')).toBeInTheDocument();
     expect(sendChatMessage).toHaveBeenCalledWith(
       'Summarize it',
-      expect.objectContaining({ documentIds: ['rag-1'] })
+      expect.objectContaining({ documentIds: ['rag-1'] }),
     );
     await expectAxeViolationIds(container);
   });
@@ -276,12 +283,12 @@ describe('AIAssistantPage', () => {
 
     await testUser.click(screen.getByRole('button', { name: 'Knowledge Base (0)' }));
     const fileInputs = container.querySelectorAll<HTMLInputElement>('input[type="file"]');
-    fireEvent.change(fileInputs[1], {
+    fireEvent.change(fileInputs[1]!, {
       target: { files: [new File(['bad'], 'malware.exe')] },
     });
 
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Unsupported file type: malware.exe. Upload PDF, CSV, or TXT.'
+      'Unsupported file type: malware.exe. Upload PDF, CSV, or TXT.',
     );
     expect(uploadDocumentForRag).not.toHaveBeenCalled();
     expect(addUpload).not.toHaveBeenCalled();
@@ -310,7 +317,7 @@ describe('AIAssistantPage', () => {
     expect(await screen.findByRole('button', { name: 'Existing chat' })).toBeInTheDocument();
     await testUser.click(screen.getByRole('button', { name: 'Delete conversation Existing chat' }));
     await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Existing chat' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Existing chat' })).not.toBeInTheDocument(),
     );
     expect(deleteConversation).toHaveBeenCalledWith('user-1', 'conv-1');
 
@@ -318,7 +325,7 @@ describe('AIAssistantPage', () => {
     await testUser.click(screen.getByRole('button', { name: 'Delete old.pdf' }));
 
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Knowledge Base (0)' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Knowledge Base (0)' })).toBeInTheDocument(),
     );
     expect(deleteRagFile).toHaveBeenCalledWith('rag-1');
     expect(deleteFromStorage).toHaveBeenCalledWith('users/user-1/uploads/old.pdf');

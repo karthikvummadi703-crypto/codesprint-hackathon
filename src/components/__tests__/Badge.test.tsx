@@ -30,7 +30,7 @@ describe('Badge', () => {
     const { container } = render(
       <Badge className="text-[10px]" title="Forecast note" data-testid="aqi-badge">
         Estimated
-      </Badge>
+      </Badge>,
     );
 
     const badge = screen.getByTestId('aqi-badge');

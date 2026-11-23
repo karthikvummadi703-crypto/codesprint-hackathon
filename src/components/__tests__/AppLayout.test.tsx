@@ -22,7 +22,7 @@ vi.mock('../../services/profileService', () => ({
   initialsFor: (name: string) =>
     name
       .split(/\s+/)
-      .map((part) => part[0] ?? '')
+      .map(part => part[0] ?? '')
       .join('')
       .slice(0, 2)
       .toUpperCase(),
@@ -38,7 +38,7 @@ function renderLayout(initialPath = '/dashboard') {
           <Route path="login" element={<div>Login content</div>} />
         </Route>
       </Routes>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
@@ -50,10 +50,16 @@ describe('AppLayout', () => {
   it('renders the skip link, desktop navigation and Outlet content with no axe violations', async () => {
     const { container } = renderLayout();
 
-    expect(screen.getByRole('link', { name: 'Skip to main content' })).toHaveAttribute('href', '#main-content');
+    expect(screen.getByRole('link', { name: 'Skip to main content' })).toHaveAttribute(
+      'href',
+      '#main-content',
+    );
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
     expect(screen.getByText('Dashboard content')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open navigation menu' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Open navigation menu' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard');
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
     expect(screen.getByText('karthik@example.com')).toBeInTheDocument();
@@ -72,13 +78,21 @@ describe('AppLayout', () => {
 
     const dialog = screen.getByRole('dialog', { name: 'Navigation menu' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(within(dialog).getByRole('link', { name: 'Predictions' })).toHaveAttribute('href', '/predictions');
-    expect(within(dialog).getByRole('button', { name: 'Close navigation menu' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('link', { name: 'Predictions' })).toHaveAttribute(
+      'href',
+      '/predictions',
+    );
+    expect(
+      within(dialog).getByRole('button', { name: 'Close navigation menu' }),
+    ).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Close navigation menu' })).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'Open navigation menu' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Open navigation menu' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
 
     const results = await axe(container);
-    expect(results.violations.map((violation) => violation.id)).toEqual(['landmark-unique']);
+    expect(results.violations.map(violation => violation.id)).toEqual(['landmark-unique']);
   });
 
   it('closes the dialog on Escape', async () => {
@@ -98,7 +112,7 @@ describe('AppLayout', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open navigation menu' }));
     const closeButtons = screen.getAllByRole('button', { name: 'Close navigation menu' });
-    await user.click(closeButtons[0]);
+    await user.click(closeButtons[0]!);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

@@ -85,7 +85,7 @@ describe('location-based requests', () => {
 
     expect(mocks.apiRequest).toHaveBeenCalledWith(
       '/api/aqi?lat=28.6139&lon=77.209&city=New+Delhi',
-      { token: 'token-1', force: true }
+      { token: 'token-1', force: true },
     );
   });
 
@@ -199,7 +199,7 @@ describe('chat transport', () => {
   it('treats an empty document id list as no attachment', async () => {
     await sendChatMessage('Hi', { documentIds: [] });
 
-    expect(mocks.apiRequest.mock.calls[0][1].body.documentIds).toBeNull();
+    expect(mocks.apiRequest.mock.calls[0]![1].body.documentIds).toBeNull();
   });
 
   it('propagates a chat failure for the caller to explain', async () => {
@@ -221,7 +221,7 @@ describe('document upload and deletion', () => {
 
     const fetchMock = vi.mocked(fetch);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0];
+    const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe('https://api.example.test/api/rag/upload');
     expect(init?.method).toBe('POST');
     expect(init?.headers).toEqual({ Authorization: 'Bearer token-1' });
@@ -235,7 +235,7 @@ describe('document upload and deletion', () => {
 
     await uploadDocumentForRag(file);
 
-    expect(vi.mocked(fetch).mock.calls[0][1]?.headers).toEqual({});
+    expect(vi.mocked(fetch).mock.calls[0]![1]?.headers).toEqual({});
   });
 
   it('uses the backend detail when an upload fails', async () => {
@@ -244,12 +244,12 @@ describe('document upload and deletion', () => {
       vi
         .fn()
         .mockResolvedValueOnce(response({ detail: 'Only PDF, CSV and TXT are supported.' }, 415))
-        .mockResolvedValueOnce(response({ detail: 42 }, 500))
+        .mockResolvedValueOnce(response({ detail: 42 }, 500)),
     );
     const file = new File(['x'], 'bad.bin');
 
     await expect(uploadDocumentForRag(file)).rejects.toThrow(
-      'Only PDF, CSV and TXT are supported.'
+      'Only PDF, CSV and TXT are supported.',
     );
     await expect(uploadDocumentForRag(file)).rejects.toThrow('42');
   });
@@ -263,11 +263,11 @@ describe('document upload and deletion', () => {
         json: async () => {
           throw new Error('not json');
         },
-      } as unknown as Response)
+      } as unknown as Response),
     );
 
     await expect(uploadDocumentForRag(new File(['x'], 'a.txt'))).rejects.toThrow(
-      'Upload failed (503)'
+      'Upload failed (503)',
     );
   });
 
@@ -327,14 +327,16 @@ describe('carbon and weather requests', () => {
   it('builds the weather summary query with days', async () => {
     await fetchWeatherSummary({ lat: 1.5, lon: -2.5, days: 2 });
 
-    expect(mocks.apiRequest).toHaveBeenCalledWith(
-      '/api/weather/summary?lat=1.5&lon=-2.5&days=2',
-      { token: 'token-1', force: undefined }
-    );
+    expect(mocks.apiRequest).toHaveBeenCalledWith('/api/weather/summary?lat=1.5&lon=-2.5&days=2', {
+      token: 'token-1',
+      force: undefined,
+    });
   });
 
   it('reports backend health as a boolean instead of leaking request errors', async () => {
-    mocks.apiRequest.mockResolvedValueOnce({ status: 'ok' }).mockRejectedValueOnce(new Error('down'));
+    mocks.apiRequest
+      .mockResolvedValueOnce({ status: 'ok' })
+      .mockRejectedValueOnce(new Error('down'));
 
     await expect(backendHealth()).resolves.toBe(true);
     await expect(backendHealth()).resolves.toBe(false);

@@ -36,7 +36,11 @@ vi.mock('recharts', () => ({
   ),
   AreaChart: ({ children, data }: MockProps) => {
     mocks.areaChart({ data });
-    return <div data-testid="area-chart" data-point-count={data?.length ?? 0}>{children}</div>;
+    return (
+      <div data-testid="area-chart" data-point-count={data?.length ?? 0}>
+        {children}
+      </div>
+    );
   },
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   XAxis: (props: MockProps) => {
@@ -92,10 +96,16 @@ describe('AQITrendChart', () => {
     expect(screen.getByTestId('cartesian-grid')).toBeInTheDocument();
     expect(mocks.xAxis).toHaveBeenCalledWith(expect.objectContaining({ dataKey: 'time' }));
     expect(mocks.yAxis).toHaveBeenCalledWith(expect.objectContaining({ domain: [80, 180] }));
-    expect(mocks.area).toHaveBeenCalledWith(expect.objectContaining({ dataKey: 'aqi', dot: false }));
+    expect(mocks.area).toHaveBeenCalledWith(
+      expect.objectContaining({ dataKey: 'aqi', dot: false }),
+    );
     expect(mocks.referenceLine).toHaveBeenCalledTimes(2);
-    expect(mocks.referenceLine).toHaveBeenCalledWith(expect.objectContaining({ y: 150, stroke: '#EF4444' }));
-    expect(mocks.referenceLine).toHaveBeenCalledWith(expect.objectContaining({ y: 100, stroke: '#F59E0B' }));
+    expect(mocks.referenceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ y: 150, stroke: '#EF4444' }),
+    );
+    expect(mocks.referenceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ y: 100, stroke: '#F59E0B' }),
+    );
     expect(container.querySelector('#aqiGradient')).toBeInTheDocument();
     expect(screen.getAllByTestId('reference-line')).toHaveLength(2);
 
@@ -114,7 +124,7 @@ describe('AQITrendChart', () => {
   });
 
   it('keeps the fixed 80-180 domain even when a data point is outside it', () => {
-    render(<AQITrendChart data={[{ ...data[0], aqi: 260 }]} />);
+    render(<AQITrendChart data={[{ ...data[0]!, aqi: 260 }]} />);
 
     expect(mocks.yAxis).toHaveBeenCalledWith(expect.objectContaining({ domain: [80, 180] }));
     expect(screen.queryByText(/260 AQI/)).not.toBeInTheDocument();
