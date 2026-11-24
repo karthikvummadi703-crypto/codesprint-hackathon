@@ -26,8 +26,9 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // Effect-driven loaders intentionally set loading/result state; moving them would change render timing.
       'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/purity': 'off',
+      'react-hooks/purity': 'error',
       'react-hooks/preserve-manual-memoization': 'off',
       'react-hooks/immutability': 'off',
       '@typescript-eslint/no-explicit-any': 'error',
