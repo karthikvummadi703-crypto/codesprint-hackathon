@@ -20,7 +20,7 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - run: npm run test:coverage
       - run: npm run build
 
   backend:
@@ -43,7 +43,7 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: python -m mypy .
-      - run: python -m pytest -q
+      - run: python -m pytest --cov=. --cov-report=term-missing -q
 
   security:
     name: Security (gitleaks, pip-audit)

@@ -11,6 +11,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     restoreMocks: true,
+    sequence: {
+      concurrent: false,
+      shuffle: false,
+      seed: 20261124,
+    },
     coverage: {
       provider: 'v8',
       include: ['src/**'],
