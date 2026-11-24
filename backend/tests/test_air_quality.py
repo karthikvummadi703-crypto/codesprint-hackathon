@@ -16,7 +16,7 @@ from services import air_quality_service as aq
 
 class TestSubIndex:
     @pytest.mark.parametrize(
-        "value,breaks,expected",
+        ("value", "breaks", "expected"),
         [
             # PM2.5 breakpoints, EPA Table 2.
             (0.0, aq.PM25_BREAKS, 0),
@@ -91,7 +91,7 @@ class TestComputeAqi:
 
 class TestAqiCategory:
     @pytest.mark.parametrize(
-        "aqi,expected",
+        ("aqi", "expected"),
         [
             (0, "Good"),
             (50, "Good"),

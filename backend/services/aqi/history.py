@@ -81,9 +81,9 @@ async def fetch_aqi_history(
         rows.append(
             {
                 "date": day,
-                "aqiMean": int(round(sum(values) / len(values))),
-                "aqiMax": int(round(max(values))),
-                "aqiMin": int(round(min(values))),
+                "aqiMean": round(sum(values) / len(values)),
+                "aqiMax": round(max(values)),
+                "aqiMin": round(min(values)),
                 "dominant": DOMINANT_LABELS.get(calc["dominant"], "PM2.5"),
                 "pm25": round(mean_components.get("pm2_5") or 0.0, 1),
                 "pm10": round(mean_components.get("pm10") or 0.0, 1),

@@ -243,7 +243,7 @@ class _ContextSections(_SmallSections):
                 "Do not invent weather values."
             )
         rows = [
-            f"{d.get('date')}: {d.get('condition')}, {d.get('temperatureMin')}–{d.get('temperatureMax')}°C, "
+            f"{d.get('date')}: {d.get('condition')}, {d.get('temperatureMin')}–{d.get('temperatureMax')}°C, "  # noqa: RUF001 - en dash is intentional
             f"rain probability {d.get('precipitationProbabilityMax')}%, "
             f"precipitation {d.get('precipitationSum')} mm, wind up to {d.get('windSpeedMax')} km/h"
             for d in daily[:7]

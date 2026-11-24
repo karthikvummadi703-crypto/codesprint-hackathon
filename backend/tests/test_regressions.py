@@ -7,6 +7,7 @@ written to fail against the old behaviour and pass against the new one.
 from __future__ import annotations
 
 import io
+from typing import ClassVar
 
 import pytest
 
@@ -72,7 +73,11 @@ class TestDocumentContextSurvivesParsing:
     the offline responder in `ai_service` re-parses `context_text` on that same
     delimiter. Every excerpt was therefore dropped before anything read it."""
 
-    CHUNK = {"fileName": "report.pdf", "chunk": "The city target is 60 ug/m3 by 2030.", "score": 0.4}
+    CHUNK: ClassVar[dict] = {
+        "fileName": "report.pdf",
+        "chunk": "The city target is 60 ug/m3 by 2030.",
+        "score": 0.4,
+    }
 
     def build(self, chunks=None):
         return ai_context.ContextBuilder(
@@ -101,7 +106,7 @@ class TestDocumentContextSurvivesParsing:
         )
 
     def test_sections_are_only_included_when_documents_are_retrieved(self):
-        text, sections, coverage = self.build().build("what does my report say?")
+        text, _sections, coverage = self.build().build("what does my report say?")
         assert coverage["documents"] is True
         assert "60 ug/m3" in text
 
@@ -216,7 +221,8 @@ class TestScopedRetrieval:
     def test_renamed_file_is_still_reachable(self):
         record = rag_service.process_document("u1", "alpha.pdf", _pdf("Masonry bricks."))
         hits = rag_service.retrieve("u1", "bricks", 4, [record["fileId"]])
-        assert hits and hits[0]["fileName"] == "alpha.pdf"
+        assert hits
+        assert hits[0]["fileName"] == "alpha.pdf"
 
 
 class TestDocumentValidation:

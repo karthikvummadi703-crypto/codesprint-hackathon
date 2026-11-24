@@ -236,7 +236,8 @@ class TestContextBuilder:
             {"timestamp": "2026-01-02T10:00:00Z", "aqi": 120, "status": "Moderate", "location": "Gudur"},
         ]
         text, _, _ = self.build(message="how has it changed since yesterday?", history=history)
-        assert "120" in text and "90" in text
+        assert "120" in text
+        assert "90" in text
         assert text.index("120") < text.index("90")
 
     def test_empty_history_is_stated(self):
@@ -356,7 +357,9 @@ class TestSystemPrompt:
 
     def test_distinguishes_provenance(self):
         lowered = ai_service.SYSTEM_PROMPT.lower()
-        assert "forecast" in lowered and "estimate" in lowered and "observation" in lowered
+        assert "forecast" in lowered
+        assert "estimate" in lowered
+        assert "observation" in lowered
 
     def test_covers_different_location_requests(self):
         assert "different location" in ai_service.SYSTEM_PROMPT.lower()

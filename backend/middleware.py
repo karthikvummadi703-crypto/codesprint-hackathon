@@ -81,7 +81,7 @@ async def _identity(request: Request) -> str:
             from services.security import get_uid
 
             return f"uid:{await get_uid(request)}"
-        except Exception:
+        except Exception:  # noqa: S110 - route reports the precise auth error
             # The route will produce the precise auth error; for limiting, the
             # peer address is a sufficient fallback for an unverified caller.
             pass

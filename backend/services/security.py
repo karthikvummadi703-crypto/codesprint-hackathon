@@ -24,7 +24,7 @@ from services import firebase_service
 
 log = get_logger("airguard.auth")
 
-DEV_TOKEN_PREFIX = "dev:"
+DEV_TOKEN_PREFIX = "dev:"  # noqa: S105 - token prefix, not a credential
 BEARER_PREFIX = "bearer "
 
 

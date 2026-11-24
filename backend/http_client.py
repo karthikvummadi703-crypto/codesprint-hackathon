@@ -96,7 +96,7 @@ async def request_json(
     params: Mapping[str, Any] | None = None,
     json_body: Any | None = None,
     headers: Mapping[str, str] | None = None,
-    timeout: float | None = None,
+    timeout: float | None = None,  # noqa: ASYNC109 - httpx timeout, not asyncio.timeout
     retries: int | None = None,
     retry_statuses: frozenset[int] | None = None,
 ) -> Any:

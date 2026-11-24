@@ -2,6 +2,7 @@
 
 Run locally with:  uvicorn main:app --reload --port 8001
 """
+# ruff: noqa: E402 - dotenv must load before config imports
 
 from __future__ import annotations
 
@@ -11,15 +12,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI  # noqa: E402
-from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from api import ai, air, carbon, geocode, health, rag, weather  # noqa: E402
-from config import describe_configuration, get_settings  # noqa: E402
-from errors import register_exception_handlers  # noqa: E402
-from http_client import close_client  # noqa: E402
-from logging_config import get_logger, setup_logging  # noqa: E402
-from middleware import (  # noqa: E402
+from api import ai, air, carbon, geocode, health, rag, weather
+from config import describe_configuration, get_settings
+from errors import register_exception_handlers
+from http_client import close_client
+from logging_config import get_logger, setup_logging
+from middleware import (
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
     TimingMiddleware,

@@ -4,11 +4,20 @@ target-version = "py311"
 exclude = [".venv", "__pycache__", "data", ".pytest_cache"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501", "B008"]
+select = ["E", "F", "I", "UP", "B", "SIM", "C90", "RUF", "ARG", "S", "C4", "PT", "ASYNC", "PERF"]
+ignore = ["E501", "B008", "S311"] # seeded/random jitter is not security-sensitive
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["B011"]
+"tests/*" = [
+  "B011",
+  "S101",
+  "ARG001", # fake callbacks mirror production signatures
+  "ARG002", # fixture arguments may be intentionally unused
+  "ARG005", # lambda placeholders
+]
+"services/ai_service.py" = ["C901"] # provider fallback ladder is intentionally explicit
+"services/context/builder.py" = ["C901"] # section assembly is intentionally linear
+"services/fallback.py" = ["C901"] # ordered fallback policy is intentionally linear
 
 [tool.mypy]
 python_version = "3.11"

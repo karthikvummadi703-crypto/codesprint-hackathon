@@ -181,7 +181,7 @@ def _hour_slot_index(observation_local: str, hourly_times: list[str]) -> int:
     return -1
 
 
-def _build_weather_payload(data: dict, lat: float, lon: float, forecast_days: int) -> dict:
+def _build_weather_payload(data: dict, _lat: float, _lon: float, forecast_days: int) -> dict:
     current = data.get("current") or {}
     hourly = data.get("hourly") or {}
     daily = data.get("daily") or {}
@@ -315,13 +315,12 @@ def forecast_summary_for_ai(payload: dict, days: int = 3) -> str:
     daily = ((payload or {}).get("daily") or [])[:days]
     if not daily:
         return ""
-    parts = []
-    for day in daily:
-        parts.append(
-            f"{day['date']}: {day['condition']}, "
-            f"{day['temperatureMin']}–{day['temperatureMax']}°C, "
-            f"rain {day['precipitationProbabilityMax']}%"
-        )
+    parts = [
+        f"{day['date']}: {day['condition']}, "
+        f"{day['temperatureMin']}–{day['temperatureMax']}°C, "  # noqa: RUF001 - en dash is intentional
+        f"rain {day['precipitationProbabilityMax']}%"
+        for day in daily
+    ]
     return " | ".join(parts)
 
 
@@ -388,7 +387,7 @@ def _to_utc_iso(local_naive: str, tz_name: str) -> str:
             from zoneinfo import ZoneInfo
 
             offset = naive.replace(tzinfo=ZoneInfo(tz_name)).utcoffset() or timedelta(0)
-        except Exception as exc:  # noqa: BLE001 - degrade, but say so
+        except Exception as exc:
             log.warning(
                 "cannot resolve timezone %r (%s); timestamps for %s stay wall-clock",
                 tz_name,

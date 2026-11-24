@@ -39,13 +39,13 @@ from services.context.formatters import (
 )
 
 __all__ = [
-    "ContextBuilder",
-    "context_timestamp",
     "_FORECAST",
     "_MEASURED",
     "_MODELLED",
+    "ContextBuilder",
     "_by_month",
     "_compass",
     "_num",
     "_relative_label",
+    "context_timestamp",
 ]

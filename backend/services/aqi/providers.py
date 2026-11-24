@@ -221,7 +221,7 @@ async def fetch_aqi_forecast(lat: float, lon: float, days: int = 5) -> list[dict
         points.append(
             {
                 "timestamp": str(stamp),
-                "aqi": max(1, int(round(aqi_value))),
+                "aqi": max(1, round(aqi_value)),
                 "calculatedAqi": calc["aqi"],
                 "dominant": calc["dominant"],
                 "pm25": round(components.get("pm2_5") or 0.0, 2),

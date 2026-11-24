@@ -176,7 +176,7 @@ def _extract_text(filename: str, data: bytes) -> str:
                 # still works, and anything else is reported clearly.
                 try:
                     reader.decrypt("")
-                except Exception as exc:  # noqa: BLE001 - surfaced as a user error
+                except Exception as exc:
                     raise RagStoreError("This PDF is password protected and cannot be read.") from exc
             return "\n".join(page.extract_text() or "" for page in reader.pages)
         except RagStoreError:
@@ -191,7 +191,7 @@ def _extract_text(filename: str, data: bytes) -> str:
             return ""
         header, body = rows[0], rows[1:]
         # Re-emit the header with every block so each chunk stays self-describing.
-        blocks = [" | ".join([header] + body[i : i + 20]) for i in range(0, len(body), 20)]
+        blocks = [" | ".join([header, *body[i : i + 20]]) for i in range(0, len(body), 20)]
         return "\n\n".join(blocks)
 
     return data.decode("utf-8", errors="replace")
@@ -266,8 +266,7 @@ def _build_index(uid: str):
     docs: list[tuple[str, str, str]] = []
     for file_id, meta in store.get("files", {}).items():
         file_name = meta.get("fileName") or file_id
-        for chunk in meta.get("chunks") or []:
-            docs.append((file_id, file_name, chunk))
+        docs.extend((file_id, file_name, chunk) for chunk in meta.get("chunks") or [])
     if not docs:
         return docs, {}, 0
     document_frequency: Counter = Counter()
@@ -360,15 +359,15 @@ def overview(uid: str, file_ids: list[str] | None = None, top_k: int = 4) -> lis
             continue
         step = max(1, len(chunks) // per_file)
         picked = chunks[::step][:per_file]
-        for chunk in picked:
-            results.append(
-                {
-                    "fileId": file_id,
-                    "fileName": meta.get("fileName") or file_id,
-                    "chunk": chunk,
-                    "score": 0.0,
-                }
-            )
+        results.extend(
+            {
+                "fileId": file_id,
+                "fileName": meta.get("fileName") or file_id,
+                "chunk": chunk,
+                "score": 0.0,
+            }
+            for chunk in picked
+        )
     return results
 
 

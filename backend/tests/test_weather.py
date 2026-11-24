@@ -193,7 +193,8 @@ class TestAiSummaries:
 
     def test_forecast_summary_covers_requested_days(self):
         text = ws.forecast_summary_for_ai(build(), days=2)
-        assert "2026-01-01" in text and "2026-01-02" in text
+        assert "2026-01-01" in text
+        assert "2026-01-02" in text
 
     def test_forecast_summary_handles_missing_payload(self):
         assert ws.forecast_summary_for_ai({}, days=3) == ""
