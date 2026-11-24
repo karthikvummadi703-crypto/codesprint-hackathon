@@ -6,6 +6,7 @@ Run locally with:  uvicorn main:app --reload --port 8001
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -30,7 +31,7 @@ log = get_logger("airguard.main")
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     setup_logging(settings.log_level)
     log.info("AirGuard AI backend starting in %s", settings.environment)

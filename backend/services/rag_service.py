@@ -28,15 +28,19 @@ import threading
 import time
 import uuid
 from collections import Counter
+from typing import Any, cast
 
 from logging_config import get_logger
 
 log = get_logger("airguard.rag")
 
+PdfReader: Any
 try:
-    from pypdf import PdfReader
+    from pypdf import PdfReader as _PdfReader
+
+    PdfReader = _PdfReader
 except ImportError:  # pragma: no cover
-    PdfReader = None  # type: ignore[misc, assignment]
+    PdfReader = None
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -52,7 +56,7 @@ PDF_MAGIC = b"%PDF-"
 
 # uid -> {"files": {...}, "index": _Index | None}
 _memory_stores: dict[str, dict] = {}
-_index_cache: dict[str, tuple] = {}
+_index_cache: dict[str, tuple[list[tuple[str, str, str]], dict[str, float], int]] = {}
 _lock = threading.RLock()
 _filesystem_writable: bool | None = None
 
@@ -98,7 +102,7 @@ def _fs_is_writable() -> bool:
     return _filesystem_writable
 
 
-def _firestore_collection():
+def _firestore_collection() -> Any:
     from services import firebase_service
 
     db = firebase_service.get_firestore()
@@ -125,7 +129,7 @@ def _load_store(uid: str) -> dict:
         if os.path.exists(path):
             try:
                 with open(path, encoding="utf-8") as handle:
-                    return json.load(handle)
+                    return cast(dict, json.load(handle))
             except Exception as exc:
                 log.warning("could not read RAG store file: %s", type(exc).__name__)
 
@@ -255,7 +259,7 @@ def _tokens(text: str) -> list[str]:
     return re.findall(r"[a-z0-9]+", text.lower())
 
 
-def _build_index(uid: str):
+def _build_index(uid: str) -> tuple[list[tuple[str, str, str]], dict[str, float], int]:
     """Chunk corpus for a user, as (file_id, file_name, chunk) triples.
 
     The document each chunk came from is kept alongside it so retrieval can scope
@@ -277,7 +281,7 @@ def _build_index(uid: str):
     return docs, idf, total
 
 
-def _get_index(uid: str):
+def _get_index(uid: str) -> tuple[list[tuple[str, str, str]], dict[str, float], int]:
     cached = _index_cache.get(uid)
     if cached is not None:
         return cached

@@ -7,6 +7,8 @@ own request.
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 from config import get_settings
 from http_client import ProviderError, request_json
 from logging_config import get_logger
@@ -113,6 +115,6 @@ async def safe_reverse_geocode(lat: float, lon: float) -> dict:
 
 def _to_float(value: object) -> float:
     try:
-        return float(value)  # type: ignore[arg-type]
+        return float(cast(Any, value))
     except (TypeError, ValueError):
         return 0.0

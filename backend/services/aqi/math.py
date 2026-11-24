@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+from typing import Any
+
 from services.aqi.breakpoints import (
     _CO_PPM_DIVISOR,
     _PP_B_DIVISOR,
@@ -27,7 +30,7 @@ def aqi_category(aqi: int) -> str:
     return "Hazardous"
 
 
-def _sub_index(value: float, breaks: list) -> int:
+def _sub_index(value: float, breaks: Sequence[tuple[float, int]]) -> int:
     """Piecewise-linear EPA sub-index over a breakpoint table."""
     c_low, i_low = 0.0, 0
     for index, (concentration, aqi_high) in enumerate(breaks):
@@ -129,7 +132,7 @@ def health_advisory(aqi: int, dominant_label: str) -> str:
     return f"Emergency conditions: {dominant_label} is at hazardous levels. Avoid all outdoor activity."
 
 
-def _f(value, default: float = 0.0) -> float:
+def _f(value: Any, default: float = 0.0) -> float:
     try:
         if value is None:
             return default
@@ -138,13 +141,13 @@ def _f(value, default: float = 0.0) -> float:
         return default
 
 
-def _opt_float(value) -> float | None:
+def _opt_float(value: Any) -> float | None:
     try:
         return None if value is None else float(value)
     except (TypeError, ValueError):
         return None
 
 
-def _opt_int(value) -> int | None:
+def _opt_int(value: Any) -> int | None:
     parsed = _opt_float(value)
     return None if parsed is None else int(parsed)

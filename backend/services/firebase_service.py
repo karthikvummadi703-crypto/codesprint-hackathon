@@ -13,6 +13,7 @@ a key or a token arrives with an unknown `kid`.
 from __future__ import annotations
 
 import time
+from typing import Any, cast
 
 import firebase_admin
 import jwt
@@ -81,7 +82,7 @@ def admin_initialized() -> bool:
     return _init_admin()
 
 
-def get_firestore():
+def get_firestore() -> Any:
     """Firestore client, or None when the Admin SDK is not configured."""
     global _firestore_client
     if not _init_admin():
@@ -103,7 +104,7 @@ async def verify_id_token(token: str) -> str | None:
         def _verify() -> str | None:
             try:
                 decoded = auth.verify_id_token(token)
-                return decoded.get("uid")
+                return cast(str | None, decoded.get("uid"))
             except Exception:
                 return None
 

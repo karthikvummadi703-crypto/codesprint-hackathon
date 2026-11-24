@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import Any
+
 from services.aqi.math import _f
 
 
-async def _request_json(*args, **kwargs):
+async def _request_json(*args: Any, **kwargs: Any) -> Any:
     from services import air_quality_service as _facade
 
     return await _facade.request_json(*args, **kwargs)
@@ -39,7 +41,7 @@ def _normalize_google_components(data: dict) -> dict:
     return components
 
 
-def _pick_google_index(indexes: list) -> dict | None:
+def _pick_google_index(indexes: list[dict[str, Any]]) -> dict[str, Any] | None:
     for index in indexes:
         if str(index.get("code", "")).lower() == "usa_epa":
             return index
@@ -58,7 +60,7 @@ def _normalize_google_status(category: str) -> str:
     return mapping.get(str(category).lower(), "")
 
 
-def _at(series: dict, field: str, index: int):
+def _at(series: dict[str, Any], field: str, index: int) -> Any:
     values = series.get(field)
     if not values or index >= len(values):
         return None

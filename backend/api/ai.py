@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Annotated
+from collections.abc import Callable
+from typing import Annotated, Any, TypeVar, cast
 
 from fastapi import APIRouter, Body, Query
 
@@ -24,6 +25,7 @@ from services import ai_context, ai_service, air_quality_service, query_router, 
 
 log = get_logger("airguard.api.ai")
 router = APIRouter(prefix="/api", tags=["ai"])
+T = TypeVar("T")
 
 
 @router.post("/ai/chat", response_model=ChatResponse)
@@ -191,7 +193,7 @@ async def _no_weather() -> None:
     return None
 
 
-async def _load_air_quality(location: dict, settings) -> tuple[dict | None, list[dict] | None]:
+async def _load_air_quality(location: dict[str, Any], settings: Any) -> tuple[dict | None, list[dict] | None]:
     lat, lon = location["latitude"], location["longitude"]
     aqi_key = f"aqi:{coord_key(lat, lon)}"
     # Namespaced away from `/api/predictions`, which caches a response object under
@@ -208,11 +210,11 @@ async def _load_air_quality(location: dict, settings) -> tuple[dict | None, list
         env_cache.get_or_set(aqi_key, settings.cache_ttl_aqi_s, _aqi),
         env_cache.get_or_set(forecast_key, settings.cache_ttl_aqi_s, _forecast),
     )
-    return aqi, (forecast or None)
+    return cast(dict | None, aqi), cast(list[dict] | None, forecast or None)
 
 
 async def _load_history(
-    location: dict, settings, window: tuple[str, str, str]
+    location: dict[str, Any], settings: Any, window: tuple[str, str, str]
 ) -> tuple[list[dict] | None, str | None]:
     """Fetch observed daily history for a past window, cached for a day.
 
@@ -237,10 +239,10 @@ async def _load_history(
         # range is unavailable instead.
         log.warning("historical AQI enrichment failed: %s", exc)
         return None, label
-    return (rows or None), label
+    return cast(list[dict] | None, rows or None), label
 
 
-async def _load_weather(location: dict, settings) -> dict | None:
+async def _load_weather(location: dict[str, Any], settings: Any) -> dict | None:
     from services import weather_service
 
     # Namespaced away from the weather routes, which cache the same provider call
@@ -253,7 +255,7 @@ async def _load_weather(location: dict, settings) -> dict | None:
         )
 
     try:
-        return await env_cache.get_or_set(key, settings.cache_ttl_weather_s, _load)
+        return cast(dict | None, await env_cache.get_or_set(key, settings.cache_ttl_weather_s, _load))
     except ProviderError as exc:
         # A weather outage must not break the assistant; the context builder will
         # state that conditions are unavailable instead.
@@ -261,7 +263,7 @@ async def _load_weather(location: dict, settings) -> dict | None:
         return None
 
 
-async def _run_blocking(func, *args):
+async def _run_blocking(func: Callable[..., T], *args: Any) -> T:
     """Run blocking file/CPU work off the event loop."""
     import anyio
 

@@ -10,6 +10,7 @@ WMO code table: https://open-meteo.com/en/docs
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from config import get_settings
 from http_client import ProviderError, request_json
@@ -324,14 +325,14 @@ def forecast_summary_for_ai(payload: dict, days: int = 3) -> str:
     return " | ".join(parts)
 
 
-def _at(series: dict, field: str, index: int):
+def _at(series: dict[str, Any], field: str, index: int) -> Any:
     values = series.get(field)
     if not values or index >= len(values):
         return None
     return values[index]
 
 
-def _as_float(value, default: float = 0.0) -> float:
+def _as_float(value: Any, default: float = 0.0) -> float:
     try:
         if value is None:
             return default
@@ -340,7 +341,7 @@ def _as_float(value, default: float = 0.0) -> float:
         return default
 
 
-def _as_int(value) -> int | None:
+def _as_int(value: Any) -> int | None:
     if value is None:
         return None
     try:
@@ -349,7 +350,7 @@ def _as_int(value) -> int | None:
         return None
 
 
-def _as_opt_float(value) -> float | None:
+def _as_opt_float(value: Any) -> float | None:
     """Like `_as_float` but preserves "not reported" as None instead of 0.0.
 
     Used for fields the schema marks optional: reporting UV index 0 or visibility

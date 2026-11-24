@@ -8,6 +8,7 @@ for when the model is unreachable. Context *content* lives in `ai_context.py`.
 from __future__ import annotations
 
 import time
+from typing import Any
 
 from config import get_settings
 from http_client import ProviderError, request_json
@@ -97,8 +98,8 @@ _REASONING_MIN_OUTPUT_TOKENS = 1600
 _MAX_OUTPUT_TOKENS = 4000
 
 
-def _output_token_budget(settings) -> int:
-    budget = settings.llm_max_tokens
+def _output_token_budget(settings: Any) -> int:
+    budget: int = settings.llm_max_tokens
     if settings.llm_reasoning_effort:
         budget = max(budget, _REASONING_MIN_OUTPUT_TOKENS)
     return budget

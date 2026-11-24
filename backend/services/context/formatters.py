@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 from services.air_quality_service import aqi_category
 
@@ -9,7 +10,7 @@ _FORECAST = "forecast"
 _MODELLED = "modelled"
 
 
-def _num(value) -> str:
+def _num(value: Any) -> str:
     if value is None:
         return "unavailable"
     if isinstance(value, float):

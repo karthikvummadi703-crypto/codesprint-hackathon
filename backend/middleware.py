@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import time
 from collections import defaultdict, deque
+from collections.abc import Awaitable, Callable
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -90,7 +91,9 @@ async def _identity(request: Request) -> str:
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         response: Response = await call_next(request)
         headers = response.headers
         headers.setdefault("Content-Security-Policy", _CSP)
@@ -110,7 +113,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 class TimingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         started = time.perf_counter()
         response: Response = await call_next(request)
         elapsed_ms = int((time.perf_counter() - started) * 1000)
@@ -127,7 +132,9 @@ class TimingMiddleware(BaseHTTPMiddleware):
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next) -> Response:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         settings = get_settings()
         path = request.url.path
         if not settings.rate_limit_enabled or not path.startswith("/api/") or request.method == "OPTIONS":

@@ -21,7 +21,23 @@ ignore = ["E501", "B008", "S311"] # seeded/random jitter is not security-sensiti
 
 [tool.mypy]
 python_version = "3.11"
-ignore_missing_imports = true
 check_untyped_defs = true
 warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+show_error_codes = true
+disallow_untyped_defs = true
+warn_return_any = true
+strict_equality = true
 exclude = ["(^|/)(\\.venv|tests|data)/"]
+
+[[tool.mypy.overrides]]
+module = [
+  "firebase_admin",
+  "firebase_admin.*",
+  "google.cloud",
+  "google.cloud.*",
+  "PyPDF2",
+  "PyPDF2.*",
+]
+ignore_missing_imports = true
