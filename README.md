@@ -21,7 +21,7 @@ AirGuard AI is a GenAI-powered clean-air companion that helps families and commu
 | Backend | Python 3.11+, FastAPI, Uvicorn, Pydantic, HTTPX, Firebase Admin |
 | Data providers | Open-Meteo air quality and weather, Nominatim geocoding, optional Google Air Quality and OpenWeather |
 | AI | Any OpenAI-compatible chat completions endpoint, with a grounded fallback when no key is configured |
-| Testing | Vitest, Testing Library, jest-axe, ESLint, pytest |
+| Testing | Vitest, Testing Library, jest-axe, fast-check, Hypothesis, ESLint, pytest, coverage gates |
 | CI | GitHub Actions |
 
 ## Quick start
@@ -115,21 +115,26 @@ See `.env.example` and `backend/.env.example` for the full annotated lists.
 | `npm run typecheck` | Run TypeScript checks without emitting files |
 | `npm run lint` | Run ESLint |
 | `npm run lint:fix` | Fix ESLint issues where possible |
-| `npm test` | Run frontend unit and accessibility tests once |
+| `npm test` | Run frontend unit, accessibility, and property tests once |
 | `npm run test:watch` | Run frontend tests in watch mode |
+| `npm run test:coverage` | Run frontend tests with enforced coverage thresholds |
 | `npm run test:backend` | Run backend pytest suite |
+| `npm run test:backend:coverage` | Run backend pytest with coverage and an enforced floor |
+| `make ci` | Run all checks, both coverage suites, and the production build |
 
 ## Verification
 
 Current verified results:
 
-- `npm run lint`: clean
-- `npm run typecheck`: clean
-- `npm test`: 5 files, 49 tests passed
-- `npm run build`: successful, no chunk-size warning
-- Backend pytest: 241 passed, 9 deselected
+- `npm run format:check`, `npm run lint`, `npm run typecheck`: clean
+- Ruff, Ruff format check, and mypy: clean
+- `npm run test:coverage`: 46 files, 504 tests passed; ~94.6% statements, 81.48% branches, ~90.5% functions, 95.95% lines
+- `npm run test:backend:coverage`: 566 passed, 9 deselected; 97% statements, 92% floor enforced
+- `npm run build`: successful, asset names/hashes/sizes unchanged
 - `npm audit --omit=dev`: 0 vulnerabilities
 - `npm audit`: 0 vulnerabilities
+
+See `TESTING.md` for coverage commands, determinism notes, and behavior discovered by tests that was intentionally not changed.
 
 ## Architecture
 

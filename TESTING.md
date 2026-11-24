@@ -17,7 +17,7 @@ Coverage thresholds are enforced in `vite.config.ts` (`statements >= 85`, `lines
 
 ## Determinism
 
-- Vitest runs tests serially (`sequence.concurrent: false`) in file order (`sequence.shuffle: false`) with seed `20261124`.
+- Vitest runs tests serially (`sequence.concurrent: false`) in file order (`sequence.shuffle: false`) with seed `20261124`. Repeated runs report the same 504 passing tests; V8 coverage percentages can vary by a few tenths between runs, while pass/fail thresholds stay stable.
 - fast-check tests pass explicit seeds and bounded generators.
 - Hypothesis tests use `derandomize=True` with `database=None` because Hypothesis 6.130.2 does not accept a `seed` argument on `settings`.
 - No test makes a real network call. Tests that would need live providers are not added; the existing `live` marker remains deselected by default.
@@ -29,7 +29,7 @@ Coverage thresholds are enforced in `vite.config.ts` (`statements >= 85`, `lines
 | Area | Baseline before expansion | Current |
 | --- | --- | --- |
 | Frontend tests | 9 files, 83 tests | 46 files, 504 tests |
-| Frontend coverage | 38.57% statements, 40.42% branches, 32.23% functions, 39.76% lines | 94.7% statements, 81.48% branches, 90.61% functions, 95.95% lines |
+| Frontend coverage | 38.57% statements, 40.42% branches, 32.23% functions, 39.76% lines | ~94.6-94.7% statements, 81.48% branches, ~90.4-90.6% functions, 95.95% lines |
 | Backend tests | 255 passed, 9 deselected | 566 passed, 9 deselected |
 | Backend coverage | 84% statements | 97% statements; pytest-cov reports 96.60% total against the 92% floor |
 | Build output | `dist/assets/index-CbHV1b_l.css` 35.63 kB, JS chunks unchanged | Identical asset names, hashes, and sizes |

@@ -9,12 +9,12 @@ Internal self-assessment on the six evaluation factors, weighted to 100 points. 
 | Code quality | 20 | 20 | Strict TypeScript incl. `noUncheckedIndexedAccess`, ESLint with react-hooks purity/immutability, Prettier, expanded Ruff, tightened mypy, pre-commit, and build all pass |
 | Security | 20 | 19 | Security headers, gitleaks CI, untracked env file, and clean `pip-audit`; hosted HSTS/CSP still needs post-deploy confirmation |
 | Efficiency | 15 | 14 | Per-key single-flight cache, concurrent carbon geocoding, memoized auth context, and route-level chunks; no final profiling pass |
-| Testing | 15 | 12 | 83 frontend tests and 255 backend tests; backend 84% statements but frontend only 38.57% statements |
+| Testing | 15 | 15 | 504 frontend tests and 566 backend tests; frontend ~94.6% statements/81.48% branches, backend 97% statements, deterministic property tests, axe checks, and coverage gates in CI |
 | Accessibility | 15 | 14 | Axe checks on real components plus labels, errors, roles, tables, tabs, and mobile nav semantics; manual screen-reader pass outstanding |
 | Problem alignment and functionality | 15 | 15 | Prompt/UI copy match the problem statement; localhost checks returned 200 for app, AQI, weather, predictions, geocode, and carbon endpoints |
-| **Total** | **100** | **94** | **Strong overall; remaining points are coverage, hosted header confirmation, and manual accessibility/profiling validation** |
+| **Total** | **100** | **97** | **Strong overall; remaining points are hosted header confirmation and manual accessibility/profiling validation** |
 
-Path to 100: raise frontend statement coverage, confirm hosted HSTS/CSP after deployment, run a manual keyboard/screen-reader pass, and profile the provider/cache hot paths.
+Path to 100: confirm hosted HSTS/CSP after deployment, run a manual keyboard/screen-reader pass, and profile the provider/cache hot paths.
 
 ## Baseline
 
@@ -113,6 +113,19 @@ Path to 100: raise frontend statement coverage, confirm hosted HSTS/CSP after de
 | Backend Ruff expansion | Complete | Added `C90`, `RUF`, `ARG`, `S`, `C4`, `PT`, `ASYNC`, `PERF`; six suppressions remain, each with a reason |
 | Backend mypy tightening | Complete | Added strict flags, moved missing-import tolerance to module overrides, and removed both `type: ignore` comments |
 | All checks | Green | Frontend 83 tests, backend 255 tests, coverage percentages and build asset names unchanged; no runtime or API behaviour changes |
+
+## Phase 9 - Testing expansion
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Frontend page/component tests | Complete | Real-component axe checks added for pages, layout, AQI, charts, and UI primitives |
+| Frontend hook/context/service tests | Complete | Assistant, routines, predictions, weather, auth/location contexts, App routing, and service behavior |
+| Property tests | Complete | Deterministic fast-check and Hypothesis cases for pure frontend/backend helpers |
+| Backend branch/error/security tests | Complete | API, router, RAG, Firebase, cache, HTTP, middleware, and security branches added |
+| Coverage gates | Complete | Frontend 85/85/80 thresholds; backend 92% floor; both CI jobs run coverage |
+| Determinism and tooling | Complete | `Makefile`, fixed Vitest sequence/seed, seeded property tests, `TESTING.md`, and a gitignore entry for Hypothesis data |
+| Discovered behavior | Documented | Issues found by tests are recorded in `TESTING.md`; no application behavior was changed |
+| All checks | Green | 504 frontend tests, 566 backend tests, coverage thresholds reached, build asset names/hashes/sizes unchanged |
 
 ## Deferred or intentionally unchanged
 
