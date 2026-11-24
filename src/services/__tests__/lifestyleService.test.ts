@@ -71,10 +71,10 @@ describe('buildDailyRoutines', () => {
     });
     const byId = Object.fromEntries(routines.map((r) => [r.id, r]));
 
-    expect(byId['indoor-windows'].priority).toBe('high');
-    expect(byId['outdoor-timing'].title).toContain('indoors');
-    expect(byId['household-check'].priority).toBe('high');
-    expect(byId['low-emission-short-trips'].priority).toBe('low');
+    expect(byId['indoor-windows']!.priority).toBe('high');
+    expect(byId['outdoor-timing']!.title).toContain('indoors');
+    expect(byId['household-check']!.priority).toBe('high');
+    expect(byId['low-emission-short-trips']!.priority).toBe('low');
   });
 
   it('adds winter-smog-specific guidance only in smog season', () => {

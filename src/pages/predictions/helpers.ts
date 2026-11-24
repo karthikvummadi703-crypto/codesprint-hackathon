@@ -37,7 +37,7 @@ export function activityGuidance(peak: number): { title: string; body: string; t
 
 export function windDeg(deg: number): string {
   const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-  return dirs[Math.round(deg / 45) % 8];
+  return dirs[Math.round(deg / 45) % 8]!;
 }
 
 export function hourLabel(ts: string): string {

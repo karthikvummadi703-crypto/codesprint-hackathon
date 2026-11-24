@@ -246,7 +246,7 @@ export async function getLatestPredictions(uid: string): Promise<Json[]> {
       const q = query(collection(db, 'users', uid, 'predictions'), orderBy('createdAt', 'desc'), fsLimit(1));
       const snap = await getDocs(q);
       if (!snap.empty) {
-        const docData = snap.docs[0].data();
+        const docData = snap.docs[0]!.data();
         return Array.isArray(docData.predictions) ? (docData.predictions as Json[]) : [];
       }
     } catch (err) {
@@ -254,7 +254,7 @@ export async function getLatestPredictions(uid: string): Promise<Json[]> {
     }
   }
   const items = devRead<P>(uid, 'predictions').sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
-  return items.length ? items[0].predictions : [];
+  return items.length ? items[0]!.predictions : [];
 }
 
 // ---- Carbon trips ----

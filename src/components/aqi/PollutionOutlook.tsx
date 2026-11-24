@@ -23,7 +23,7 @@ const BANDS: { max: number; label: string; color: string; bg: string }[] = [
 ];
 
 function bandFor(aqi: number) {
-  return BANDS.find((b) => aqi <= b.max) ?? BANDS[BANDS.length - 1];
+  return BANDS.find((b) => aqi <= b.max) ?? BANDS[BANDS.length - 1]!;
 }
 
 /**

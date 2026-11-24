@@ -44,7 +44,7 @@ export function useAssistant() {
   const attachInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const activeSession = sessions.find((s) => s.id === currentSessionId) || sessions[0];
+  const activeSession = sessions.find((s) => s.id === currentSessionId) || sessions[0]!;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -81,7 +81,7 @@ export function useAssistant() {
             : undefined,
       });
       if (hydrated.length > 0) {
-        setCurrentSessionId((prev) => prev || hydrated[0].id);
+        setCurrentSessionId((prev) => prev || hydrated[0]!.id);
       } else {
         const newId = await createConversation(user.uid, 'New Conversation');
         const newSession: ChatSession = {
@@ -162,7 +162,7 @@ export function useAssistant() {
     const filtered = sessions.filter((s) => s.id !== id);
     setSessions(filtered);
     if (currentSessionId === id) {
-      setCurrentSessionId(filtered.length > 0 ? filtered[0].id : '');
+      setCurrentSessionId(filtered.length > 0 ? filtered[0]!.id : '');
     }
     if (user && !isLocalConvo(id)) await deleteConversation(user.uid, id).catch(() => {});
   };

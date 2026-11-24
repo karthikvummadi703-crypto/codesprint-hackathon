@@ -100,7 +100,7 @@ export async function appSignUp(name: string, email: string, password: string): 
   const accounts = devAccounts();
   const existing = Object.values(accounts).find((a) => a.email.toLowerCase() === email.toLowerCase());
   if (existing) throw new Error('An account with this email already exists.');
-  const account: DevAccount = { uid: `dev-${Date.now()}`, email, name: name || email.split('@')[0] };
+  const account: DevAccount = { uid: `dev-${Date.now()}`, email, name: name || email.split('@')[0]! };
   accounts[account.uid] = account;
   saveDevAccounts(accounts);
   setCurrentDevUser(account);

@@ -55,8 +55,8 @@ function num(value: unknown): number | null {
 function dominantPollutant(air: AirQualityReading | null | undefined): PollutantReading | null {
   if (!air?.pollutants?.length) return null;
   const byId = air.dominantPollutant ? air.pollutants.find((p) => p.id === air.dominantPollutant) : null;
-  const candidate = byId ?? air.pollutants[0];
-  return num(candidate?.value) === null ? null : candidate;
+  const candidate = byId ?? air.pollutants[0]!;
+  return num(candidate.value) === null ? null : candidate;
 }
 
 /** Rates outdoor guidance off the official AQI breakpoints. */

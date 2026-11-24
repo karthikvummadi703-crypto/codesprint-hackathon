@@ -158,7 +158,7 @@ export default function SettingsPage() {
     }
 
     event.preventDefault();
-    setActiveTab(tabs[nextIndex].id as typeof activeTab);
+    setActiveTab(tabs[nextIndex]!.id as typeof activeTab);
     const tabButtons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
     tabButtons?.[nextIndex]?.focus();
   };

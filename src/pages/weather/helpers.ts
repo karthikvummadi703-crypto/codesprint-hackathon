@@ -1,6 +1,6 @@
 function windDeg(deg: number): string {
   const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-  return dirs[Math.round(deg / 45) % 8];
+  return dirs[Math.round(deg / 45) % 8]!;
 }
 
 function uvLabel(uv: number): string {

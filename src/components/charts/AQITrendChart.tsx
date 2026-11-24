@@ -19,7 +19,7 @@ type CustomTooltipProps = Partial<Pick<TooltipContentProps<number, string>, 'act
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
-    const aqi = payload[0].value as number;
+    const aqi = payload[0]!.value as number;
     return (
       <div className="bg-white border border-slate-200 rounded-xl shadow-lg px-4 py-3">
         <div className="text-xs text-slate-500 mb-1">{label}</div>

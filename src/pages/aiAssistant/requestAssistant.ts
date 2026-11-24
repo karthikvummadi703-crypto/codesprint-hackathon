@@ -43,8 +43,8 @@ export async function requestAssistantReply({
     predictions = preds;
     // Only fall back to a stored record when nothing is pinned, so the
     // assistant never answers about a stale location by default.
-    if (!pinnedLocation && aqRecords.length > 0 && aqRecords[0].location) {
-      pinnedLocation = { name: aqRecords[0].location };
+    if (!pinnedLocation && aqRecords.length > 0 && aqRecords[0]!.location) {
+      pinnedLocation = { name: aqRecords[0]!.location };
     }
   } catch {
     // Context loading is best-effort
