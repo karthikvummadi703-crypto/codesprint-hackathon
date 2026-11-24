@@ -2,14 +2,14 @@
 
 ## Evaluation scorecard
 
-Internal self-assessment on the six evaluation factors, weighted to 100 points. Evidence comes from the final verification pass and the localhost runtime check on 20 Nov 2026.
+Internal self-assessment on the six evaluation factors, weighted to 100 points. Evidence comes from the final verification pass on 24 Nov 2026 and the localhost runtime check on 20 Nov 2026.
 
 | Factor | Weight | Score | Evidence / remaining gap |
 | --- | ---: | ---: | --- |
-| Code quality | 20 | 20 | Strict TypeScript, ESLint, Prettier, Ruff, mypy, pre-commit, and build all pass; large modules split into focused units |
+| Code quality | 20 | 20 | Strict TypeScript incl. `noUncheckedIndexedAccess`, ESLint with react-hooks purity/immutability, Prettier, expanded Ruff, tightened mypy, pre-commit, and build all pass |
 | Security | 20 | 19 | Security headers, gitleaks CI, untracked env file, and clean `pip-audit`; hosted HSTS/CSP still needs post-deploy confirmation |
 | Efficiency | 15 | 14 | Per-key single-flight cache, concurrent carbon geocoding, memoized auth context, and route-level chunks; no final profiling pass |
-| Testing | 15 | 12 | 82 frontend tests and 255 backend tests; backend 84% statements but frontend only 39% statements |
+| Testing | 15 | 12 | 83 frontend tests and 255 backend tests; backend 84% statements but frontend only 38.57% statements |
 | Accessibility | 15 | 14 | Axe checks on real components plus labels, errors, roles, tables, tabs, and mobile nav semantics; manual screen-reader pass outstanding |
 | Problem alignment and functionality | 15 | 15 | Prompt/UI copy match the problem statement; localhost checks returned 200 for app, AQI, weather, predictions, geocode, and carbon endpoints |
 | **Total** | **100** | **94** | **Strong overall; remaining points are coverage, hosted header confirmation, and manual accessibility/profiling validation** |
@@ -98,10 +98,21 @@ Path to 100: raise frontend statement coverage, confirm hosted HSTS/CSP after de
 | Code quality | Green | Prettier, ESLint, strict TypeScript, Ruff, mypy, and all pre-commit hooks pass |
 | Security | Green | Backend/hosted security headers, CI secret scanning, untracked env file, `pip-audit` clean |
 | Efficiency | Green | Per-key cache, concurrent carbon geocoding, memoized auth context, route-level chunks |
-| Testing | Improved | Frontend 82 tests; 39% statements, 40.95% branches, 32% functions, 40.3% lines; backend 255 tests, 84% statements, 9 live tests deselected |
+| Testing | Improved | Frontend 83 tests; 38.57% statements, 40.42% branches, 32.23% functions, 39.76% lines; backend 255 tests, 84% statements, 9 live tests deselected, 5 warnings |
 | Accessibility | Green | axe checks cover real components; labels, errors, roles, tables, tabs, and mobile nav semantics verified |
 | Problem alignment | Green | Prompt and UI copy centre family smog guidance, low-emission routines, and grounded impact |
-| Final tree | Clean | All checks rerun after Phase 6 commit; `git diff --check` clean |
+| Final tree | Clean | All checks rerun after Phase 8 commits; `git diff --check` clean |
+
+## Phase 8 - Lint and type hardening
+
+| Item | Status | Notes |
+| --- | --- | --- |
+| Frontend explicit `any` removal | Complete | All explicit `any` removed from source; `tsc`, ESLint and tests unchanged |
+| React Hooks rules | Complete | `react-hooks/purity` and `react-hooks/immutability` enabled; `set-state-in-effect` and `preserve-manual-memoization` remain off with documented reasons |
+| Indexed access safety | Complete | `noUncheckedIndexedAccess` enabled; indexed reads made explicit |
+| Backend Ruff expansion | Complete | Added `C90`, `RUF`, `ARG`, `S`, `C4`, `PT`, `ASYNC`, `PERF`; six suppressions remain, each with a reason |
+| Backend mypy tightening | Complete | Added strict flags, moved missing-import tolerance to module overrides, and removed both `type: ignore` comments |
+| All checks | Green | Frontend 83 tests, backend 255 tests, coverage percentages and build asset names unchanged; no runtime or API behaviour changes |
 
 ## Deferred or intentionally unchanged
 
