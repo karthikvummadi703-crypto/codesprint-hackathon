@@ -31,7 +31,7 @@ export default tseslint.config(
       'react-hooks/purity': 'error',
       // Removing manual memoization would change render work and emitted output.
       'react-hooks/preserve-manual-memoization': 'off',
-      'react-hooks/immutability': 'off',
+      'react-hooks/immutability': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
