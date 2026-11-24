@@ -13,8 +13,19 @@ import {
   where,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from './firebase';
+import type {
+  AirQualityRecord,
+  CarbonTripRecord,
+  ChatMessage,
+  ConversationRecord,
+  Json,
+  MessageRecord,
+  PredictionRecord,
+  StoredRecord,
+  UploadRecord,
+} from '../types';
 
-type Json = Record<string, unknown>;
+type P = PredictionRecord;
 
 function isoNow(): string {
   return new Date().toISOString();
@@ -23,15 +34,15 @@ function isoNow(): string {
 // ---- MOCK fallback store (used only when Firebase is not configured) ----
 const DEV_PREFIX = 'airguard_dev_data_';
 
-function devRead(uid: string, kind: string): any[] {
+function devRead<T extends StoredRecord = StoredRecord>(uid: string, kind: string): T[] {
   try {
-    return JSON.parse(localStorage.getItem(`${DEV_PREFIX}${uid}_${kind}`) || '[]');
+    return JSON.parse(localStorage.getItem(`${DEV_PREFIX}${uid}_${kind}`) || '[]') as T[];
   } catch {
     return [];
   }
 }
 
-function devWrite(uid: string, kind: string, items: any[]) {
+function devWrite<T extends StoredRecord>(uid: string, kind: string, items: T[]): void {
   localStorage.setItem(`${DEV_PREFIX}${uid}_${kind}`, JSON.stringify(items));
 }
 
@@ -76,17 +87,17 @@ export async function updateUser(uid: string, data: Json): Promise<void> {
 }
 
 // ---- Conversations ----
-export async function listConversations(uid: string): Promise<any[]> {
+export async function listConversations(uid: string): Promise<ConversationRecord[]> {
   if (isFirebaseConfigured && db) {
     try {
       const q = query(collection(db, 'users', uid, 'conversations'), orderBy('updatedAt', 'desc'));
       const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as ConversationRecord);
     } catch (err) {
       console.warn('Firestore listConversations failed, falling back to local storage:', err);
     }
   }
-  const items = devRead(uid, 'conversations');
+  const items = devRead<ConversationRecord>(uid, 'conversations');
   return items.sort((a, b) => (a.updatedAt > b.updatedAt ? -1 : 1));
 }
 
@@ -101,7 +112,7 @@ export async function createConversation(uid: string, title: string): Promise<st
       console.warn('Firestore createConversation failed, falling back to local storage:', err);
     }
   }
-  const items = devRead(uid, 'conversations');
+  const items = devRead<ConversationRecord>(uid, 'conversations');
   const id = `conv-${Date.now()}`;
   items.push({ id, ...data });
   devWrite(uid, 'conversations', items);
@@ -123,7 +134,7 @@ export async function updateConversation(
       console.warn('Firestore updateConversation failed, falling back to local storage:', err);
     }
   }
-  const items = devRead(uid, 'conversations').map((c) =>
+  const items = devRead<ConversationRecord>(uid, 'conversations').map((c) =>
     c.id === convId ? { ...c, title, updatedAt: now } : c,
   );
   devWrite(uid, 'conversations', items);
@@ -141,13 +152,13 @@ export async function deleteConversation(uid: string, convId: string): Promise<v
   devWrite(
     uid,
     'conversations',
-    devRead(uid, 'conversations').filter((c) => c.id !== convId),
+    devRead<ConversationRecord>(uid, 'conversations').filter((c) => c.id !== convId),
   );
   localStorage.removeItem(`${DEV_PREFIX}${uid}_messages_${convId}`);
 }
 
 // ---- Messages ----
-export async function listMessages(uid: string, convId: string): Promise<any[]> {
+export async function listMessages(uid: string, convId: string): Promise<MessageRecord[]> {
   if (isFirebaseConfigured && db) {
     try {
       const q = query(
@@ -155,18 +166,18 @@ export async function listMessages(uid: string, convId: string): Promise<any[]> 
         orderBy('timestamp', 'asc'),
       );
       const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as MessageRecord);
     } catch (err) {
       console.warn('Firestore listMessages failed, falling back to local storage:', err);
     }
   }
-  return devRead(uid, `messages_${convId}`);
+  return devRead<MessageRecord>(uid, `messages_${convId}`);
 }
 
 export async function addMessage(
   uid: string,
   convId: string,
-  msg: { role: string; content: string },
+  msg: { role: ChatMessage['role']; content: string },
 ): Promise<void> {
   const data = { ...msg, timestamp: isoNow() };
   if (isFirebaseConfigured && db) {
@@ -177,14 +188,14 @@ export async function addMessage(
       console.warn('Firestore addMessage failed, falling back to local storage:', err);
     }
   }
-  const items = devRead(uid, `messages_${convId}`);
+  const items = devRead<MessageRecord>(uid, `messages_${convId}`);
   items.push({ id: `msg-${Date.now()}`, ...data });
   devWrite(uid, `messages_${convId}`, items);
 }
 
 // ---- Air quality records ----
 export async function addAirQualityRecord(uid: string, record: Json): Promise<void> {
-  const data = { ...record, timestamp: record.timestamp || isoNow() };
+  const data = { ...record, timestamp: (record.timestamp as string) || isoNow() };
   if (isFirebaseConfigured && db) {
     try {
       await addDoc(collection(db, 'users', uid, 'airQuality'), data);
@@ -193,28 +204,28 @@ export async function addAirQualityRecord(uid: string, record: Json): Promise<vo
       console.warn('Firestore addAirQualityRecord failed, falling back to local storage:', err);
     }
   }
-  const items = devRead(uid, 'airQuality');
+  const items = devRead<AirQualityRecord>(uid, 'airQuality');
   items.push({ id: `aq-${Date.now()}`, ...data });
   devWrite(uid, 'airQuality', items);
 }
 
-export async function listAirQualityRecords(uid: string, max = 20): Promise<any[]> {
+export async function listAirQualityRecords(uid: string, max = 20): Promise<AirQualityRecord[]> {
   if (isFirebaseConfigured && db) {
     try {
       const q = query(collection(db, 'users', uid, 'airQuality'), orderBy('timestamp', 'desc'), fsLimit(max));
       const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AirQualityRecord);
     } catch (err) {
       console.warn('Firestore listAirQualityRecords failed, falling back to local storage:', err);
     }
   }
-  return devRead(uid, 'airQuality')
+  return devRead<AirQualityRecord>(uid, 'airQuality')
     .sort((a, b) => (a.timestamp > b.timestamp ? -1 : 1))
     .slice(0, max);
 }
 
 // ---- Predictions ----
-export async function savePredictions(uid: string, predictions: any[]): Promise<void> {
+export async function savePredictions(uid: string, predictions: Json[]): Promise<void> {
   const data = { predictions, createdAt: isoNow() };
   if (isFirebaseConfigured && db) {
     try {
@@ -224,31 +235,31 @@ export async function savePredictions(uid: string, predictions: any[]): Promise<
       console.warn('Firestore savePredictions failed, falling back to local storage:', err);
     }
   }
-  const items = devRead(uid, 'predictions');
+  const items = devRead<PredictionRecord>(uid, 'predictions');
   items.push({ id: `pred-${Date.now()}`, ...data });
   devWrite(uid, 'predictions', items);
 }
 
-export async function getLatestPredictions(uid: string): Promise<any[]> {
+export async function getLatestPredictions(uid: string): Promise<Json[]> {
   if (isFirebaseConfigured && db) {
     try {
       const q = query(collection(db, 'users', uid, 'predictions'), orderBy('createdAt', 'desc'), fsLimit(1));
       const snap = await getDocs(q);
       if (!snap.empty) {
         const docData = snap.docs[0].data();
-        return Array.isArray(docData.predictions) ? docData.predictions : [];
+        return Array.isArray(docData.predictions) ? (docData.predictions as Json[]) : [];
       }
     } catch (err) {
       console.warn('Firestore getLatestPredictions failed, falling back to local storage:', err);
     }
   }
-  const items = devRead(uid, 'predictions').sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
+  const items = devRead<P>(uid, 'predictions').sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
   return items.length ? items[0].predictions : [];
 }
 
 // ---- Carbon trips ----
 export async function addCarbonTrip(uid: string, trip: Json): Promise<string> {
-  const data = { ...trip, date: trip.date || isoNow() };
+  const data = { ...trip, date: (trip.date as string) || isoNow() };
   if (isFirebaseConfigured && db) {
     try {
       const ref = await addDoc(collection(db, 'users', uid, 'carbonTrips'), data);
@@ -257,14 +268,14 @@ export async function addCarbonTrip(uid: string, trip: Json): Promise<string> {
       console.warn('Firestore addCarbonTrip failed, falling back to local storage:', err);
     }
   }
-  const items = devRead(uid, 'carbonTrips');
+  const items = devRead<CarbonTripRecord>(uid, 'carbonTrips');
   const id = `trip-${Date.now()}`;
-  items.push({ id, ...data });
+  items.push({ id, ...data } as CarbonTripRecord);
   devWrite(uid, 'carbonTrips', items);
   return id;
 }
 
-export async function listCarbonTrips(uid: string, max?: number): Promise<any[]> {
+export async function listCarbonTrips(uid: string, max?: number): Promise<CarbonTripRecord[]> {
   if (isFirebaseConfigured && db) {
     try {
       const trips = collection(db, 'users', uid, 'carbonTrips');
@@ -272,12 +283,12 @@ export async function listCarbonTrips(uid: string, max?: number): Promise<any[]>
         ? query(trips, orderBy('date', 'desc'), fsLimit(max))
         : query(trips, orderBy('date', 'desc'));
       const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as CarbonTripRecord);
     } catch (err) {
       console.warn('Firestore listCarbonTrips failed, falling back to local storage:', err);
     }
   }
-  const items = devRead(uid, 'carbonTrips').sort((a, b) => (a.date > b.date ? -1 : 1));
+  const items = devRead<CarbonTripRecord>(uid, 'carbonTrips').sort((a, b) => (a.date > b.date ? -1 : 1));
   return max ? items.slice(0, max) : items;
 }
 
@@ -293,13 +304,13 @@ export async function deleteCarbonTrip(uid: string, tripId: string): Promise<voi
   devWrite(
     uid,
     'carbonTrips',
-    devRead(uid, 'carbonTrips').filter((t) => t.id !== tripId),
+    devRead<CarbonTripRecord>(uid, 'carbonTrips').filter((t) => t.id !== tripId),
   );
 }
 
 // ---- Uploads metadata ----
 export async function addUpload(uid: string, meta: Json): Promise<void> {
-  const data = { ...meta, uploadedAt: meta.uploadedAt || isoNow() };
+  const data = { ...meta, uploadedAt: (meta.uploadedAt as string) || isoNow() };
   if (isFirebaseConfigured && db) {
     try {
       await setDoc(doc(db, 'users', uid, 'uploads', String(meta.fileId)), data);
@@ -308,22 +319,22 @@ export async function addUpload(uid: string, meta: Json): Promise<void> {
       console.warn('Firestore addUpload failed, falling back to local storage:', err);
     }
   }
-  const items = devRead(uid, 'uploads');
-  items.push({ id: meta.fileId, ...data });
+  const items = devRead<UploadRecord>(uid, 'uploads');
+  items.push({ id: meta.fileId as string, ...data } as UploadRecord);
   devWrite(uid, 'uploads', items);
 }
 
-export async function listUploads(uid: string): Promise<any[]> {
+export async function listUploads(uid: string): Promise<UploadRecord[]> {
   if (isFirebaseConfigured && db) {
     try {
       const q = query(collection(db, 'users', uid, 'uploads'), orderBy('uploadedAt', 'desc'));
       const snap = await getDocs(q);
-      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as UploadRecord);
     } catch (err) {
       console.warn('Firestore listUploads failed, falling back to local storage:', err);
     }
   }
-  return devRead(uid, 'uploads').sort((a, b) => (a.uploadedAt > b.uploadedAt ? -1 : 1));
+  return devRead<UploadRecord>(uid, 'uploads').sort((a, b) => (a.uploadedAt > b.uploadedAt ? -1 : 1));
 }
 
 export async function deleteUpload(uid: string, fileId: string): Promise<void> {
@@ -338,7 +349,7 @@ export async function deleteUpload(uid: string, fileId: string): Promise<void> {
   devWrite(
     uid,
     'uploads',
-    devRead(uid, 'uploads').filter((f) => f.id !== fileId),
+    devRead<UploadRecord>(uid, 'uploads').filter((f) => f.id !== fileId),
   );
 }
 
@@ -352,7 +363,7 @@ export async function isUploadReady(uid: string, fileId: string): Promise<boolea
       console.warn('Firestore isUploadReady failed, falling back to local storage:', err);
     }
   }
-  return devRead(uid, 'uploads').some((f) => f.id === fileId);
+  return devRead<UploadRecord>(uid, 'uploads').some((f) => f.id === fileId);
 }
 
 // ---- Household & community watch (stored on the user profile) ----

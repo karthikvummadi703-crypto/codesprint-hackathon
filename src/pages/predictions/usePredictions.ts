@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLocation, toLocationParams } from '../../context/LocationContext';
 import { fetchPredictions, fetchWeather, WeatherResponse } from '../../services/backendService';
 import { listAirQualityRecords, savePredictions } from '../../services/dataService';
-import { PredictionForecast } from '../../types';
+import { Json, PredictionForecast } from '../../types';
 import { activityGuidance } from './helpers';
 
 export function usePredictions() {
@@ -66,7 +66,7 @@ export function usePredictions() {
       setWeather(weatherData);
       setMethod(typeof data.method === 'string' ? data.method : '');
       setProvenanceNote(typeof data.note === 'string' ? data.note : '');
-      if (user && list.length > 0) savePredictions(user.uid, list).catch(() => {});
+      if (user && list.length > 0) savePredictions(user.uid, list as unknown as Json[]).catch(() => {});
     } catch (e) {
       // Clear the chart rather than leaving an unrelated location's forecast up.
       setForecasts([]);

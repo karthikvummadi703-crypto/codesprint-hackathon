@@ -9,6 +9,17 @@ import { getUser, saveUser } from '../services/dataService';
 import { initialsFor } from '../services/profileService';
 import { fileToAvatarDataUrl } from '../services/imageService';
 
+type ProfileRecord = {
+  name?: string;
+  email?: string;
+  location?: string;
+  preferences?: {
+    units?: 'metric' | 'imperial';
+    notificationsEnabled?: boolean;
+    alertThreshold?: number;
+  };
+};
+
 export default function SettingsPage() {
   const { user, displayName, avatarUrl, syncProfileLocally, updateAvatar } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'privacy'>(
@@ -32,7 +43,7 @@ export default function SettingsPage() {
     getUser(user.uid)
       .then((profile) => {
         if (profile) {
-          const p = profile as any;
+          const p = profile as ProfileRecord;
           setName(p.name || displayName || '');
           setEmail(p.email || user.email || '');
           setLocation(p.location || '');
@@ -121,7 +132,7 @@ export default function SettingsPage() {
     { id: 'preferences', label: 'Preferences', icon: Settings },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'privacy', label: 'Privacy & Security', icon: Shield },
-  ];
+  ] as const;
 
   const handleTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
     const lastIndex = tabs.length - 1;
@@ -190,7 +201,7 @@ export default function SettingsPage() {
                 aria-selected={activeTab === tab.id}
                 aria-controls="settings-panel"
                 tabIndex={activeTab === tab.id ? 0 : -1}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 onKeyDown={(event) => handleTabKeyDown(event, index)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all shrink-0 ${
                   activeTab === tab.id

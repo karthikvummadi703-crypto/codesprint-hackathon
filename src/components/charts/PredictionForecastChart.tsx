@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  TooltipContentProps,
 } from 'recharts';
 import { PredictionForecast } from '../../types';
 import { getAQIColor } from '../ui/Badge';
@@ -16,7 +17,9 @@ interface PredictionForecastChartProps {
   forecasts: PredictionForecast[];
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+type CustomTooltipProps = Partial<Pick<TooltipContentProps<number, string>, 'active' | 'payload'>>;
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0]?.payload as PredictionForecast;
     return (

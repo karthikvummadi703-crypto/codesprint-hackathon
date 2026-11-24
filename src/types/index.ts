@@ -138,3 +138,90 @@ export interface DailyRoutine {
   impact: string;
   priority: 'high' | 'medium' | 'low';
 }
+
+export type Json = Record<string, unknown>;
+
+export interface StoredRecord extends Json {
+  id: string;
+}
+
+export interface ConversationRecord extends StoredRecord {
+  title: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface MessageRecord extends StoredRecord {
+  role: ChatMessage['role'];
+  content: string;
+  timestamp: string;
+}
+
+export interface AirQualityRecord extends StoredRecord {
+  timestamp: string;
+  location?: string;
+  lat?: number;
+  lon?: number;
+  aqi?: number;
+}
+
+export interface PredictionRecord extends StoredRecord {
+  createdAt: string;
+  predictions: Json[];
+}
+
+export interface CarbonTripRecord extends StoredRecord {
+  origin: string;
+  destination: string;
+  distanceKm: number;
+  mode: TravelMode;
+  co2eKg: number;
+  date: string;
+  savings?: number;
+}
+
+export interface UploadRecord extends StoredRecord {
+  fileId?: string;
+  name: string;
+  type: KnowledgeFile['type'];
+  size?: number | string;
+  uploadedAt: string;
+  status?: KnowledgeFile['status'];
+  ragFileId?: string;
+}
+
+export interface ApiLocation {
+  name?: string;
+  latitude?: number;
+  longitude?: number;
+  region?: string;
+  country?: string;
+  source?: string;
+}
+
+export interface AqiApiResponse {
+  aqi: number;
+  status: AQIStatus;
+  dominantPollutant: string;
+  healthAdvisory: string;
+  location?: ApiLocation;
+  pollutants: PollutantDetail[];
+  timestamp?: string;
+  change24h?: number | null;
+  historical?: HistoricalDataPoint[];
+  source?: string;
+  isEstimated?: boolean;
+  forecastAvailable?: boolean;
+  [key: string]: unknown;
+}
+
+export interface PredictionsApiResponse {
+  predictions: PredictionForecast[];
+  location?: ApiLocation;
+  source?: string;
+  method?: string;
+  horizonHours?: number;
+  note?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}

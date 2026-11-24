@@ -1,6 +1,7 @@
 import { sendChatMessage } from '../../services/backendService';
 import { listAirQualityRecords, listCarbonTrips, getLatestPredictions } from '../../services/dataService';
 import { AssistantReplyParams } from './types';
+import type { AirQualityRecord, CarbonTripRecord, Json } from '../../types';
 
 export async function requestAssistantReply({
   uid,
@@ -11,9 +12,9 @@ export async function requestAssistantReply({
   lifestyle,
 }: AssistantReplyParams): Promise<string> {
   // Gather user context for richer AI responses
-  let aqHistory: any[] = [];
-  let carbonTrips: any[] = [];
-  let predictions: any[] = [];
+  let aqHistory: AirQualityRecord[] = [];
+  let carbonTrips: CarbonTripRecord[] = [];
+  let predictions: Json[] = [];
   let pinnedLocation:
     | {
         name?: string;

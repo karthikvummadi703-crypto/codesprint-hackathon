@@ -1,6 +1,7 @@
 import { apiRequest } from './apiClient';
 import { API_BASE_URL } from './firebase';
 import { getAppToken } from './authService';
+import type { AqiApiResponse, Json, PredictionsApiResponse } from '../types';
 
 /** Values of `method` returned by /api/predictions. Keep in sync with backend/api/air.py. */
 export const PREDICTION_METHOD = {
@@ -17,7 +18,7 @@ export async function fetchAQI(params: {
   lon?: number;
   city?: string;
   force?: boolean;
-}): Promise<Record<string, any>> {
+}): Promise<AqiApiResponse> {
   const { token } = await authHeaders();
   return apiRequest(`/api/aqi?${locationQuery(params).toString()}`, { token, force: params.force });
 }
@@ -28,7 +29,7 @@ export async function fetchPredictions(params: {
   city?: string;
   days?: number;
   force?: boolean;
-}): Promise<Record<string, any>> {
+}): Promise<PredictionsApiResponse> {
   const { token } = await authHeaders();
   const query = locationQuery(params);
   if (params.days !== undefined) query.set('days', String(params.days));
@@ -80,10 +81,10 @@ export async function sendChatMessage(
   message: string,
   context?: {
     location?: { name?: string; latitude?: number; longitude?: number; region?: string; country?: string };
-    aqHistory?: any[];
-    carbonTrips?: any[];
-    predictions?: any[];
-    weather?: any;
+    aqHistory?: Json[];
+    carbonTrips?: Json[];
+    predictions?: Json[];
+    weather?: Json;
     /**
      * Documents attached to this message. The backend resolves each id inside
      * the signed-in user's own knowledge base, so an id that belongs to someone

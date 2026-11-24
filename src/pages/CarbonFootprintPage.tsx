@@ -8,11 +8,11 @@ import { calculateCO2, TRAVEL_MODE_ICONS } from '../services/carbonConstants';
 import { calculateCarbon, estimateDistance } from '../services/backendService';
 import { useAuth } from '../context/AuthContext';
 import { addCarbonTrip, listCarbonTrips, deleteCarbonTrip } from '../services/dataService';
-import { CarbonTrip, TravelMode } from '../types';
+import { CarbonTrip, CarbonTripRecord, TravelMode } from '../types';
 
 const TRAVEL_MODES: TravelMode[] = ['Car', 'Bike', 'Bus', 'Train', 'EV', 'Walking', 'Bicycle'];
 
-function toCarbonTrip(raw: any): CarbonTrip {
+function toCarbonTrip(raw: CarbonTripRecord): CarbonTrip {
   return {
     id: raw.id,
     origin: raw.origin,

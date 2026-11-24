@@ -1,6 +1,6 @@
-import { ChatMessage, KnowledgeFile } from '../../types';
+import { ChatMessage, KnowledgeFile, MessageRecord, UploadRecord } from '../../types';
 
-export function toChatMessage(raw: any): ChatMessage {
+export function toChatMessage(raw: MessageRecord): ChatMessage {
   return {
     id: raw.id,
     role: raw.role,
@@ -9,7 +9,7 @@ export function toChatMessage(raw: any): ChatMessage {
   };
 }
 
-export function toKnowledgeFile(raw: any): KnowledgeFile {
+export function toKnowledgeFile(raw: UploadRecord): KnowledgeFile {
   return {
     id: raw.fileId || raw.id,
     name: raw.name,
