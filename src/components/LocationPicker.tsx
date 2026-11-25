@@ -1,3 +1,6 @@
+/**
+ * Location search, pinning, and geolocation picker used across pages.
+ */
 import { useEffect, useState } from 'react';
 import { MapPin, Navigation, Search, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
