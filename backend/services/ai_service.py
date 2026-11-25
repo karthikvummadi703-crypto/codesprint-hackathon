@@ -128,6 +128,67 @@ def _history_messages(history: list[dict] | None) -> list[dict]:
     return cleaned
 
 
+def _request_messages(message: str, context_text: str, history: list | None) -> list[dict]:
+    """Build the ordered system, context, history, and user messages."""
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    if context_text:
+        messages.append(
+            {
+                "role": "system",
+                "content": f"CONTEXT (authoritative for the selected location):\n{context_text}",
+            }
+        )
+    messages.extend(_history_messages(history))
+    messages.append({"role": "user", "content": message})
+    return messages
+
+
+def _model_payload(settings: Any, model: str, messages: list[dict]) -> dict:
+    """Build one provider request.
+
+    The reasoning budget is only sent when configured: it is an OpenRouter-shaped
+    parameter that a plain OpenAI endpoint rejects, and leaving it unset can make
+    reasoning models over-apply the grounding rule and refuse ordinary questions.
+    """
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": settings.llm_temperature,
+        "max_tokens": _output_token_budget(settings),
+    }
+    if settings.llm_reasoning_effort:
+        payload["reasoning"] = {"effort": settings.llm_reasoning_effort}
+    return payload
+
+
+def _extract_completion(data: Any, model: str) -> tuple[dict, Any] | None:
+    try:
+        choice = data["choices"][0]
+        content = choice["message"]["content"]
+    except (KeyError, IndexError, TypeError):
+        log.warning("llm returned an unexpected body shape model=%s", model)
+        return None
+    return choice, content
+
+
+def _success_result(content: Any, data: Any, model: str) -> dict:
+    usage = data.get("usage") or {}
+    return {
+        "response": content.strip(),
+        "provider": model,
+        "degraded": False,
+        "prompt_tokens": int(usage.get("prompt_tokens") or 0),
+        "completion_tokens": int(usage.get("completion_tokens") or 0),
+    }
+
+
+def _fallback_reason(rate_limited: bool, chain: Any) -> str:
+    if rate_limited:
+        _rate_limited(f"all {len(chain)} model(s) in the chain rate limited")
+        return "the language model's free-tier quota is used up for today, so it resets overnight"
+    return "the language model is unreachable"
+
+
 async def generate_response(message: str, context_text: str, history: list | None = None) -> dict:
     """Call the chat-completions provider.
 
@@ -141,16 +202,7 @@ async def generate_response(message: str, context_text: str, history: list | Non
     if _breaker_is_open():
         return _degraded(message, context_text, "the language model is rate limited right now")
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    if context_text:
-        messages.append(
-            {
-                "role": "system",
-                "content": f"CONTEXT (authoritative for the selected location):\n{context_text}",
-            }
-        )
-    messages.extend(_history_messages(history))
-    messages.append({"role": "user", "content": message})
+    messages = _request_messages(message, context_text, history)
 
     headers = {
         "Authorization": f"Bearer {settings.llm_api_key}",
@@ -175,20 +227,7 @@ async def generate_response(message: str, context_text: str, history: list | Non
             break
 
         max_tokens = _output_token_budget(settings)
-        payload = {
-            "model": model,
-            "messages": messages,
-            "temperature": settings.llm_temperature,
-            "max_tokens": max_tokens,
-        }
-        # Only sent when configured: a reasoning budget is an OpenRouter-shaped
-        # parameter and a plain OpenAI endpoint rejects unknown body fields. It is
-        # not only a speed knob. Left unset, a reasoning model over-applies the
-        # "ground everything in CONTEXT" rule and refuses ordinary questions
-        # ("I cannot answer that based on the provided context"), which reaches
-        # the user as a dead assistant.
-        if settings.llm_reasoning_effort:
-            payload["reasoning"] = {"effort": settings.llm_reasoning_effort}
+        payload = _model_payload(settings, model, messages)
 
         truncated_retry = False
         while True:
@@ -214,12 +253,10 @@ async def generate_response(message: str, context_text: str, history: list | Non
                     rate_limited = True
                 break
 
-            try:
-                choice = data["choices"][0]
-                content = choice["message"]["content"]
-            except (KeyError, IndexError, TypeError):
-                log.warning("llm returned an unexpected body shape model=%s", model)
+            completion = _extract_completion(data, model)
+            if completion is None:
                 break
+            choice, content = completion
 
             if choice.get("finish_reason") == "length" and not truncated_retry:
                 if max_tokens >= _MAX_OUTPUT_TOKENS:
@@ -243,26 +280,14 @@ async def generate_response(message: str, context_text: str, history: list | Non
                 break
 
             _llm_succeeded()
-            usage = data.get("usage") or {}
-            return {
-                "response": content.strip(),
-                "provider": model,
-                "degraded": False,
-                "prompt_tokens": int(usage.get("prompt_tokens") or 0),
-                "completion_tokens": int(usage.get("completion_tokens") or 0),
-            }
+            return _success_result(content, data, model)
         # The inner loop ends when this model cannot produce a usable answer; the
         # outer chain then gets a chance with the next model.
 
     # Every model in the chain failed. Only now is a rate limit a property of this
     # deployment rather than of one upstream provider, so the breaker is charged
     # once for the whole chain instead of once per model.
-    if rate_limited:
-        _rate_limited(f"all {len(chain)} model(s) in the chain rate limited")
-        reason = "the language model's free-tier quota is used up for today, so it resets overnight"
-    else:
-        reason = "the language model is unreachable"
-    return _degraded(message, context_text, reason)
+    return _degraded(message, context_text, _fallback_reason(rate_limited, chain))
 
 
 def _degraded(message: str, context_text: str, reason: str) -> dict:
