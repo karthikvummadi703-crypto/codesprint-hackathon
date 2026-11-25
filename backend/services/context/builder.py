@@ -7,6 +7,50 @@ from services.context.formatters import _compass
 from services.context.sections import _ContextSections
 
 
+def _coverage(builder: ContextBuilder) -> dict[str, bool]:
+    """Report which data domains this turn can actually draw on."""
+    return {
+        "air_quality": bool(builder.air_quality),
+        "weather": bool(builder.weather),
+        "aqi_forecast": bool(builder.aqi_forecast or builder.predictions),
+        "carbon": bool(builder.carbon_trips),
+        "documents": bool(builder.rag_chunks),
+        "location": bool(builder.location.get("name")),
+        "household": bool(builder.household or builder.routines or builder.routine_context),
+        "aqi_history": bool(builder.aqi_history or builder.history),
+    }
+
+
+def _collect_sections(builder: ContextBuilder, blocks: set[str]) -> list[str]:
+    """Append the router-requested sections in the fixed prompt order."""
+    sections: list[str] = []
+    block_methods = (
+        (qr.BLOCK_LOCATION, "_location_section"),
+        (qr.BLOCK_AQI_NOW, "_aqi_now_section"),
+        (qr.BLOCK_AQI_FORECAST, "_aqi_forecast_section"),
+        (qr.BLOCK_AQI_HISTORY, "_history_section"),
+        (qr.BLOCK_WEATHER_NOW, "_weather_now_section"),
+        (qr.BLOCK_WEATHER_FORECAST, "_weather_forecast_section"),
+        (qr.BLOCK_VULNERABILITY, "_vulnerability_section"),
+        (qr.BLOCK_ACTIVITY, "_activity_section"),
+        (qr.BLOCK_CAUSE, "_cause_section"),
+        (qr.BLOCK_CARBON, "_carbon_section"),
+    )
+    for block, method_name in block_methods:
+        if block in blocks:
+            section = getattr(builder, method_name)()
+            if section:
+                sections.append(section)
+
+    if qr.BLOCK_DOCUMENTS in blocks and builder.rag_chunks:
+        sections.append(builder._documents_section())
+
+    routine_section = builder._routine_section()
+    if routine_section:
+        sections.append(routine_section)
+    return sections
+
+
 class ContextBuilder(_ContextSections):
     """Assembles prompt context for one question."""
 
@@ -47,75 +91,8 @@ class ContextBuilder(_ContextSections):
         """Return (context_text, section_names, data_coverage)."""
         intent = qr.classify(message)
         blocks = set(qr.blocks_for(intent))
-
-        sections: list[str] = []
-        coverage: dict[str, bool] = {
-            "air_quality": bool(self.air_quality),
-            "weather": bool(self.weather),
-            "aqi_forecast": bool(self.aqi_forecast or self.predictions),
-            "carbon": bool(self.carbon_trips),
-            "documents": bool(self.rag_chunks),
-            "location": bool(self.location.get("name")),
-            "household": bool(self.household or self.routines or self.routine_context),
-            "aqi_history": bool(self.aqi_history or self.history),
-        }
-
-        if qr.BLOCK_LOCATION in blocks:
-            section = self._location_section()
-            if section:
-                sections.append(section)
-
-        if qr.BLOCK_AQI_NOW in blocks:
-            section = self._aqi_now_section()
-            if section:
-                sections.append(section)
-
-        if qr.BLOCK_AQI_FORECAST in blocks:
-            section = self._aqi_forecast_section()
-            if section:
-                sections.append(section)
-
-        if qr.BLOCK_AQI_HISTORY in blocks:
-            section = self._history_section()
-            if section:
-                sections.append(section)
-
-        if qr.BLOCK_WEATHER_NOW in blocks:
-            section = self._weather_now_section()
-            if section:
-                sections.append(section)
-
-        if qr.BLOCK_WEATHER_FORECAST in blocks:
-            section = self._weather_forecast_section()
-            if section:
-                sections.append(section)
-
-        if qr.BLOCK_VULNERABILITY in blocks:
-            section = self._vulnerability_section()
-            if section:
-                sections.append(section)
-
-        if qr.BLOCK_ACTIVITY in blocks:
-            section = self._activity_section()
-            if section:
-                sections.append(section)
-
-        if qr.BLOCK_CAUSE in blocks:
-            section = self._cause_section()
-            if section:
-                sections.append(section)
-
-        if qr.BLOCK_CARBON in blocks:
-            section = self._carbon_section()
-            if section:
-                sections.append(section)
-
-        if qr.BLOCK_DOCUMENTS in blocks and self.rag_chunks:
-            sections.append(self._documents_section())
-
-        routine_section = self._routine_section()
-        if routine_section:
-            sections.append(routine_section)
+        coverage = _coverage(self)
+        sections = _collect_sections(self, blocks)
 
         if not sections:
             sections.append(
