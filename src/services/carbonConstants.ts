@@ -1,3 +1,7 @@
+/**
+ * Shared emission factors and carbon calculation helpers used by the UI and
+ * lifestyle services.
+ */
 import { TravelMode } from '../types';
 
 /**
