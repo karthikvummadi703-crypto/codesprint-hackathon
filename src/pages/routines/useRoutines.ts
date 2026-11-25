@@ -1,3 +1,7 @@
+/**
+ * Routines page hook for AQI-aware suggestions, location lookup, and persisted
+ * household settings.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLocation, toLocationParams } from '../../context/LocationContext';
