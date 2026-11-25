@@ -15,14 +15,14 @@ AirGuard AI is a GenAI-powered clean-air companion that helps families and commu
 
 ## Tech stack
 
-| Layer | Technologies |
-| --- | --- |
-| Frontend | React 19, TypeScript, Vite 8, React Router 7, Tailwind CSS 3, Recharts, Firebase Web SDK |
-| Backend | Python 3.11+, FastAPI, Uvicorn, Pydantic, HTTPX, Firebase Admin |
+| Layer          | Technologies                                                                                         |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| Frontend       | React 19, TypeScript, Vite 8, React Router 7, Tailwind CSS 3, Recharts, Firebase Web SDK             |
+| Backend        | Python 3.11+, FastAPI, Uvicorn, Pydantic, HTTPX, Firebase Admin                                      |
 | Data providers | Open-Meteo air quality and weather, Nominatim geocoding, optional Google Air Quality and OpenWeather |
-| AI | Any OpenAI-compatible chat completions endpoint, with a grounded fallback when no key is configured |
-| Testing | Vitest, Testing Library, jest-axe, fast-check, Hypothesis, ESLint, pytest, coverage gates |
-| CI | GitHub Actions |
+| AI             | Any OpenAI-compatible chat completions endpoint, with a grounded fallback when no key is configured  |
+| Testing        | Vitest, Testing Library, jest-axe, fast-check, Hypothesis, ESLint, pytest, coverage gates            |
+| CI             | GitHub Actions                                                                                       |
 
 ## Quick start
 
@@ -76,16 +76,16 @@ Open <http://localhost:5173>. Backend docs are available at <http://localhost:80
 
 ### Frontend (`.env`)
 
-| Variable | Purpose |
-| --- | --- |
-| `VITE_FIREBASE_API_KEY` | Firebase Web API key |
-| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase Auth domain |
-| `VITE_FIREBASE_PROJECT_ID` | Firebase project ID |
-| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase Storage bucket |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID |
-| `VITE_FIREBASE_APP_ID` | Firebase app ID |
-| `VITE_FIREBASE_MEASUREMENT_ID` | Optional Analytics measurement ID |
-| `VITE_API_BASE_URL` | Optional backend override; defaults to `http://localhost:8001` in dev and the deployed API URL in production |
+| Variable                            | Purpose                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `VITE_FIREBASE_API_KEY`             | Firebase Web API key                                                                                         |
+| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase Auth domain                                                                                         |
+| `VITE_FIREBASE_PROJECT_ID`          | Firebase project ID                                                                                          |
+| `VITE_FIREBASE_STORAGE_BUCKET`      | Firebase Storage bucket                                                                                      |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID                                                                                 |
+| `VITE_FIREBASE_APP_ID`              | Firebase app ID                                                                                              |
+| `VITE_FIREBASE_MEASUREMENT_ID`      | Optional Analytics measurement ID                                                                            |
+| `VITE_API_BASE_URL`                 | Optional backend override; defaults to `http://localhost:8001` in dev and the deployed API URL in production |
 
 Firebase Web config values are intentionally shipped to the browser; access control comes from Firebase Auth and security rules. Never put service-account keys or LLM keys in `VITE_*` variables. `.env.production` is not tracked; set these public `VITE_*` values in the Firebase/Vercel project settings instead of committing them.
 
@@ -107,32 +107,34 @@ See `.env.example` and `backend/.env.example` for the full annotated lists.
 
 ## Scripts
 
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start the Vite development server |
-| `npm run build` | Typecheck and create a production build |
-| `npm run preview` | Serve the production build locally |
-| `npm run typecheck` | Run TypeScript checks without emitting files |
-| `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Fix ESLint issues where possible |
-| `npm test` | Run frontend unit, accessibility, and property tests once |
-| `npm run test:watch` | Run frontend tests in watch mode |
-| `npm run test:coverage` | Run frontend tests with enforced coverage thresholds |
-| `npm run test:backend` | Run backend pytest suite |
-| `npm run test:backend:coverage` | Run backend pytest with coverage and an enforced floor |
-| `make ci` | Run all checks, both coverage suites, and the production build |
+| Command                         | Description                                                    |
+| ------------------------------- | -------------------------------------------------------------- |
+| `npm run dev`                   | Start the Vite development server                              |
+| `npm run build`                 | Typecheck and create a production build                        |
+| `npm run preview`               | Serve the production build locally                             |
+| `npm run typecheck`             | Run TypeScript checks without emitting files                   |
+| `npm run lint`                  | Run ESLint                                                     |
+| `npm run lint:fix`              | Fix ESLint issues where possible                               |
+| `npm test`                      | Run frontend unit, accessibility, and property tests once      |
+| `npm run test:watch`            | Run frontend tests in watch mode                               |
+| `npm run test:coverage`         | Run frontend tests with enforced coverage thresholds           |
+| `npm run test:backend`          | Run backend pytest suite                                       |
+| `npm run test:backend:coverage` | Run backend pytest with coverage and an enforced floor         |
+| `make ci`                       | Run all checks, both coverage suites, and the production build |
 
 ## Verification
 
 Current verified results:
 
 - `npm run format:check`, `npm run lint`, `npm run typecheck`: clean
-- Ruff, Ruff format check, and mypy: clean
-- `npm run test:coverage`: 46 files, 504 tests passed; ~94.6% statements, 81.48% branches, ~90.5% functions, 95.95% lines
+- Ruff and Ruff format check: clean; local mypy is blocked by a Windows Application Control policy, so CI remains authoritative
+- `npm run test:coverage`: 46 files, 504 tests passed; ~94.7-94.8% statements, 81.44% branches, ~90.5-90.9% functions, ~96.0% lines
 - `npm run test:backend:coverage`: 566 passed, 9 deselected; 97% statements, 92% floor enforced
-- `npm run build`: successful, asset names/hashes/sizes unchanged
+- `npm run build`: successful; total bundle ~1461 kB against a 1456.76 kB baseline, within the allowed range
 - `npm audit --omit=dev`: 0 vulnerabilities
 - `npm audit`: 0 vulnerabilities
+
+A later pure refactor split large pages/services and long functions without changing behavior, tests, API responses, security rules, cache/rate-limit policy, or provider failovers. Asset hashes may shift because module boundaries changed; the total-size guard and all checks remain green.
 
 See `TESTING.md` for coverage commands, determinism notes, and behavior discovered by tests that was intentionally not changed.
 
@@ -141,19 +143,22 @@ See `TESTING.md` for coverage commands, determinism notes, and behavior discover
 ```text
 src/
   components/         Shared UI, layout, charts, and AQI components
-  context/            Firebase auth context
-  pages/              Route pages
-  services/           Firebase, backend client, data, and lifestyle services
+  context/            Firebase auth and location contexts
+  pages/              Route pages plus focused hook/UI shards
+  services/           Firebase, backend client, data, and lifestyle services with facade modules
   test/               Test setup
   types/              Shared TypeScript types
 backend/
   api/                FastAPI routers
   middleware.py       Timing and per-user rate limiting
-  config.py           Centralized, validated environment access
-  services/           AQI, weather, geocode, RAG, and AI context services
+  config.py           Centralized, validated environment access with config_parts/
+  schema_models/      Domain-specific Pydantic schemas
+  services/           AQI, weather, geocode, RAG, context, query, and AI services
   tests/              pytest suite
 .github/workflows/ci.yml
 ```
+
+Large frontend pages and services keep their original import paths as thin facades; their implementation is split into focused hooks and presentational shards. Backend modules use the same facade pattern for schemas, config, query routing, weather, RAG, AQI history, context building, and HTTP retry helpers.
 
 The frontend caches GET responses in memory with in-flight request coalescing. Refresh actions use `force: true` to bypass both the cache and any stale in-flight request. Production builds split React, charts, Firebase Auth, Firestore, Firebase core, and icons into separate chunks for better caching.
 
