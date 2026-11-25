@@ -1,3 +1,6 @@
+/**
+ * Root router and provider composition with lazy route loading and guards.
+ */
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation as useRouterLocation } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
