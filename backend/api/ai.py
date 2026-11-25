@@ -28,62 +28,54 @@ router = APIRouter(prefix="/api", tags=["ai"])
 T = TypeVar("T")
 
 
-@router.post("/ai/chat", response_model=ChatResponse)
-async def chat(
-    uid: CurrentUid,
-    payload: Annotated[ChatRequest, Body()],
-    enrich: Annotated[bool, Query(description="Fetch live weather/AQI for the pinned location")] = True,
-) -> ChatResponse:
-    """Answer an environmental question about the user's selected location."""
-    started = time.perf_counter()
-    settings = get_settings()
-
-    location = _clean_location(payload.location)
-    intent = query_router.classify(payload.message)
-    blocks = set(query_router.blocks_for(intent))
-
+async def _live_enrichment(
+    message: str, location: dict, settings: Any, blocks: set[str], enrich: bool
+) -> tuple[dict | None, list[dict] | None, dict | None, list[dict] | None, str | None]:
+    """Fetch live AQI/weather and any requested observed history."""
     live_aqi: dict | None = None
     aqi_forecast: list[dict] | None = None
     live_weather: dict | None = None
+    observed_history: list[dict] | None = None
+    history_label: str | None = None
 
     has_coords = location.get("latitude") is not None and location.get("longitude") is not None
-    if enrich and has_coords:
-        # Weather and AQI are independent upstream calls, so run them together
-        # rather than paying the slower one's latency twice over.
-        need_aqi = query_router.BLOCK_AQI_NOW in blocks or query_router.BLOCK_AQI_FORECAST in blocks
-        need_weather = (
-            query_router.BLOCK_WEATHER_NOW in blocks or query_router.BLOCK_WEATHER_FORECAST in blocks
-        )
-        if need_aqi or need_weather:
-            results = await asyncio.gather(
-                _load_air_quality(location, settings) if need_aqi else _no_air_quality(),
-                _load_weather(location, settings) if need_weather else _no_weather(),
-            )
-            (live_aqi, aqi_forecast), live_weather = results
+    if not enrich or not has_coords:
+        return live_aqi, aqi_forecast, live_weather, observed_history, history_label
 
-    # A client-supplied weather block is only used when the backend could not
-    # fetch one, so a stale page payload never overrides a live reading.
+    need_aqi = query_router.BLOCK_AQI_NOW in blocks or query_router.BLOCK_AQI_FORECAST in blocks
+    need_weather = query_router.BLOCK_WEATHER_NOW in blocks or query_router.BLOCK_WEATHER_FORECAST in blocks
+    if need_aqi or need_weather:
+        results = await asyncio.gather(
+            _load_air_quality(location, settings) if need_aqi else _no_air_quality(),
+            _load_weather(location, settings) if need_weather else _no_weather(),
+        )
+        (live_aqi, aqi_forecast), live_weather = results
+
+    if query_router.wants_historical(message):
+        window = query_router.history_window(message)
+        if window:
+            observed_history, history_label = await _load_history(location, settings, window)
+    return live_aqi, aqi_forecast, live_weather, observed_history, history_label
+
+
+def _build_context(
+    payload: ChatRequest,
+    location: dict,
+    blocks: set[str],
+    live_aqi: dict | None,
+    aqi_forecast: list[dict] | None,
+    live_weather: dict | None,
+    rag_chunks: list[dict],
+    observed_history: list[dict] | None,
+    history_label: str | None,
+) -> tuple[str, list[str], dict[str, bool]]:
+    """Assemble the grounded prompt from the payload and live enrichment."""
     weather_for_context = live_weather or (
         payload.weather if query_router.BLOCK_WEATHER_NOW in blocks else None
     )
     aqi_for_context = live_aqi or (
         payload.aqHistory[0] if payload.aqHistory and query_router.BLOCK_AQI_NOW in blocks else None
     )
-
-    rag_chunks: list[dict] = []
-    if _needs_documents(payload.message, payload.documentIds, intent):
-        rag_chunks = await _retrieve_documents(uid, payload.message, payload.documentIds)
-
-    # Provider-backed observed history, only when the question names a past period
-    # ("last November", "2023"). The stored readings in `aqHistory` cover the app's
-    # own recent snapshots; this reaches years back.
-    observed_history: list[dict] | None = None
-    history_label: str | None = None
-    if enrich and has_coords and query_router.wants_historical(payload.message):
-        window = query_router.history_window(payload.message)
-        if window:
-            observed_history, history_label = await _load_history(location, settings, window)
-
     builder = ai_context.ContextBuilder(
         location=location,
         air_quality=aqi_for_context,
@@ -99,14 +91,10 @@ async def chat(
         aqi_history=observed_history,
         history_label=history_label,
     )
-    context_text, sections, coverage = builder.build(payload.message)
+    return builder.build(payload.message)
 
-    result = await ai_service.generate_response(
-        payload.message,
-        context_text,
-        history=[turn.model_dump() for turn in (payload.history or [])],
-    )
-    latency_ms = int((time.perf_counter() - started) * 1000)
+
+def _log_llm_usage(result: dict, latency_ms: int) -> None:
     if result.get("prompt_tokens") or result.get("completion_tokens"):
         log.info(
             "llm tokens prompt=%s completion=%s latency=%dms",
@@ -115,6 +103,10 @@ async def chat(
             latency_ms,
         )
 
+
+def _log_chat(
+    intent: str, sections: list[str], rag_chunks: list[dict], latency_ms: int, result: dict
+) -> None:
     log.info(
         "chat intent=%s sections=%d rag_chunks=%d latency=%dms degraded=%s",
         intent,
@@ -123,6 +115,54 @@ async def chat(
         latency_ms,
         result.get("degraded"),
     )
+
+
+@router.post("/ai/chat", response_model=ChatResponse)
+async def chat(
+    uid: CurrentUid,
+    payload: Annotated[ChatRequest, Body()],
+    enrich: Annotated[bool, Query(description="Fetch live weather/AQI for the pinned location")] = True,
+) -> ChatResponse:
+    """Answer an environmental question about the user's selected location."""
+    started = time.perf_counter()
+    settings = get_settings()
+
+    location = _clean_location(payload.location)
+    intent = query_router.classify(payload.message)
+    blocks = set(query_router.blocks_for(intent))
+
+    (
+        live_aqi,
+        aqi_forecast,
+        live_weather,
+        observed_history,
+        history_label,
+    ) = await _live_enrichment(payload.message, location, settings, blocks, enrich)
+
+    rag_chunks: list[dict] = []
+    if _needs_documents(payload.message, payload.documentIds, intent):
+        rag_chunks = await _retrieve_documents(uid, payload.message, payload.documentIds)
+
+    context_text, sections, coverage = _build_context(
+        payload,
+        location,
+        blocks,
+        live_aqi,
+        aqi_forecast,
+        live_weather,
+        rag_chunks,
+        observed_history,
+        history_label,
+    )
+
+    result = await ai_service.generate_response(
+        payload.message,
+        context_text,
+        history=[turn.model_dump() for turn in (payload.history or [])],
+    )
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    _log_llm_usage(result, latency_ms)
+    _log_chat(intent, sections, rag_chunks, latency_ms, result)
 
     return ChatResponse(
         response=result["response"],
