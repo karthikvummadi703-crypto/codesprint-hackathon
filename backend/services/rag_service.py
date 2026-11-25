@@ -18,12 +18,12 @@ the whole corpus.
 
 from __future__ import annotations
 
-import hashlib
+import hashlib as hashlib
 import io
 import json
 import math
 import os
-import re
+import re as re
 import threading
 import time
 import uuid
@@ -31,6 +31,22 @@ from collections import Counter
 from typing import Any, cast
 
 from logging_config import get_logger
+from services.rag.errors import RagStoreError as RagStoreError
+from services.rag.text import (
+    CHUNK_OVERLAP as CHUNK_OVERLAP,
+)
+from services.rag.text import (
+    CHUNK_SIZE as CHUNK_SIZE,
+)
+from services.rag.text import (
+    _chunk_text as _chunk_text,
+)
+from services.rag.text import (
+    _safe_uid as _safe_uid,
+)
+from services.rag.text import (
+    _tokens as _tokens,
+)
 
 log = get_logger("airguard.rag")
 
@@ -45,8 +61,6 @@ except ImportError:  # pragma: no cover
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
-CHUNK_SIZE = 500
-CHUNK_OVERLAP = 50
 MAX_FILES_PER_USER = 50
 ALLOWED_EXTENSIONS = ("pdf", "csv", "txt")
 
@@ -61,24 +75,9 @@ _lock = threading.RLock()
 _filesystem_writable: bool | None = None
 
 
-class RagStoreError(RuntimeError):
-    pass
-
-
 # --------------------------------------------------------------------------------------
 # Persistence
 # --------------------------------------------------------------------------------------
-
-
-def _safe_uid(uid: str) -> str:
-    safe = re.sub(r"[^A-Za-z0-9_-]", "", uid)
-    if safe and safe == uid:
-        return uid
-    # Stripping characters can collapse distinct uids onto one namespace. A
-    # short digest keeps those uids separate without renaming existing stores
-    # whose ids were already filesystem-safe.
-    digest = hashlib.sha256(uid.encode("utf-8")).hexdigest()[:12]
-    return f"{safe or 'user'}-{digest}"
 
 
 def _store_path(uid: str) -> str:
@@ -201,18 +200,6 @@ def _extract_text(filename: str, data: bytes) -> str:
     return data.decode("utf-8", errors="replace")
 
 
-def _chunk_text(text: str) -> list[str]:
-    cleaned = re.sub(r"\s+", " ", text).strip()
-    if not cleaned:
-        return []
-    chunks = []
-    start = 0
-    while start < len(cleaned):
-        chunks.append(cleaned[start : start + CHUNK_SIZE])
-        start += CHUNK_SIZE - CHUNK_OVERLAP
-    return [c for c in chunks if c.strip()]
-
-
 def process_document(uid: str, filename: str, data: bytes) -> dict:
     """Extract, chunk and persist an uploaded document for later retrieval."""
     extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
@@ -253,10 +240,6 @@ def process_document(uid: str, filename: str, data: bytes) -> dict:
 # --------------------------------------------------------------------------------------
 # Retrieval
 # --------------------------------------------------------------------------------------
-
-
-def _tokens(text: str) -> list[str]:
-    return re.findall(r"[a-z0-9]+", text.lower())
 
 
 def _build_index(uid: str) -> tuple[list[tuple[str, str, str]], dict[str, float], int]:
