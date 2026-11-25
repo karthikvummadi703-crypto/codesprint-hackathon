@@ -1,3 +1,6 @@
+/**
+ * Authenticated application shell with sidebar, mobile menu, and route outlet.
+ */
 import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar, { MobileMenuButton } from './Sidebar';
