@@ -1,3 +1,6 @@
+/**
+ * Circular gauge visualizing the AQI value and category color.
+ */
 import { getAQIColor } from '../ui/Badge';
 
 interface AQIGaugeProps {
