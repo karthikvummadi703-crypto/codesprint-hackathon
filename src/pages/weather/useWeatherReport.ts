@@ -1,3 +1,6 @@
+/**
+ * Weather page hook for abortable, location-aware weather loading and refresh.
+ */
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, toLocationParams } from '../../context/LocationContext';
 import { fetchWeather, WeatherResponse } from '../../services/backendService';
