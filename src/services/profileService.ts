@@ -1,3 +1,7 @@
+/**
+ * Profile read/write helpers that layer display preferences over persisted
+ * user records.
+ */
 import { AppUser } from './authService';
 import { getUser, saveUser } from './dataService';
 
