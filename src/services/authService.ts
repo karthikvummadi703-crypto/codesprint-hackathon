@@ -1,3 +1,6 @@
+/**
+ * Firebase Auth facade and current-user cache used by contexts and services.
+ */
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
