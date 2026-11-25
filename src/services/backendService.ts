@@ -1,3 +1,7 @@
+/**
+ * Typed client facade for AQI, predictions, weather, geocoding, chat, RAG
+ * uploads, and carbon endpoints.
+ */
 import { apiRequest } from './apiClient';
 import { API_BASE_URL } from './firebase';
 import { getAppToken } from './authService';
