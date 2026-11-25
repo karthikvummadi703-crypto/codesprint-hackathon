@@ -1,3 +1,6 @@
+/**
+ * Weather card that loads and displays current conditions for a location.
+ */
 import { useEffect, useState } from 'react';
 import { Cloud, Droplets, Sun, Wind, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
