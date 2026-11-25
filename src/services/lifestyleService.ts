@@ -1,3 +1,7 @@
+/**
+ * Routine suggestions and household carbon calculations derived from AQI,
+ * location, and persisted lifestyle settings.
+ */
 import { AQIStatus, DailyRoutine, HouseholdMember, HouseholdProfile } from '../types';
 import { calculateCO2 } from './carbonConstants';
 
