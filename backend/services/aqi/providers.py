@@ -1,3 +1,5 @@
+"""Upstream AQI provider adapters and failover selection."""
+
 from __future__ import annotations
 
 from config import get_settings
