@@ -1,3 +1,6 @@
+/**
+ * Password reset request route with confirmation and return navigation.
+ */
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Wind, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
