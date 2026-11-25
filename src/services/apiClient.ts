@@ -1,3 +1,7 @@
+/**
+ * Thin fetch wrapper that builds API URLs, attaches auth headers, normalizes
+ * JSON errors, and exposes the typed `ApiError` used across services.
+ */
 import { API_BASE_URL } from './firebase';
 
 export class ApiError extends Error {
