@@ -1,3 +1,5 @@
+"""Normalization of provider payloads into AQI components."""
+
 from __future__ import annotations
 
 from typing import Any
