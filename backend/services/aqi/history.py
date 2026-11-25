@@ -54,7 +54,11 @@ async def fetch_aqi_history(
     times = hourly.get("time") or []
     if not times:
         return None
+    return _rows_from_buckets(_bucket_hourly(hourly, times))
 
+
+def _bucket_hourly(hourly: dict, times: list) -> dict[str, dict]:
+    """Group hourly provider rows by calendar day."""
     buckets: dict[str, dict] = {}
     for index, stamp in enumerate(times):
         day = str(stamp)[:10]
@@ -71,7 +75,11 @@ async def fetch_aqi_history(
             "o3": _opt_float(_at(hourly, "ozone", index)),
         }
         bucket["components"].append({k: v for k, v in components.items() if v is not None})
+    return buckets
 
+
+def _rows_from_buckets(buckets: dict[str, dict]) -> list[dict] | None:
+    """Summarise each day that has at least one AQI observation."""
     rows: list[dict] = []
     for day in sorted(buckets):
         bucket = buckets[day]
