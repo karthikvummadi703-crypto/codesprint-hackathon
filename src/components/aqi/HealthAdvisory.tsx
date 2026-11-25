@@ -1,3 +1,6 @@
+/**
+ * Health guidance and advisory content for the current AQI category.
+ */
 import React from 'react';
 import { AlertTriangle, CheckCircle, Info, Shield } from 'lucide-react';
 import { AQIStatus } from '../../types';
