@@ -1,3 +1,6 @@
+/**
+ * Combined bar/line chart for AQI prediction forecasts.
+ */
 import {
   ComposedChart,
   Bar,
