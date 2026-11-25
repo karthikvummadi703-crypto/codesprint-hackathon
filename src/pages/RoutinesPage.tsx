@@ -1,3 +1,6 @@
+/**
+ * Routines route for AQI-aware daily actions and household settings.
+ */
 import { AlertTriangle, Check, ShieldCheck } from 'lucide-react';
 import { Badge, getAQIBadgeVariant } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
