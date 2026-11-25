@@ -1,3 +1,7 @@
+/**
+ * Location provider and hook for pinned location state and backend query
+ * parameter conversion.
+ */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 export interface ActiveLocation {
