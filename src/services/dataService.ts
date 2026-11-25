@@ -1,3 +1,7 @@
+/**
+ * Firestore and localStorage persistence facade for users, conversations,
+ * messages, uploads, AQI history, carbon trips, and lifestyle settings.
+ */
 import {
   collection,
   doc,
