@@ -1,3 +1,5 @@
+"""Assembly of the grounded prompt context used by assistant requests."""
+
 from __future__ import annotations
 
 from services import query_router as qr
