@@ -1,3 +1,6 @@
+/**
+ * Shared button primitive and class-merging helper.
+ */
 import React from 'react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
