@@ -1,3 +1,6 @@
+/**
+ * Weather route with current conditions, location picker, and refresh controls.
+ */
 import { AlertCircle, MapPin, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
