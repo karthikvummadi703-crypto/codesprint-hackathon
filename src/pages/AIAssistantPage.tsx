@@ -1,3 +1,6 @@
+/**
+ * Assistant route composing conversation history, messages, and composer.
+ */
 import { Paperclip } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import ConversationSidebar from './aiAssistant/ConversationSidebar';
