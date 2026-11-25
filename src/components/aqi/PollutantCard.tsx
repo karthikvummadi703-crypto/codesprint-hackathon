@@ -1,3 +1,6 @@
+/**
+ * Card presenting one pollutant concentration and its AQI badge.
+ */
 import { PollutantDetail } from '../../types';
 import { getAQIBadgeVariant, Badge } from '../ui/Badge';
 import { cn } from '../ui/Button';
