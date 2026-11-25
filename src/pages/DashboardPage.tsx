@@ -1,3 +1,6 @@
+/**
+ * Dashboard route showing live AQI, location controls, forecasts, and alerts.
+ */
 import React, { useState, useCallback, useEffect } from 'react';
 import { MapPin, Navigation, Search, RefreshCw, AlertCircle, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
