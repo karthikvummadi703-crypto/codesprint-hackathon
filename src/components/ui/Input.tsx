@@ -1,3 +1,6 @@
+/**
+ * Shared input primitive with consistent styling and ref forwarding.
+ */
 import React from 'react';
 import { cn } from './Button';
 
