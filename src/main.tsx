@@ -1,3 +1,6 @@
+/**
+ * React root bootstrap that mounts the application in strict mode.
+ */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
