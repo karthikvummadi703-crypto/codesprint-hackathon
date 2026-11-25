@@ -1,3 +1,7 @@
+/**
+ * Auth provider and hook exposing auth state, profile and avatar state, auth
+ * actions, and client cache clearing on auth errors.
+ */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppUser,
