@@ -1,3 +1,6 @@
+/**
+ * Login route with email/password, redirect sign-in, and navigation links.
+ */
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Wind, Eye, EyeOff, ArrowRight, Leaf, AlertCircle } from 'lucide-react';
