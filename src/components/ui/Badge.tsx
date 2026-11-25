@@ -1,3 +1,6 @@
+/**
+ * Shared badge primitive and AQI category color/variant helpers.
+ */
 import React from 'react';
 import { cn } from './Button';
 import { AQIStatus } from '../../types';
