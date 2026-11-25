@@ -1,3 +1,6 @@
+/**
+ * Firebase Storage helpers for report uploads, download URLs, and deletion.
+ */
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, isFirebaseConfigured } from './firebase';
 
