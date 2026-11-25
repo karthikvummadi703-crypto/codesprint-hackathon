@@ -1,3 +1,7 @@
+/**
+ * Shared domain types for users, locations, air quality, predictions, chat,
+ * carbon trips, households, routines, and API records.
+ */
 export interface User {
   id: string;
   name: string;
