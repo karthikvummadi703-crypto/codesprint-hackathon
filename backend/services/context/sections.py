@@ -1,3 +1,5 @@
+"""Section renderers for measured, forecast, and advisory context blocks."""
+
 from __future__ import annotations
 
 from services.air_quality_service import aqi_category
