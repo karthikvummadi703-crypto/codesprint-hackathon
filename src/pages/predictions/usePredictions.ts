@@ -1,3 +1,7 @@
+/**
+ * Predictions page hook for location-aware forecast loading, persistence,
+ * derived charts, and error state.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLocation, toLocationParams } from '../../context/LocationContext';
