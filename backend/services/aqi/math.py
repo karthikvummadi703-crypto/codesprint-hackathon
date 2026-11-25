@@ -1,3 +1,5 @@
+"""Numeric helpers and breakpoint calculations for AQI values."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
