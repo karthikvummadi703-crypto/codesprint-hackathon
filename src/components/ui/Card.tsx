@@ -1,3 +1,6 @@
+/**
+ * Shared card primitives for sectioned content.
+ */
 import React from 'react';
 import { cn } from './Button';
 
