@@ -1,3 +1,5 @@
+"""AQI breakpoint tables and pollutant label mappings."""
+
 DOMINANT_LABELS = {
     "pm25": "PM2.5",
     "pm10": "PM10",
