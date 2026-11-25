@@ -1,3 +1,5 @@
+"""Historical AQI fetching and date-range alignment helpers."""
+
 from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
