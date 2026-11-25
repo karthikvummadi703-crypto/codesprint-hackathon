@@ -1,3 +1,7 @@
+/**
+ * Suggested assistant prompts and static display strings for the AI page.
+ */
+
 export const SUGGESTED_PROMPTS = [
   'Summarize my environmental data',
   'Why is my AQI increasing?',
