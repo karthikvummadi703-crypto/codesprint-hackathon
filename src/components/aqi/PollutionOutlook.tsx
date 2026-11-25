@@ -1,3 +1,6 @@
+/**
+ * Forecast outlook card loads predictions and summarizes upcoming pollution.
+ */
 import { useEffect, useMemo, useState } from 'react';
 import { MapPin, Info, AlertCircle, Loader2 } from 'lucide-react';
 import { LocationInfo, PredictionForecast, AQIStatus } from '../../types';
