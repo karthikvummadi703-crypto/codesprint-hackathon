@@ -1,3 +1,5 @@
+"""Presentation helpers for contextual air-quality and weather text."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
