@@ -1,3 +1,7 @@
+/**
+ * Assistant page state: conversations, streaming replies, uploads, prompt
+ * suggestions, and abortable chat requests.
+ */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLocation } from '../../context/LocationContext';
