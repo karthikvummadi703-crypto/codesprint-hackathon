@@ -9,12 +9,54 @@ WMO code table: https://open-meteo.com/en/docs
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
-from typing import Any
+from datetime import UTC as UTC
+from datetime import datetime as datetime
+from datetime import timedelta as timedelta
+from typing import Any as Any
 
-from config import get_settings
-from http_client import ProviderError, request_json
+from config import get_settings as get_settings
+from http_client import ProviderError as ProviderError
+from http_client import request_json as request_json
 from logging_config import get_logger
+from services.weather.summary import (
+    current_weather_for_ai as current_weather_for_ai,
+)
+from services.weather.summary import (
+    forecast_summary_for_ai as forecast_summary_for_ai,
+)
+from services.weather.transform import (
+    _as_float as _as_float,
+)
+from services.weather.transform import (
+    _as_int as _as_int,
+)
+from services.weather.transform import (
+    _as_opt_float as _as_opt_float,
+)
+from services.weather.transform import (
+    _at as _at,
+)
+from services.weather.transform import (
+    _build_daily as _build_daily,
+)
+from services.weather.transform import (
+    _build_hourly as _build_hourly,
+)
+from services.weather.transform import (
+    _hour_slot_index as _hour_slot_index,
+)
+from services.weather.transform import (
+    _to_utc_iso as _to_utc_iso,
+)
+from services.weather.wmo import (
+    WMO_CODES as WMO_CODES,
+)
+from services.weather.wmo import (
+    describe_weather as describe_weather,
+)
+from services.weather.wmo import (
+    weather_family as weather_family,
+)
 
 log = get_logger("airguard.weather")
 
@@ -58,64 +100,6 @@ _DAILY_FIELDS = (
     "wind_direction_10m_dominant",
 )
 
-WMO_CODES: dict[int, str] = {
-    0: "Clear sky",
-    1: "Mainly clear",
-    2: "Partly cloudy",
-    3: "Overcast",
-    45: "Fog",
-    48: "Rime fog",
-    51: "Light drizzle",
-    53: "Moderate drizzle",
-    55: "Dense drizzle",
-    56: "Light freezing drizzle",
-    57: "Dense freezing drizzle",
-    61: "Slight rain",
-    63: "Moderate rain",
-    65: "Heavy rain",
-    66: "Light freezing rain",
-    67: "Heavy freezing rain",
-    71: "Slight snowfall",
-    73: "Moderate snowfall",
-    75: "Heavy snowfall",
-    77: "Snow grains",
-    80: "Slight rain showers",
-    81: "Moderate rain showers",
-    82: "Violent rain showers",
-    85: "Slight snow showers",
-    86: "Heavy snow showers",
-    95: "Thunderstorm",
-    96: "Thunderstorm with hail",
-    99: "Severe thunderstorm with hail",
-}
-
-
-# Categories used by the UI to pick an icon and accent colour.
-def weather_family(code: int) -> str:
-    if code == 0:
-        return "clear"
-    if code in (1, 2):
-        return "partly-cloudy"
-    if code == 3:
-        return "overcast"
-    if code in (45, 48):
-        return "fog"
-    if code in (51, 53, 55, 56, 57):
-        return "drizzle"
-    if 61 <= code <= 67:
-        return "rain"
-    if 71 <= code <= 77 or code in (85, 86):
-        return "snow"
-    if 80 <= code <= 82:
-        return "showers"
-    return "thunderstorm"
-
-
-def describe_weather(code: int | None) -> str:
-    if code is None:
-        return "Unknown"
-    return WMO_CODES.get(int(code), "Unknown")
-
 
 async def fetch_weather(lat: float, lon: float, forecast_days: int = 7) -> dict:
     """Fetch current + hourly + daily weather for a coordinate.
@@ -148,38 +132,6 @@ async def fetch_weather(lat: float, lon: float, forecast_days: int = 7) -> dict:
         raise ProviderError("open-meteo", "weather response missing 'current'", 200)
 
     return _build_weather_payload(data, lat, lon, forecast_days)
-
-
-def _hour_slot_index(observation_local: str, hourly_times: list[str]) -> int:
-    """Index of the hourly slot that contains the observation.
-
-    `current.time` is published at 15-minute resolution while the hourly series
-    is on the hour, so an exact-match lookup fails for three quarters of all
-    requests and silently drops UV index, visibility and rain probability from
-    "current conditions". The observation is therefore matched to the hourly slot
-    it falls inside, and only to a later slot if no earlier one contains it.
-    """
-    if not observation_local or not hourly_times:
-        return -1
-    if observation_local in hourly_times:
-        return hourly_times.index(observation_local)
-
-    try:
-        observed = datetime.fromisoformat(observation_local).replace(minute=0, second=0, microsecond=0)
-    except ValueError:
-        return -1
-
-    for index, stamp in enumerate(hourly_times):
-        try:
-            slot = datetime.fromisoformat(stamp)
-        except ValueError:
-            continue
-        if slot == observed:
-            return index
-        if slot > observed:
-            # First slot after the observation: nothing earlier covered it.
-            return index
-    return -1
 
 
 def _build_weather_payload(data: dict, _lat: float, _lon: float, forecast_days: int) -> dict:
@@ -234,166 +186,3 @@ def _build_weather_payload(data: dict, _lat: float, _lon: float, forecast_days: 
         "timezone": timezone_name,
         "forecastDays": forecast_days,
     }
-
-
-def _build_hourly(hourly: dict, tz_name: str, forecast_days: int) -> list[dict]:
-    times = list(hourly.get("time") or [])
-    if not times:
-        return []
-    keep = min(len(times), forecast_days * 24)
-    rows: list[dict] = []
-    for i in range(keep):
-        code = _as_float(_at(hourly, "weather_code", i), -1)
-        rows.append(
-            {
-                "timestamp": _to_utc_iso(times[i], tz_name),
-                "localTime": times[i],
-                "temperature": _as_float(_at(hourly, "temperature_2m", i)),
-                "apparentTemperature": _as_float(_at(hourly, "apparent_temperature", i)),
-                "humidity": int(_as_float(_at(hourly, "relative_humidity_2m", i), 0.0)),
-                "precipitation": _as_float(_at(hourly, "precipitation", i)),
-                "precipitationProbability": int(_as_float(_at(hourly, "precipitation_probability", i), 0.0)),
-                "windSpeed": _as_float(_at(hourly, "wind_speed_10m", i)),
-                "windDirection": int(_as_float(_at(hourly, "wind_direction_10m", i), 0.0)),
-                "cloudCover": int(_as_float(_at(hourly, "cloud_cover", i), 0.0)),
-                "uvIndex": _as_opt_float(_at(hourly, "uv_index", i)),
-                "condition": describe_weather(int(code)) if code >= 0 else "Unknown",
-                "conditionCode": int(code),
-            }
-        )
-    return rows
-
-
-def _build_daily(daily: dict, tz_name: str) -> list[dict]:
-    times = list(daily.get("time") or [])
-    rows: list[dict] = []
-    for i, day in enumerate(times):
-        code = _as_float(_at(daily, "weather_code", i), -1)
-        rows.append(
-            {
-                "date": day,
-                "condition": describe_weather(int(code)) if code >= 0 else "Unknown",
-                "conditionCode": int(code),
-                "temperatureMax": _as_float(_at(daily, "temperature_2m_max", i)),
-                "temperatureMin": _as_float(_at(daily, "temperature_2m_min", i)),
-                "precipitationSum": _as_float(_at(daily, "precipitation_sum", i)),
-                "precipitationProbabilityMax": int(
-                    _as_float(_at(daily, "precipitation_probability_max", i), 0.0)
-                ),
-                "windSpeedMax": _as_float(_at(daily, "wind_speed_10m_max", i)),
-                "windDirectionDominant": int(_as_float(_at(daily, "wind_direction_10m_dominant", i), 0.0)),
-                "uvIndexMax": _as_opt_float(_at(daily, "uv_index_max", i)),
-                "sunrise": _to_utc_iso(_at(daily, "sunrise", i), tz_name)
-                if _at(daily, "sunrise", i)
-                else None,
-                "sunset": _to_utc_iso(_at(daily, "sunset", i), tz_name) if _at(daily, "sunset", i) else None,
-            }
-        )
-    return rows
-
-
-def current_weather_for_ai(payload: dict, location_name: str) -> str:
-    """One-line current-conditions summary used inside the AI context block."""
-    current = (payload or {}).get("current") or {}
-    if not current:
-        return ""
-    bits = [
-        f"{current.get('temperature')}°C",
-        f"feels {current.get('feelsLike')}°C",
-        current.get("condition"),
-        f"humidity {current.get('humidity')}%",
-        f"wind {current.get('windSpeed')} km/h",
-    ]
-    if current.get("precipitation"):
-        bits.append(f"precip {current.get('precipitation')} mm")
-    if current.get("uvIndex") is not None:
-        bits.append(f"UV {round(float(current['uvIndex']), 1)}")
-    return f"{location_name}: " + ", ".join(str(b) for b in bits if b not in (None, ""))
-
-
-def forecast_summary_for_ai(payload: dict, days: int = 3) -> str:
-    """Compact multi-day outlook for the AI context block."""
-    daily = ((payload or {}).get("daily") or [])[:days]
-    if not daily:
-        return ""
-    parts = [
-        f"{day['date']}: {day['condition']}, "
-        f"{day['temperatureMin']}–{day['temperatureMax']}°C, "  # noqa: RUF001 - en dash is intentional
-        f"rain {day['precipitationProbabilityMax']}%"
-        for day in daily
-    ]
-    return " | ".join(parts)
-
-
-def _at(series: dict[str, Any], field: str, index: int) -> Any:
-    values = series.get(field)
-    if not values or index >= len(values):
-        return None
-    return values[index]
-
-
-def _as_float(value: Any, default: float = 0.0) -> float:
-    try:
-        if value is None:
-            return default
-        return float(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def _as_int(value: Any) -> int | None:
-    if value is None:
-        return None
-    try:
-        return int(float(value))
-    except (TypeError, ValueError):
-        return None
-
-
-def _as_opt_float(value: Any) -> float | None:
-    """Like `_as_float` but preserves "not reported" as None instead of 0.0.
-
-    Used for fields the schema marks optional: reporting UV index 0 or visibility
-    0 when the provider omitted them would render as a real reading.
-    """
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
-
-
-def _to_utc_iso(local_naive: str, tz_name: str) -> str:
-    """Convert Open-Meteo's location-local timestamp into a UTC ISO string.
-
-    `timezone=auto` makes the API return wall-clock time without an offset, so the
-    location's zone is resolved and applied here. The stored value is a real
-    instant, which is what every other module expects.
-
-    A zone that cannot be resolved is logged rather than passed over in silence:
-    silently keeping the wall-clock time would publish timestamps that are wrong
-    by the UTC offset, which is worse than an obviously unconverted value.
-    """
-    if not local_naive:
-        return ""
-    try:
-        naive = datetime.fromisoformat(local_naive)
-    except ValueError:
-        return local_naive
-
-    offset = timedelta(0)
-    if tz_name and tz_name.upper() != "UTC":
-        try:
-            from zoneinfo import ZoneInfo
-
-            offset = naive.replace(tzinfo=ZoneInfo(tz_name)).utcoffset() or timedelta(0)
-        except Exception as exc:
-            log.warning(
-                "cannot resolve timezone %r (%s); timestamps for %s stay wall-clock",
-                tz_name,
-                type(exc).__name__,
-                tz_name,
-            )
-            offset = timedelta(0)
-    return (naive.replace(tzinfo=UTC) - offset).isoformat().replace("+00:00", "Z")
