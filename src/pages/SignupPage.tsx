@@ -1,3 +1,6 @@
+/**
+ * Signup route for creating Firebase accounts and navigating to the app.
+ */
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Wind, Eye, EyeOff, AlertCircle } from 'lucide-react';
