@@ -88,6 +88,85 @@ async def close_client() -> None:
         log.debug("http client close skipped: %s", exc)
 
 
+async def _request_once(
+    client: httpx.AsyncClient,
+    method: str,
+    url: str,
+    *,
+    provider: str,
+    params: Mapping[str, Any] | None,
+    json_body: Any | None,
+    headers: Mapping[str, str] | None,
+    timeout: float,  # noqa: ASYNC109 - httpx timeout, not asyncio.timeout
+    attempt: int,
+    max_attempts: int,
+) -> httpx.Response | None:
+    try:
+        return await client.request(
+            method,
+            url,
+            params=params,
+            json=json_body,
+            headers=headers,
+            timeout=timeout,
+        )
+    except (httpx.TimeoutException, httpx.TransportError) as exc:
+        error_type = f"{type(exc).__name__}"
+        log.warning(
+            "%s %s transport failure attempt=%d/%d: %s",
+            provider,
+            url.split("?")[0],
+            attempt,
+            max_attempts,
+            error_type,
+        )
+        if attempt >= max_attempts:
+            raise ProviderError(provider, f"{provider} unreachable", None) from exc
+        await asyncio.sleep(min(2.0 * attempt, 5.0))
+        return None
+
+
+def _decode_response(response: httpx.Response, provider: str) -> tuple[bool, Any]:
+    if response.status_code != 200:
+        return False, None
+    try:
+        return True, response.json()
+    except ValueError as exc:
+        raise ProviderError(provider, f"{provider} returned malformed JSON", 200) from exc
+
+
+async def _backoff_if_retryable(
+    response: httpx.Response,
+    provider: str,
+    attempt: int,
+    max_attempts: int,
+    retryable: frozenset[int],
+) -> bool:
+    if response.status_code not in retryable or attempt >= max_attempts:
+        return False
+    backoff = _retry_after_seconds(response) or min(2.0 * attempt, 8.0)
+    log.warning(
+        "%s retryable status=%d attempt=%d/%d backoff=%.1fs",
+        provider,
+        response.status_code,
+        attempt,
+        max_attempts,
+        backoff,
+    )
+    await asyncio.sleep(backoff)
+    return True
+
+
+def _raise_status(response: httpx.Response, provider: str) -> None:
+    detail = redact(response.text)
+    log.warning("%s failed status=%d: %s", provider, response.status_code, detail)
+    raise ProviderError(
+        provider,
+        f"{provider} returned HTTP {response.status_code}",
+        response.status_code,
+    )
+
+
 async def request_json(
     method: str,
     url: str,
@@ -115,59 +194,29 @@ async def request_json(
     max_attempts = (retries if retries is not None else settings.http_max_retries) + 1
     retryable = _RETRYABLE_STATUS if retry_statuses is None else retry_statuses
     client = await get_client()
-    last_error: str = "unknown error"
 
     for attempt in range(1, max_attempts + 1):
-        try:
-            response = await client.request(
-                method,
-                url,
-                params=params,
-                json=json_body,
-                headers=headers,
-                timeout=timeout or settings.http_timeout_s,
-            )
-        except (httpx.TimeoutException, httpx.TransportError) as exc:
-            last_error = f"{type(exc).__name__}"
-            log.warning(
-                "%s %s transport failure attempt=%d/%d: %s",
-                provider,
-                url.split("?")[0],
-                attempt,
-                max_attempts,
-                last_error,
-            )
-            if attempt >= max_attempts:
-                raise ProviderError(provider, f"{provider} unreachable", None) from exc
-            await asyncio.sleep(min(2.0 * attempt, 5.0))
-            continue
-
-        if response.status_code == 200:
-            try:
-                return response.json()
-            except ValueError as exc:
-                raise ProviderError(provider, f"{provider} returned malformed JSON", 200) from exc
-
-        if response.status_code in retryable and attempt < max_attempts:
-            backoff = _retry_after_seconds(response) or min(2.0 * attempt, 8.0)
-            log.warning(
-                "%s retryable status=%d attempt=%d/%d backoff=%.1fs",
-                provider,
-                response.status_code,
-                attempt,
-                max_attempts,
-                backoff,
-            )
-            await asyncio.sleep(backoff)
-            continue
-
-        detail = redact(response.text)
-        log.warning("%s failed status=%d: %s", provider, response.status_code, detail)
-        raise ProviderError(
-            provider,
-            f"{provider} returned HTTP {response.status_code}",
-            response.status_code,
+        response = await _request_once(
+            client,
+            method,
+            url,
+            provider=provider,
+            params=params,
+            json_body=json_body,
+            headers=headers,
+            timeout=timeout or settings.http_timeout_s,
+            attempt=attempt,
+            max_attempts=max_attempts,
         )
+        if response is None:
+            continue
+
+        decoded, data = _decode_response(response, provider)
+        if decoded:
+            return data
+        if await _backoff_if_retryable(response, provider, attempt, max_attempts, retryable):
+            continue
+        _raise_status(response, provider)
 
     raise ProviderError(provider, f"{provider} unreachable", None)
 
