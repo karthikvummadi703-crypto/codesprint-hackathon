@@ -1,3 +1,6 @@
+/**
+ * Carbon footprint route for trips, household inputs, and emission summaries.
+ */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
