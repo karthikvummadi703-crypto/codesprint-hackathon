@@ -1,3 +1,6 @@
+/**
+ * Area chart for historical AQI trends.
+ */
 import {
   AreaChart,
   Area,
