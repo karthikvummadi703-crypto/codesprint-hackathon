@@ -1,3 +1,6 @@
+/**
+ * Line chart with pollutant selector for historical trends.
+ */
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { HistoricalDataPoint } from '../../types';
