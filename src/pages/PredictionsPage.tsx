@@ -1,3 +1,6 @@
+/**
+ * Predictions route presenting forecast charts and location selection.
+ */
 import { AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/Card';
 import PredictionForecastChart from '../components/charts/PredictionForecastChart';
